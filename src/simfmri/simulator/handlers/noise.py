@@ -13,6 +13,7 @@ class NoiseHandler(AbstractHandler):
     Parameters
     ----------
     snr: The target SNR
+        The  SNR  is defined as max(signal) / std(noise)
     rng: int or numpy random state
     verbose: verbose flag.
         If True, a callback function is setup to return the computed snr.
@@ -35,7 +36,10 @@ class NoiseHandler(AbstractHandler):
         if self._snr == 0:
             return sim
         else:
-            self._add_noise(sim)
+            sigma_noise = np.max(abs(sim)) / self._snr
+            self._add_noise(sim, sigma_noise)
+
+        sim.extra_infos["input_snr"] = self._snr
 
     def _add_noise(self, sim):
         raise NotImplementedError
@@ -44,12 +48,27 @@ class NoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
-    def __init__(self, snr=0, rng=None):
-        self._snr = snr
+    def _add_noise(self, sim: Simulation, sigma_noise: float):
+
+        noise = sigma_noise * self._rng.standard_normal(
+            sim.data_ref.shape, dtype=sim.data_ref.dtype
+        )
+
+        if np.iscomplex(sim[:][0]):
+            noise += 1j * sigma_noise * self._rng.standard_normal(sim.data_ref.shape)
+
+        sim.data_acq = sim.data + noise
 
 
 class RicianNoiseHandler(NoiseHandler):
-    """
-    Add rician noise to the data.
+    """Add rician noise to the data."""
 
-    """
+    def _add_noise(self, sim: Simulation, sigma_noise: float):
+        if np.any(np.iscomplex(sim)):
+            raise ValueError(
+                "The Rice distribution is only applicable to real-valued data."
+            )
+        sim.data_acq = sps.rice(
+            sim.data_ref,
+            scale=sigma_noise,
+        )
