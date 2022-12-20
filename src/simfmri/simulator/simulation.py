@@ -31,9 +31,12 @@ class Simulation:
     data_acq: np.ndarray = None
     """Image data that would be acquired by the scanner."""
     kspace_data: np.ndarray = None
-    """Kspace data available for reconstruction. shape= (n_frames, n_coils, *shape)"""
+    """Kspace data available for reconstruction.
+    shape= (n_frames, n_coils, kspace_dims)"""
     kspace_mask: np.ndarray = None
-    """Mask of the sample kspace data"""
+    """Mask of the sample kspace data shape (n_frames, kspace_dims)"""
+    kspace_location: np.ndarray = None
+    """Location of kspace samples., shape (n_frames, kspace_dims)"""
     smaps: np.ndarray = None
     """If n_coils > 1 , describes the sensitivity maps of each coil."""
 
