@@ -12,13 +12,12 @@ class Simulation:
     """Shape of the volume of the simulation """
     n_frames: int
     """Number of frame of the simulation."""
+    TR: float
+    """Samping time"""
     n_coils: int = 1
     """Number of coil of the simulation"""
-    TR: float = 1.0
-    """Temporal resolution"""
     static_vol: np.ndarray = None
     """Static representation of the volume, eg anatomical T2."""
-
     data_ref: np.ndarray = None
     """
     Simulation data array with shape (n_frames, *shape).
@@ -51,3 +50,7 @@ class Simulation:
     def copy(self):
         """Return a deep copy of the Simulation."""
         return copy.deepcopy(self)
+
+    @property
+    def duration(self):
+        return self.TR * self.n_frames
