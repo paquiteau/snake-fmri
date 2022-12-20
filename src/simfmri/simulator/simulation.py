@@ -1,6 +1,7 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
+import copy
 
 
 @dataclass
@@ -46,3 +47,7 @@ class Simulation:
 
     def save(filename):
         """Save a simulation to file."""
+
+    def copy(self):
+        """Return a deep copy of the Simulation."""
+        return copy.deepcopy(self)
