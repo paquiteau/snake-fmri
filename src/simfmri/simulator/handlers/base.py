@@ -70,7 +70,21 @@ class AbstractHandler(ABC):
         self._next = handler
         return handler
 
+    def get_chain(self):
+        """show the chain of actions that would be applyied to a simulation."""
+        cur = self
+        handler_chain = []
+        while cur._next is not None:
+            handler_chain.append(cur)
+            cur = cur._next
+        ret_str = ""
+        for h in handler_chain[::-1]:
+            ret_str += "f{h.__class__.__name__}" + "->"
+
+        return ret_str
+
     def handle(self, sim: Simulation) -> Simulation:
+        """Handle a specific action done on the simulation, and move to the next one."""
         if self._callback is not None:
             old_sim = copy.deepcopy(sim)
             new_sim = self._handle(sim)
