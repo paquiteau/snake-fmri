@@ -1,18 +1,15 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Union, Tuple, TypeVar
 import numpy as np
-
-
-ShapeType = TypeVar(Union(Tuple(int, int, int), Tuple(int, int)))
 
 
 @dataclass
 class Simulation:
     """Data container for a simulation."""
 
-    shape: ShapeType = None
+    shape: tuple
     """Shape of the volume of the simulation """
-    n_frames: int = 1
+    n_frames: int
     """Number of frame of the simulation."""
     n_coils: int = 1
     """Number of coil of the simulation"""
@@ -39,6 +36,9 @@ class Simulation:
     """Mask of the sample kspace data"""
     smaps: np.ndarray = None
     """If n_coils > 1 , describes the sensitivity maps of each coil."""
+
+    extras_infos: dict = None
+    """Extra information, to add more information to the simulation"""
 
     def load_from_file(filename):
         """Load a simulation from file."""

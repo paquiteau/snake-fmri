@@ -2,11 +2,6 @@
 import numpy as np
 
 
-def mr_shepp_logan_t2_star(N, B0=3):
-    """Generate a T2* Shepp-Logan phantom."""
-    return mr_shepp_logan(N, E=None, B0=B0, T2star=True)[-1]
-
-
 def mr_shepp_logan(N, E=None, B0=3, T2star=False, zlims=(-1, 1)):
     """Generate a Shepp-Logan phantom with MR tissue parameters.
 
@@ -53,6 +48,8 @@ def mr_shepp_logan(N, E=None, B0=3, T2star=False, zlims=(-1, 1)):
     T2 : array_like
         The T2 values. If T2star is True, then these will be T2 star
         values.
+    labels: array_like
+        An integer-labelled partition of the phantom.
 
     Notes
     -----
