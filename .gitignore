@@ -1,6 +1,7 @@
 # general things to ignore
 build/
 dist/
+docs/source/_autosummary
 *.egg-info/
 *.egg
 *.py[cod]
