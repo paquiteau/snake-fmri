@@ -140,10 +140,6 @@ omit = ["*tests*", "denoiser/bindings/*"]
 precision = 2
 exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
 
-[tool.flake8]
-docstring-convention = "numpy"
-ignore = ["D105"]
-
 # Formatting using black.
 [tool.black]
 
