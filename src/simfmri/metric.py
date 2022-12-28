@@ -1,4 +1,5 @@
-"""Metric function to compare to different array. """
+"""Metric function to compare two different arrays.
+"""
 
 import numpy as np
 

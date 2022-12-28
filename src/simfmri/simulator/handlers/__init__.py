@@ -1,6 +1,6 @@
 from .base import AbstractHandler
 
-from .phantom import PhantomGeneratorHandler
+from .phantom import SheppLoganPhantomGeneratorHandler
 
 from .noise import NoiseHandler, GaussianNoiseHandler, RicianNoiseHandler
 
@@ -9,7 +9,7 @@ from .activation import ActivationHandler
 
 __all__ = [
     "AbstractHandler",
-    "PhantomGeneratorHandler",
+    "SheppLoganPhantomGeneratorHandler",
     "NoiseHandler",
     "GaussianNoiseHandler",
     "RicianNoiseHandler",

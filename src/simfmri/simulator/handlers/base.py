@@ -5,7 +5,7 @@ import copy
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from .simulation import Simulation
+from ..simulation import Simulation
 
 
 class AbstractHandler(ABC):
@@ -30,7 +30,7 @@ class AbstractHandler(ABC):
     _next: AbstractHandler = None
 
     def __init__(self):
-        self._callbacks = None
+        self._callbacks = []
 
     def __matmul__(self, obj: AbstractHandler):
         if isinstance(obj, AbstractHandler):
@@ -40,7 +40,6 @@ class AbstractHandler(ABC):
 
     def _run_callback(self, old_sim, new_sim):
         """Run the different callbacks."""
-
         if isinstance(self._callbacks, list):
             for callback_fun in self._callbacks:
                 callback_fun(old_sim, new_sim)
@@ -52,21 +51,45 @@ class AbstractHandler(ABC):
 
     @property
     def callbacks(self):
-        return self._callback
+        """Return the list of callbacks run after the handling."""
+        return self._callbacks
 
     def add_callback(self, call: Callable):
         if not callable(call):
             raise TypeError("Callback attribute should be callable with two argument.")
         if not isinstance(self._callbacks, list):
-            self._callback = [self._callbacks]
+            self._callbacks = [self._callbacks]
 
         self._callbacks.append(call)
 
-    def remove_callback(self, idx):
-        """Remove callback according to its position."""
+    def remove_callback(self, idx: int):
+        """Remove callback according to its position.
+
+        Parameters
+        ----------
+        idx
+            the index of the callback to remove
+
+        Returns
+        -------
+        callable
+            the removed callback.
+        """
         self._callback.pop(idx)
 
     def set_next(self, handler: AbstractHandler) -> AbstractHandler:
+        """Set the next handler to call.
+
+        Parameters
+        ----------
+        handler
+            The next handler to call
+
+        Returns
+        -------
+        handler
+            The next handler to call
+        """
         self._next = handler
         return handler
 

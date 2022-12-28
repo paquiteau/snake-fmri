@@ -5,4 +5,4 @@ from typing import Union
 import numpy as np
 
 
-RngType = Union(int, np.random.Generator)
+RngType = Union[int, np.random.Generator]

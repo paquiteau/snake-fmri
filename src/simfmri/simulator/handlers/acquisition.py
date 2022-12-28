@@ -2,7 +2,7 @@
 from typing import Callable, Union
 
 import numpy as np
-from fmri.operator.fourier import CartesianSpaceFourier
+from fmri.operators.fourier import CartesianSpaceFourier
 from simfmri.utils import get_smaps
 from simfmri.utils.cartesian_sampling import get_cartesian_mask
 
@@ -10,19 +10,21 @@ from ..simulation import Simulation
 from .base import AbstractHandler
 
 
-class AcquistionHandler(AbstractHandler):
+class AcquisitionHandler(AbstractHandler):
     """
     Simulate the acquisition of the data.
 
     Parameters
     ----------
-    sampling_mask: ndarray or callable
-    gen_smaps: boolean
+    sampling_mask
+        array or function returning an array of the sampling mask
+    gen_smaps
+        If true, smaps are also generated, default true.
 
     """
 
     def __init__(
-        self, sampling_mask: Union(np.ndarray, Callable), gen_smaps: bool = True
+        self, sampling_mask: Union[np.ndarray, Callable], gen_smaps: bool = True
     ):
         self._sampling_mask = sampling_mask
         self._gen_smaps = gen_smaps
@@ -48,12 +50,11 @@ class AcquistionHandler(AbstractHandler):
 
         sim.kspace_data = fourier_op.op(sim.data_acq)
         sim.kspace_mask = mask
-        pass
 
     @classmethod
     def vds(
         cls,
-        acs: Union(float, int),
+        acs: Union[float, int],
         accel: int,
         constant: bool = True,
         gen_smaps: bool = True,

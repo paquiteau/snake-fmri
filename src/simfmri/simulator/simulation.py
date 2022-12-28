@@ -1,3 +1,8 @@
+"""
+Simulation data model
+
+The Simulation class holds all the information and data relative to a simulation.
+"""
 from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
@@ -56,10 +61,11 @@ class Simulation:
 
     @property
     def duration(self) -> float:
+        """Return the duration (in seconds) of the experiment."""
         return self.TR * self.n_frames
 
     def is_valid(self) -> bool:
-        """ "Check if the attributes are coherent to each other."""
+        """Check if the attributes are coherent to each other."""
         if self.data_ref:
             if self.data_ref.shape != (self.n_frames, *self.shape):
                 return False

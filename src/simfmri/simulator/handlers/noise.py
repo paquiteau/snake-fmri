@@ -1,3 +1,7 @@
+"""Noise Module
+
+This module declares the various noise models availables.
+"""
 from .base import AbstractHandler
 from ..simulation import Simulation
 
@@ -8,7 +12,7 @@ import scipy.stats as sps
 
 
 class NoiseHandler(AbstractHandler):
-    """Add noise to the data
+    """Add noise to the data.
 
     Parameters
     ----------
@@ -41,7 +45,16 @@ class NoiseHandler(AbstractHandler):
 
         sim.extra_infos["input_snr"] = self._snr
 
-    def _add_noise(self, sim):
+    def _add_noise(self, sim: Simulation):
+        """add noise to the simulation.
+
+        This should only update the attribute data_acq  of a Simulation object.
+
+        Parameters
+        ----------
+        sim
+            Simulation data object
+        """
         raise NotImplementedError
 
 
