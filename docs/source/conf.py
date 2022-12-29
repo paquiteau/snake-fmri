@@ -38,7 +38,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # mock the import of pysap-fmri
 autodoc_mock_imports = ["fmri"]
-
+autodoc_default_options = {"exclude-members": "_abc_impl"}
 autosummary_generate = True
 napoleon_include_private_with_doc = True
 
@@ -49,7 +49,7 @@ napoleon_include_private_with_doc = True
 # a list of builtin themes.
 #
 
-html_theme = "pydata_sphinx_theme"
+html_theme = "furo"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

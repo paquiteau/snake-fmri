@@ -27,19 +27,37 @@ class AbstractHandler(ABC):
 
     """
 
-    _next: AbstractHandler = None
-
     def __init__(self):
         self._callbacks = []
+        self._next = None
 
     def __matmul__(self, obj: AbstractHandler):
+        """Chain the handler with the righhandside.
+
+        Example
+        -------
+        >>> a, b = Handler(), Handler()
+        >>> a @ b is a.set_next(b)
+        True
+        >>> a @ b is b
+        True
+        """
+
         if isinstance(obj, AbstractHandler):
             return self.set_next(obj)
         else:
             raise TypeError
 
-    def _run_callback(self, old_sim, new_sim):
-        """Run the different callbacks."""
+    def _run_callback(self, old_sim: Simulation, new_sim: Simulation):
+        """Run the different callbacks.
+
+        Parameters
+        ----------
+        old_sim
+            The simulation object before handling it
+        new_sim
+            The simulation obkect after handling it
+        """
         if isinstance(self._callbacks, list):
             for callback_fun in self._callbacks:
                 callback_fun(old_sim, new_sim)
@@ -50,11 +68,18 @@ class AbstractHandler(ABC):
                 raise RuntimeError("callback function not callable.") from e
 
     @property
-    def callbacks(self):
+    def callbacks(self) -> list:
         """Return the list of callbacks run after the handling."""
         return self._callbacks
 
     def add_callback(self, call: Callable):
+        """Add a callback to the callback list.
+
+        Parameters
+        ----------
+        call
+            The callback to add
+        """
         if not callable(call):
             raise TypeError("Callback attribute should be callable with two argument.")
         if not isinstance(self._callbacks, list):
@@ -77,7 +102,13 @@ class AbstractHandler(ABC):
         """
         self._callback.pop(idx)
 
-    def set_next(self, handler: AbstractHandler) -> AbstractHandler:
+    @property
+    def next(self):
+        """Next handler in the chain"""
+        return self._next
+
+    @next.setter
+    def next(self, handler: AbstractHandler) -> AbstractHandler:
         """Set the next handler to call.
 
         Parameters
@@ -90,7 +121,8 @@ class AbstractHandler(ABC):
         handler
             The next handler to call
         """
-        self._next = handler
+        if isinstance(handler, AbstractHandler):
+            self._next = handler
         return handler
 
     def get_chain(self):
