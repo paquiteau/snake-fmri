@@ -64,10 +64,14 @@ class AcquisitionHandler(AbstractHandler):
 
         Parameters
         ----------
-        acs: autocalibration line number (int) or proportion (float)
-        accel: Acceleration factor
-        constant: If true, the sampling pattern is repeated across time
-        gen_smaps: If true, smaps are generated, and used in the acquisition.
+        acs
+            autocalibration line number (int) or proportion (float)
+        accel
+            Acceleration factor
+        constant
+            If true, the sampling pattern is repeated across time
+        gen_smaps
+            If true, smaps are generated, and used in the acquisition.
         """
 
         def sampling_mask(sim: Simulation):

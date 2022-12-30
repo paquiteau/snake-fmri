@@ -42,7 +42,6 @@ class AbstractHandler(ABC):
         >>> a @ b is b
         True
         """
-
         if isinstance(obj, AbstractHandler):
             return self.set_next(obj)
         else:
@@ -108,7 +107,7 @@ class AbstractHandler(ABC):
 
     @property
     def next(self):
-        """Next handler in the chain"""
+        """Next handler in the chain."""
         return self._next
 
     @next.setter
