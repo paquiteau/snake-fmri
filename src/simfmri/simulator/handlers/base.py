@@ -48,6 +48,10 @@ class AbstractHandler(ABC):
         else:
             raise TypeError
 
+    def __call__(self, sim: Simulation) -> Simulation:
+        """Short-hand for handle operation."""
+        return self.handle(sim)
+
     def _run_callback(self, old_sim: Simulation, new_sim: Simulation):
         """Run the different callbacks.
 
