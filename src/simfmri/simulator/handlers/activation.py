@@ -1,11 +1,15 @@
 """Handler to add activations."""
 from __future__ import annotations
+
+from typing import Literal
+
 import numpy as np
 from nilearn.glm.first_level import compute_regressor
-from typing import Literal
 from numpy.typing import NDArray
-from ..simulation import Simulation
 
+from simfmri.utils import block_design
+
+from ..simulation import Simulation
 from .base import AbstractHandler
 
 NILEARN_HRF = [
