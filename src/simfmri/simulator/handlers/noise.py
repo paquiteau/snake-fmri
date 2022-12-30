@@ -2,6 +2,7 @@
 
 This module declares the various noise models availables.
 """
+from __future__ import annotations
 from .base import AbstractHandler
 from ..simulation import Simulation
 
@@ -16,15 +17,17 @@ class NoiseHandler(AbstractHandler):
 
     Parameters
     ----------
-    snr: The target SNR
+    snr
+        The target SNR
         The  SNR  is defined as max(signal) / std(noise)
-    rng: int or numpy random state
-    verbose: verbose flag.
+    rng
+        Random Generator, optional,  int or numpy random state
+    verbose
+        verbose flag.
         If True, a callback function is setup to return the computed snr.
-
     """
 
-    def __init__(self, verbose=True, rng: RngType = None, snr: float = 0):
+    def __init__(self, verbose: bool = True, rng: RngType = None, snr: float = 0):
         super().__init__()
         self._verbose = verbose
         self._rng = validate_rng(rng)

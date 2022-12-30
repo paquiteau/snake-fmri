@@ -14,13 +14,13 @@ class Simulation:
     """Data container for a simulation."""
 
     shape: tuple
-    """Shape of the volume of the simulation """
+    """Shape of the volume of the simulation."""
     n_frames: int
     """Number of frame of the simulation."""
     TR: float
-    """Samping time"""
+    """Samping time."""
     n_coils: int = 1
-    """Number of coil of the simulation"""
+    """Number of coil of the simulation."""
     static_vol: np.ndarray = None
     """Static representation of the volume, eg anatomical T2."""
     data_ref: np.ndarray = None
