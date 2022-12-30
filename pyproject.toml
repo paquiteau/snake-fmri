@@ -133,9 +133,6 @@ build-backend = "setuptools.build_meta"
 #package-data = {"sample" = ["*.dat"]}
 
 
-[tool.coverage.run]
-omit = ["*tests*", "denoiser/bindings/*"]
-
 [tool.coverage.report]
 precision = 2
 exclude_lines = ["pragma: no cover", "raise NotImplementedError"]
@@ -149,6 +146,7 @@ profile="black"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
+    "--cov=simfmri",
     "--cov-report=term-missing",
 ]
 
