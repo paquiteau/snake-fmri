@@ -10,7 +10,7 @@ from .handlers import (
 )
 
 
-def sl_block_vds(n_frames: int, shape: Shape2d3d, snr: float, R: int) -> Simulation:
+def sl_block_vds(n_frames: int, shape: Shape2d3d, snr: float, accel: int) -> Simulation:
     """Generate a simulation scenario using shepp-logan and block activation.
 
     The TR is fixed to 1s.
@@ -23,7 +23,7 @@ def sl_block_vds(n_frames: int, shape: Shape2d3d, snr: float, R: int) -> Simulat
         Shape of the simulated volume
     snr
         Signal to noise ratio to target
-    R
+    accel
         Acceleration factor for the acquisition.
 
     Returns
@@ -41,7 +41,8 @@ def sl_block_vds(n_frames: int, shape: Shape2d3d, snr: float, R: int) -> Simulat
     simulator = (
         SheppLoganPhantomGeneratorHandler()
         @ ActivationHandler.from_block_design(3, 3, n_frames)
-        @ AcquisitionHandler.vds(acs=24, accel=R, constant=True, gen_smaps=False)
+        @ AcquisitionHandler.vds(acs=24, accel=accel, constant=True, gen_smaps=False)
+        @ KspaceNoiseHandler(snr=snr)
     )
 
     return simulator(sim_data)

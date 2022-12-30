@@ -1,5 +1,5 @@
 """
-Simulation data model
+Simulation data model.
 
 The Simulation class holds all the information and data relative to a simulation.
 """
