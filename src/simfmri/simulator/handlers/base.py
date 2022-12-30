@@ -134,7 +134,7 @@ class AbstractHandler(ABC):
             cur = cur._next
         ret_str = ""
         for h in handler_chain[::-1]:
-            ret_str += "f{h.__class__.__name__}" + "->"
+            ret_str += f"{h.__class__.__name__}" + "->"
 
         return ret_str
 
