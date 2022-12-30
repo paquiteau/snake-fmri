@@ -34,6 +34,8 @@ class NoiseHandler(AbstractHandler):
         if self._verbose:
             self.add_callback(self._callback_fun)
 
+        self._snr = snr
+
     def _callback_fun(self, old_sim, new_sim):
         if self._verbose:
             # compute the SNR and print it.
@@ -43,7 +45,7 @@ class NoiseHandler(AbstractHandler):
         if self._snr == 0:
             return sim
         else:
-            sigma_noise = np.max(abs(sim)) / self._snr
+            sigma_noise = np.max(abs(sim.data_ref)) / self._snr
             self._add_noise(sim, sigma_noise)
 
         sim.extra_infos["input_snr"] = self._snr
@@ -73,7 +75,7 @@ class GaussianNoiseHandler(NoiseHandler):
         if np.iscomplex(sim[:][0]):
             noise += 1j * sigma_noise * self._rng.standard_normal(sim.data_ref.shape)
 
-        sim.data_acq = sim.data + noise
+        sim.data_acq = sim.data_ref + noise
 
 
 class RicianNoiseHandler(NoiseHandler):
@@ -88,3 +90,19 @@ class RicianNoiseHandler(NoiseHandler):
             sim.data_ref,
             scale=sigma_noise,
         )
+
+
+class KspaceNoiseHandler(NoiseHandler):
+    """Add gaussian in the kspace."""
+
+    def _add_noise(self, sim: Simulation, sigma_noise: float):
+        if sim.kspace_data is None:
+            raise ValueError("kspace data not initialized.")
+
+        kspace_noise = self._rng.standard_normal(
+            sim.kspace_data.shape, dtype=sim.kspace_data.dtype
+        )
+        kspace_noise += 1j * self._rng.standard_normal(sim.kspace_data.shape)
+        kspace_noise *= sigma_noise
+
+        sim.kspace_data += kspace_noise * sim.kspace_mak
