@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
 import copy
+import pickle
 
 
 @dataclass
@@ -35,6 +36,8 @@ class Simulation:
     """
     data_acq: np.ndarray = None
     """Image data that would be acquired by the scanner."""
+    data_rec: np.ndarray = None
+    """Image data after reconstruction."""
     kspace_data: np.ndarray = None
     """Kspace data available for reconstruction.
     shape= (n_frames, n_coils, kspace_dims)"""
@@ -48,12 +51,20 @@ class Simulation:
     extras_infos: dict = None
     """Extra information, to add more information to the simulation"""
 
-    def load_from_file(filename):
+    @classmethod
+    def load_from_file(cls, filename):
         """Load a simulation from file."""
-        raise NotImplementedError
+        with open(filename) as f:
+            obj = pickle.load(f)
+        if obj.is_valid():
+            return obj
+        else:
+            raise ValueError("Simulation object not valid.")
 
-    def save(filename):
+    def save(self, filename):
         """Save a simulation to file."""
+        with open(filename) as f:
+            pickle.dump(self, f)
 
     def copy(self):
         """Return a deep copy of the Simulation."""
