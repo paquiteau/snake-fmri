@@ -1,0 +1,3 @@
+default:
+  - simulation: sl_activation
+  - reconstruction: zero_filled
