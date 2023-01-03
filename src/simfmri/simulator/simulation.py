@@ -7,17 +7,17 @@ from __future__ import annotations
 
 import copy
 import pickle
-from dataclasses import dataclass
+import dataclasses
 
 
-from simfmri.utils import Shape2d3dType
+from simfmri.utils import Shape2d3d
 
 
-@dataclass
+@dataclasses.dataclass
 class SimulationMeta:
     """Simulation metadata."""
 
-    shape: Shape2d3dType
+    shape: Shape2d3d
     """Shape of the volume of the simulation."""
     n_frames: int
     """Number of frame of the simulation."""
@@ -25,7 +25,7 @@ class SimulationMeta:
     """Samping time."""
     n_coils: int = 1
     """Number of coil of the simulation."""
-    extras_infos: dict = None
+    extra_infos: dict = None
     """Extra information, to add more information to the simulation"""
 
 
@@ -82,7 +82,7 @@ class Simulation:
 
     def __init__(
         self,
-        shape: Shape2d3dType,
+        shape: Shape2d3d,
         n_frames: int,
         TR: float,
         n_coils: int = 1,
@@ -114,7 +114,10 @@ class Simulation:
         in_place
             If True, the underlying _meta attribute is set to sim_meta.
         """
-        obj = cls(**dict(sim_meta))
+        if isinstance(sim_meta, SimulationMeta):
+            obj = cls(**dataclasses.asdict(sim_meta))
+        else:
+            obj = cls(**dict(sim_meta))
         if in_place and isinstance(sim_meta, SimulationMeta):
             obj._meta = sim_meta
 
@@ -179,5 +182,8 @@ class Simulation:
 
 
 # expose the meta attribute at first level as read-only.
-for attr in SimulationMeta.__dict__:
-    setattr(Simulation, attr, property(lambda obj, attr=attr: getattr(obj._meta, attr)))
+for attr in dataclasses.fields(SimulationMeta):
+    attr_n = attr.name
+    setattr(
+        Simulation, attr_n, property(lambda obj, attr=attr_n: getattr(obj._meta, attr))
+    )
