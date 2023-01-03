@@ -1,6 +1,6 @@
 from typing import Union
 from .base import AbstractHandler
-from ..simulation import Simulation
+from ..simulation import SimulationData
 
 
 from ...utils.phantom import mr_shepp_logan
@@ -29,7 +29,7 @@ class SheppLoganPhantomGeneratorHandler(AbstractHandler):
         self.B0 = B0
         self.roi_index = roi_index
 
-    def _handle(self, sim: Simulation):
+    def _handle(self, sim: SimulationData):
         if len(sim.shape) != 3:
             raise ValueError("simulation shape should be 3D.")
 

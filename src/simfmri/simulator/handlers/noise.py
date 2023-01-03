@@ -4,7 +4,7 @@ This module declares the various noise models availables.
 """
 from __future__ import annotations
 from .base import AbstractHandler
-from ..simulation import Simulation
+from ..simulation import SimulationData
 
 from simfmri.utils import validate_rng, RngType
 
@@ -41,7 +41,7 @@ class NoiseHandler(AbstractHandler):
             # compute the SNR and print it.
             print("actual_snr:")
 
-    def _handle(self, sim: Simulation):
+    def _handle(self, sim: SimulationData):
         if self._snr == 0:
             return sim
         else:
@@ -50,7 +50,7 @@ class NoiseHandler(AbstractHandler):
 
         sim.extra_infos["input_snr"] = self._snr
 
-    def _add_noise(self, sim: Simulation):
+    def _add_noise(self, sim: SimulationData):
         """add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object.
@@ -66,7 +66,7 @@ class NoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
-    def _add_noise(self, sim: Simulation, sigma_noise: float):
+    def _add_noise(self, sim: SimulationData, sigma_noise: float):
 
         noise = sigma_noise * self._rng.standard_normal(
             sim.data_ref.shape, dtype=sim.data_ref.dtype
@@ -81,7 +81,7 @@ class GaussianNoiseHandler(NoiseHandler):
 class RicianNoiseHandler(NoiseHandler):
     """Add rician noise to the data."""
 
-    def _add_noise(self, sim: Simulation, sigma_noise: float):
+    def _add_noise(self, sim: SimulationData, sigma_noise: float):
         if np.any(np.iscomplex(sim)):
             raise ValueError(
                 "The Rice distribution is only applicable to real-valued data."
@@ -95,7 +95,7 @@ class RicianNoiseHandler(NoiseHandler):
 class KspaceNoiseHandler(NoiseHandler):
     """Add gaussian in the kspace."""
 
-    def _add_noise(self, sim: Simulation, sigma_noise: float):
+    def _add_noise(self, sim: SimulationData, sigma_noise: float):
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 

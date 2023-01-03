@@ -1,13 +1,17 @@
-"""Reconstructor interface."""
+"""Reconstructor interface.
+
+Reconstructor implement a `reconstruct` method which takes a simulation object as input
+and returns a reconstructed fMRI array.
+"""
 import numpy as np
 
-from simfmri import Simulation
+from simfmri import SimulationData
 
 
 class BenchmarkReconstructor:
     """Represents the interface required to be benchmark-able."""
 
-    def reconstruct(self, sim: Simulation) -> np.ndarray:
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct data."""
         raise NotImplementedError()
 
@@ -84,3 +88,8 @@ class SequentialReconstructor(BenchmarkReconstructor):
         return sec_rec.reconstruct(
             sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame
         )
+
+
+# TODO: LR+S reconstructor
+# TODO: ZeroFilled + Denosing
+# TODO: PnP

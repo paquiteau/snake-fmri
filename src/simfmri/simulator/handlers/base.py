@@ -5,7 +5,7 @@ import copy
 from abc import ABC, abstractmethod
 from typing import Callable
 
-from ..simulation import Simulation
+from ..simulation import SimulationData
 
 
 class AbstractHandler(ABC):
@@ -47,11 +47,11 @@ class AbstractHandler(ABC):
         else:
             raise TypeError
 
-    def __call__(self, sim: Simulation) -> Simulation:
+    def __call__(self, sim: SimulationData) -> SimulationData:
         """Short-hand for handle operation."""
         return self.handle(sim)
 
-    def _run_callback(self, old_sim: Simulation, new_sim: Simulation):
+    def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData):
         """Run the different callbacks.
 
         Parameters
@@ -141,7 +141,7 @@ class AbstractHandler(ABC):
 
         return ret_str
 
-    def handle(self, sim: Simulation) -> Simulation:
+    def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
         if self._callback is not None:
             old_sim = copy.deepcopy(sim)
@@ -155,5 +155,5 @@ class AbstractHandler(ABC):
             return new_sim
 
     @abstractmethod
-    def _handle(self, sim: Simulation) -> None:
+    def _handle(self, sim: SimulationData) -> None:
         pass

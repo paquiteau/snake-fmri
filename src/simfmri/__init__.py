@@ -1,1 +1,1 @@
-from .simulator import Simulation
+from .simulator import SimulationData

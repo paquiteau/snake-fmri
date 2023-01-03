@@ -9,7 +9,7 @@ from numpy.typing import NDArray
 
 from simfmri.utils import block_design
 
-from ..simulation import Simulation
+from ..simulation import SimulationData
 from .base import AbstractHandler
 
 NILEARN_HRF = [
@@ -138,7 +138,7 @@ class ActivationHandler(AbstractHandler):
         """
         return cls(block_design(block_on, block_off, duration, offset))
 
-    def _handle(self, sim: Simulation):
+    def _handle(self, sim: SimulationData):
 
         if self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")

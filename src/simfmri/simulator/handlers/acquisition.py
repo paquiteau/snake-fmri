@@ -6,7 +6,7 @@ from fmri.operators.fourier import CartesianSpaceFourier
 from simfmri.utils import get_smaps
 from simfmri.utils.cartesian_sampling import get_cartesian_mask
 
-from ..simulation import Simulation
+from ..simulation import SimulationData
 from .base import AbstractHandler
 
 
@@ -31,7 +31,7 @@ class AcquisitionHandler(AbstractHandler):
 
         pass
 
-    def _handle(self, sim: Simulation):
+    def _handle(self, sim: SimulationData):
         if self._gen_smaps:
             sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
@@ -74,7 +74,7 @@ class AcquisitionHandler(AbstractHandler):
             If true, smaps are generated, and used in the acquisition.
         """
 
-        def sampling_mask(sim: Simulation):
+        def sampling_mask(sim: SimulationData):
             return get_cartesian_mask(
                 shape=sim.shape,
                 n_frames=sim.n_frames,

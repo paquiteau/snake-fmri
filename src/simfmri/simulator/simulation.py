@@ -29,7 +29,7 @@ class SimulationParams:
     """Extra information, to add more information to the simulation"""
 
 
-class Simulation:
+class SimulationData:
     """Data container for a simulation.
 
     Parameters
@@ -87,7 +87,7 @@ class Simulation:
         TR: float,
         n_coils: int = 1,
         **extra_infos,
-    ) -> Simulation:
+    ) -> SimulationData:
         self._meta = SimulationParams(
             shape, n_frames, TR, n_coils, extra_infos=extra_infos
         )
@@ -103,7 +103,7 @@ class Simulation:
         self.smaps = None
 
     @classmethod
-    def from_meta(cls, sim_meta: SimulationParams, in_place=False) -> Simulation:
+    def from_params(cls, sim_meta: SimulationParams, in_place=False) -> SimulationData:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -124,7 +124,7 @@ class Simulation:
         return obj
 
     @classmethod
-    def load_from_file(cls, filename: str) -> Simulation:
+    def load_from_file(cls, filename: str) -> SimulationData:
         """Load a simulation from file.
 
         Parameters
@@ -150,7 +150,7 @@ class Simulation:
         with open(filename) as f:
             pickle.dump(self, f)
 
-    def copy(self) -> Simulation:
+    def copy(self) -> SimulationData:
         """Return a deep copy of the Simulation."""
         return copy.deepcopy(self)
 
@@ -185,5 +185,7 @@ class Simulation:
 for attr in dataclasses.fields(SimulationParams):
     attr_n = attr.name
     setattr(
-        Simulation, attr_n, property(lambda obj, attr=attr_n: getattr(obj._meta, attr))
+        SimulationData,
+        attr_n,
+        property(lambda obj, attr=attr_n: getattr(obj._meta, attr)),
     )
