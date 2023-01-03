@@ -14,7 +14,7 @@ from simfmri.utils import Shape2d3d
 
 
 @dataclasses.dataclass
-class SimulationMeta:
+class SimulationParams:
     """Simulation metadata."""
 
     shape: Shape2d3d
@@ -88,7 +88,7 @@ class Simulation:
         n_coils: int = 1,
         **extra_infos,
     ) -> Simulation:
-        self._meta = SimulationMeta(
+        self._meta = SimulationParams(
             shape, n_frames, TR, n_coils, extra_infos=extra_infos
         )
 
@@ -103,7 +103,7 @@ class Simulation:
         self.smaps = None
 
     @classmethod
-    def from_meta(cls, sim_meta: SimulationMeta, in_place=False) -> Simulation:
+    def from_meta(cls, sim_meta: SimulationParams, in_place=False) -> Simulation:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -114,11 +114,11 @@ class Simulation:
         in_place
             If True, the underlying _meta attribute is set to sim_meta.
         """
-        if isinstance(sim_meta, SimulationMeta):
+        if isinstance(sim_meta, SimulationParams):
             obj = cls(**dataclasses.asdict(sim_meta))
         else:
             obj = cls(**dict(sim_meta))
-        if in_place and isinstance(sim_meta, SimulationMeta):
+        if in_place and isinstance(sim_meta, SimulationParams):
             obj._meta = sim_meta
 
         return obj
@@ -182,7 +182,7 @@ class Simulation:
 
 
 # expose the meta attribute at first level as read-only.
-for attr in dataclasses.fields(SimulationMeta):
+for attr in dataclasses.fields(SimulationParams):
     attr_n = attr.name
     setattr(
         Simulation, attr_n, property(lambda obj, attr=attr_n: getattr(obj._meta, attr))
