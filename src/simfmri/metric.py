@@ -1,5 +1,4 @@
-"""Metric function to compare two different arrays.
-"""
+"""Metric function to compare two different arrays."""
 
 import numpy as np
 
@@ -39,7 +38,7 @@ def get_signal_noise(
 
 
 def get_snr(test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None) -> float:
-    """Compute the overall SNR between data_ref and data_acq"""
+    """Compute the overall SNR between data_ref and data_acq."""
     signal, noise = get_signal_noise(test, ref, roi)
 
     return np.sqrt(np.mean(signal**2) / np.mean(noise**2))
@@ -51,7 +50,7 @@ def get_tsnr(
     roi: np.ndarray = None,
     tax: int = 0,
 ) -> np.ndarray:
-    """Get the tSNR
+    """Get the tSNR.
 
     Parameters
     ----------
@@ -63,7 +62,6 @@ def get_tsnr(
     -------
     ptsnr: peak tsnr of the volume.
     """
-
     signal, noise = get_signal_noise(test, ref, roi)
 
     return np.sqrt(np.mean(signal**2, axis=tax) / np.mean(noise**2, axis=tax))
@@ -92,11 +90,6 @@ def get_snr_axis(test, ref, roi=None, mean_axis=0, peak_axis=None):
     Returns
     -------
     np.ndarray: the computed snr.
-
-
-    Notes
-    -----
-
     """
     if mean_axis == peak_axis:
         raise ValueError("mean axis and peak axis should be different.")
