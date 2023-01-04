@@ -8,6 +8,7 @@ from __future__ import annotations
 import copy
 import pickle
 import dataclasses
+import numpy as np
 
 
 from simfmri.utils import Shape2d3d
@@ -191,6 +192,18 @@ class SimulationData:
         # TODO: add test on the mask
 
         return True
+
+    def __str__(self):
+        ret = "SimulationData: \n"
+        ret += f"{self._meta}\n"
+
+        for array_name in ["data_ref", "data_acq", "kspace_data", "kspace_mask"]:
+            array = getattr(self, array_name)
+            if isinstance(array, np.ndarray):
+                ret += f"{array_name}: {array.dtype}({array.shape})\n"
+            else:
+                ret += f"{array_name}: {array}\n"
+        return ret
 
 
 # expose the meta attribute at first level as read-only.
