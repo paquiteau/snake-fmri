@@ -51,6 +51,9 @@ class AbstractHandler(ABC):
         """Short-hand for handle operation."""
         return self.handle(sim)
 
+    def __str__(self):
+        return self.__class__.__name__
+
     def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData):
         """Run the different callbacks.
 
@@ -126,6 +129,8 @@ class AbstractHandler(ABC):
         """
         if isinstance(handler, AbstractHandler):
             self._next = handler
+        else:
+            raise ValueError("next should be an Handler.")
         return handler
 
     def get_chain(self):
