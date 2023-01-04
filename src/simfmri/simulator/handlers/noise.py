@@ -1,4 +1,4 @@
-"""Noise Module
+"""Noise Module.
 
 This module declares the various noise models availables.
 """
@@ -49,6 +49,7 @@ class NoiseHandler(AbstractHandler):
             self._add_noise(sim, sigma_noise)
 
         sim.extra_infos["input_snr"] = self._snr
+        return sim
 
     def _add_noise(self, sim: SimulationData):
         """add noise to the simulation.
@@ -99,10 +100,12 @@ class KspaceNoiseHandler(NoiseHandler):
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 
-        kspace_noise = self._rng.standard_normal(
-            sim.kspace_data.shape, dtype=sim.kspace_data.dtype
+        kspace_noise = np.complex64(
+            self._rng.standard_normal(sim.kspace_data.shape, dtype="float32")
         )
-        kspace_noise += 1j * self._rng.standard_normal(sim.kspace_data.shape)
+        kspace_noise += 1j * self._rng.standard_normal(
+            sim.kspace_data.shape, dtype="float32"
+        )
         kspace_noise *= sigma_noise
 
-        sim.kspace_data += kspace_noise * sim.kspace_mak
+        sim.kspace_data += kspace_noise * sim.kspace_mask

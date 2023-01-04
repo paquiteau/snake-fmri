@@ -149,15 +149,14 @@ class ActivationHandler(AbstractHandler):
             roi = sim.roi
 
         frame_times = sim.TR * np.arange(sim.n_frames)
-        regressors, _ = compute_regressor(
+        regressor, _ = compute_regressor(
             self._event_condition,
             self._hrf_model,
             frame_times,
             oversampling=self._oversampling,
             min_onset=self._min_onset,
         )
-        regressors = np.squeeze(regressors)
-        regressors /= np.max(regressors)
+        regressor = np.squeeze(regressor)
+        regressor *= (1 + self._bold_strength) / np.max(regressor)
 
-        sim.data_ref = roi * (1 + self._bold_strength) * regressors[:, None, None, None]
-        return sim
+        sim.data_ref[:, roi] *= regressor

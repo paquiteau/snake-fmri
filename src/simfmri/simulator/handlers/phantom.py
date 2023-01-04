@@ -1,10 +1,11 @@
 """Phantom Generation Handlers."""
 from typing import Union
-from .base import AbstractHandler
-from ..simulation import SimulationData
 
+import numpy as np
 
 from ...utils.phantom import mr_shepp_logan
+from ..simulation import SimulationData
+from .base import AbstractHandler
 
 
 class SheppLoganGeneratorHandler(AbstractHandler):
@@ -37,8 +38,8 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
         M0, T1, T2, labels = mr_shepp_logan(sim.shape, B0=self.B0, T2star=True)
 
-        sim.data_ref = T2
-        sim.data = T2.copy()
+        sim.data_ref = np.repeat(T2[None, ...], axis=0)
+        sim.static_vol = T2.copy()
 
         sim.roi = labels == self.roi_index
 
@@ -46,7 +47,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
 
 class SlicerHandler(AbstractHandler):
-    """Handler to get a 2D+T slice from a 3D+T simulation
+    """Handler to get a 2D+T slice from a 3D+T simulation.
 
     Parameters
     ----------
@@ -77,7 +78,7 @@ class SlicerHandler(AbstractHandler):
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Performs the slicing on all relevant data and update data_shape."""
-        for data_type in ["data_ref", "_data_acq"]:
+        for data_type in ["data_ref", "_data_acq", "roi"]:
             if (array := getattr(sim, data_type)) is not None:
                 setattr(sim, data_type, array[self.slicer])
 
