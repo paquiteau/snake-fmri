@@ -19,7 +19,7 @@ class BenchmarkReconstructor:
         raise NotImplementedError()
 
 
-class ZeroFilledChallenger(BenchmarkReconstructor):
+class ZeroFilledReconstructor(BenchmarkReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
     def __str__(self):
