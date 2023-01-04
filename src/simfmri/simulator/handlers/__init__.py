@@ -1,6 +1,6 @@
 from .base import AbstractHandler
 
-from .phantom import SheppLoganPhantomGeneratorHandler
+from .phantom import SheppLoganGeneratorHandler, SlicerHandler
 
 from .noise import (
     NoiseHandler,
@@ -20,5 +20,6 @@ __all__ = [
     "KspaceNoiseHandler",
     "NoiseHandler",
     "RicianNoiseHandler",
-    "SheppLoganPhantomGeneratorHandler",
+    "SheppLoganGeneratorHandler",
+    "SlicerHandler",
 ]

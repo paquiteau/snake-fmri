@@ -1,3 +1,4 @@
+"""Phantom Generation Handlers."""
 from typing import Union
 from .base import AbstractHandler
 from ..simulation import SimulationData
@@ -6,10 +7,10 @@ from ..simulation import SimulationData
 from ...utils.phantom import mr_shepp_logan
 
 
-class SheppLoganPhantomGeneratorHandler(AbstractHandler):
+class SheppLoganGeneratorHandler(AbstractHandler):
     """Handler to create the base phantom.
 
-    phantom generation should be the first step of the simulation.
+    Phantom generation should be the first step of the simulation.
     Moreover, it only accept 3D shape.
 
     Parameters
@@ -26,6 +27,7 @@ class SheppLoganPhantomGeneratorHandler(AbstractHandler):
     """
 
     def __init__(self, B0: Union[int, float] = 7, roi_index: int = 10):
+        super().__init__()
         self.B0 = B0
         self.roi_index = roi_index
 
@@ -40,4 +42,45 @@ class SheppLoganPhantomGeneratorHandler(AbstractHandler):
 
         sim.roi = labels == self.roi_index
 
+        return sim
+
+
+class SlicerHandler(AbstractHandler):
+    """Handler to get a 2D+T slice from a 3D+T simulation
+
+    Parameters
+    ----------
+    axis
+        axis position to cut the slice
+    index:
+        index position on axis where the slice is perform.
+    """
+
+    def __init__(self, axis: int, index: int):
+        super().__init__()
+        if not (0 <= axis <= 2):
+            raise ValueError("only 3D array are supported.")
+
+        self.axis = axis
+        self.index = index
+
+    def _run_callback(self, old_sim, new_sim):
+        """Callback are disable for the 2D slicer."""
+        print("Simulation is now 2D")
+
+    @property
+    def slicer(self):
+        """Returns slicer operator."""
+        base_slicer = [slice(None, None, None)] * 3
+        base_slicer[self.axis] = self.index
+        return tuple(base_slicer)
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+        """Performs the slicing on all relevant data and update data_shape."""
+        for data_type in ["data_ref", "_data_acq"]:
+            if (array := getattr(sim, data_type)) is not None:
+                setattr(sim, data_type, array[self.slicer])
+
+        new_shape = sim._meta.shape
+        sim._meta.shape = tuple(s for ax, s in enumerate(new_shape) if ax != self.axis)
         return sim

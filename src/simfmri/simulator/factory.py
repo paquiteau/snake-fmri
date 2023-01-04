@@ -5,7 +5,7 @@ from simfmri.utils import Shape2d3d
 from .simulation import SimulationData, SimulationParams
 from .handlers import (
     AbstractHandler,
-    SheppLoganPhantomGeneratorHandler,
+    SheppLoganGeneratorHandler,
     ActivationHandler,
     AcquisitionHandler,
     KspaceNoiseHandler,
@@ -33,12 +33,14 @@ class SimulationDataFactory:
         self.sim_params = sim_params
         self.handlers = handlers
 
-    def simulate(self):
+    def simulate(self, debug=True):
         """Build the simulation data."""
         sim = SimulationData.from_params(self.sim_params)
 
+        print(sim)
         for handler in self.handlers:
             sim = handler.handle(sim)
+            print(sim)
         return sim
 
 
@@ -73,7 +75,7 @@ def sl_block_vds(
     sim_data = SimulationData(shape=shape, n_frames=n_frames, TR=1, n_coils=1)
 
     simulator = (
-        SheppLoganPhantomGeneratorHandler()
+        SheppLoganGeneratorHandler()
         @ ActivationHandler.from_block_design(3, 3, n_frames)
         @ AcquisitionHandler.vds(acs=24, accel=accel, constant=True, gen_smaps=False)
         @ KspaceNoiseHandler(snr=snr)
