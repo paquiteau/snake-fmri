@@ -3,21 +3,25 @@ _target_: simfmri.simulator.SimulationDataFactory
 sim_params:
   _target_: simfmri.simulator.SimulationParams
   n_frames: 100
-  shape: [128, 128]
+  shape: [128, 128, 128]
   TR: 1.0
   n_coils: 1
 
 handlers:
-  - _target_: simfmri.simulator.SheppLoganPhantomGeneratorHandler
+  - _target_: simfmri.simulator.SheppLoganGeneratorHandler
   - _target_: simfmri.simulator.ActivationHandler.from_block_design
     block_on: 3
     block_off: 3
-    duration: ${n_frames}
+    duration: ${simulation.sim_params.n_frames}
     offset: 0
+  - _target_: simfmri.simulator.SlicerHandler
+    axis: 2
+    index: 64
+# simulation is now 2D.
   - _target_: simfmri.simulator.AcquisitionHandler.vds
     acs: 24
     accel: 4
     constant: true
-    gen_smap: false
+    gen_smaps: false
   - _target_: simfmri.simulator.KspaceNoiseHandler
     snr: 1000
