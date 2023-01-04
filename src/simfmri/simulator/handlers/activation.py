@@ -56,7 +56,7 @@ class ActivationHandler(AbstractHandler):
         oversampling: int = 50,
         min_onset: float = -24.0,
     ):
-
+        super().__init__()
         if hrf_model not in NILEARN_HRF:
             raise ValueError(
                 f"Unsupported HRF `{hrf_model}`, available are: {NILEARN_HRF}"
@@ -136,9 +136,9 @@ class ActivationHandler(AbstractHandler):
         simfmri.utils.activations.block_design
             The helper function to create the block desing.
         """
-        return cls(block_design(block_on, block_off, duration, offset))
+        return cls(block_design(block_on, block_off, duration, offset), roi=None)
 
-    def _handle(self, sim: SimulationData):
+    def _handle(self, sim: SimulationData) -> SimulationData:
 
         if self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
@@ -148,7 +148,7 @@ class ActivationHandler(AbstractHandler):
         else:
             roi = sim.roi
 
-        frame_times = sim.TR * np.ones(sim.n_frames)
+        frame_times = sim.TR * np.arange(sim.n_frames)
         regressors, _ = compute_regressor(
             self._event_condition,
             self._hrf_model,
@@ -159,4 +159,5 @@ class ActivationHandler(AbstractHandler):
         regressors = np.squeeze(regressors)
         regressors /= np.max(regressors)
 
-        sim.data_ref = roi * (1 + self._bold_strength) * regressors
+        sim.data_ref = roi * (1 + self._bold_strength) * regressors[:, None, None, None]
+        return sim

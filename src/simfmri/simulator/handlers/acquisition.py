@@ -26,6 +26,7 @@ class AcquisitionHandler(AbstractHandler):
     def __init__(
         self, sampling_mask: Union[np.ndarray, Callable], gen_smaps: bool = True
     ):
+        super().__init__()
         self._sampling_mask = sampling_mask
         self._gen_smaps = gen_smaps
 
@@ -50,6 +51,7 @@ class AcquisitionHandler(AbstractHandler):
 
         sim.kspace_data = fourier_op.op(sim.data_acq)
         sim.kspace_mask = mask
+        return sim
 
     @classmethod
     def vds(

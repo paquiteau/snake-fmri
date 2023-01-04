@@ -51,7 +51,7 @@ class AbstractHandler(ABC):
         """Short-hand for handle operation."""
         return self.handle(sim)
 
-    def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData):
+    def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData):
         """Run the different callbacks.
 
         Parameters
@@ -143,13 +143,13 @@ class AbstractHandler(ABC):
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
-        if self._callback is not None:
+        if self._callbacks is not None:
             old_sim = copy.deepcopy(sim)
             new_sim = self._handle(sim)
             self._run_callbacks(old_sim, new_sim)
         else:
             new_sim = self._handle(sim)
-        if self._next_handler:
+        if self._next:
             return self._next.handle(new_sim)
         else:
             return new_sim
