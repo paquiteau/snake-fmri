@@ -197,7 +197,7 @@ class SimulationData:
         ret = "SimulationData: \n"
         ret += f"{self._meta}\n"
 
-        for array_name in ["data_ref", "data_acq", "kspace_data", "kspace_mask"]:
+        for array_name in ["data_ref", "data_acq", "kspace_data", "kspace_mask", "roi"]:
             array = getattr(self, array_name)
             if isinstance(array, np.ndarray):
                 ret += f"{array_name}: {array.dtype}({array.shape})\n"
