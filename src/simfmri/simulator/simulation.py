@@ -95,8 +95,8 @@ class SimulationData:
         self.static_vol = None
         self.data_ref = None
         self.roi = None
-        self.data_acq = None
-        self.datat_rec = None
+        self._data_acq = None
+        self.data_rec = None
         self.kspace_data = None
         self.kspace_mask = None
         self.kspace_location = None
@@ -158,6 +158,18 @@ class SimulationData:
     def duration(self) -> float:
         """Return the duration (in seconds) of the experiment."""
         return self.TR * self.n_frames
+
+    @property
+    def data_acq(self) -> np.ndarray:
+        """Return the defacto acquired data if defined, else the reference data."""
+        if self._data_acq is not None:
+            return self._data_acq
+        return self.data_ref
+
+    @data_acq.setter
+    def data_acq(self, value):
+        """Set the acquired data."""
+        self._data_acq = value
 
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
