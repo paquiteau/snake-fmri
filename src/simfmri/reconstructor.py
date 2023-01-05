@@ -5,7 +5,7 @@ and returns a reconstructed fMRI array.
 """
 import numpy as np
 
-from simfmri import SimulationData
+from simfmri.simulator import SimulationData
 
 
 class BenchmarkReconstructor:
