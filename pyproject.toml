@@ -149,11 +149,10 @@ src = ["src", "tests"]
 select = ["E", "F", "B", "Q", "D", "UP", "ANN"]
 
 ignore = [
-"ANN101", # missing type annotation for self
-"ANN102", # missing type annotation for cls in classmethod.
-"ANN204", # missing return type for __init__
+    "ANN101", # missing type annotation for self
+    "ANN102", # missing type annotation for cls in classmethod.
+    "ANN204", # missing return type for __init__
 ]
 [tool.ruff.pydocstyle]
 convention = "numpy"
-# numpy docstyle
 #ignore = ["D107", "D203","D212","D213","D402", "D413", "D415", "D416", "D417", "D105"]
