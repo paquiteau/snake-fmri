@@ -1,5 +1,5 @@
 """Acquisition Handler to genereate Kspace data from simulation."""
-from typing import Callable, Union
+from typing import Callable
 
 import numpy as np
 from fmri.operators.fourier import CartesianSpaceFourier
@@ -24,7 +24,7 @@ class AcquisitionHandler(AbstractHandler):
     """
 
     def __init__(
-        self, sampling_mask: Union[np.ndarray, Callable], gen_smaps: bool = True
+        self, sampling_mask: np.ndarray | Callable, gen_smaps: bool = True
     ):
         super().__init__()
         self._sampling_mask = sampling_mask
@@ -56,7 +56,7 @@ class AcquisitionHandler(AbstractHandler):
     @classmethod
     def vds(
         cls,
-        acs: Union[float, int],
+        acs: float | int,
         accel: int,
         constant: bool = True,
         gen_smaps: bool = True,

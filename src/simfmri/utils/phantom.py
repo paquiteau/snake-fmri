@@ -1,4 +1,4 @@
-"""Phantom representation"""
+"""Phantom representation."""
 import numpy as np
 
 

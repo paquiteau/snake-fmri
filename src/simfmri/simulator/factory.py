@@ -2,7 +2,7 @@
 
 import numpy as np
 
-from typing import Union, Mapping, List
+from typing import Mapping
 from simfmri.utils import Shape2d3d
 from omegaconf import DictConfig
 from .simulation import SimulationData, SimulationParams
@@ -35,7 +35,7 @@ class SimulationDataFactory:
     def __init__(
         self,
         sim_params: SimulationParams,
-        handlers: Union[List[AbstractHandler], Mapping[str, AbstractHandler]],
+        handlers: list[AbstractHandler] | Mapping[str, AbstractHandler],
         checkpoints: bool = False,
     ):
         self.checkpoints = checkpoints

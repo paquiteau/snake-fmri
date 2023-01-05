@@ -1,5 +1,4 @@
 """Cartesian sampling simulation."""
-from typing import Union
 
 import numpy as np
 from scipy.stats import norm
@@ -8,7 +7,7 @@ from simfmri.utils import RngType, validate_rng
 
 def get_kspace_slice_loc(
     dim_size: int,
-    center_prop: Union[int, float],
+    center_prop: int | float,
     accel: int = 4,
     pdf: str = "gaussian",
     rng: RngType = None,
@@ -69,7 +68,7 @@ def get_cartesian_mask(
     n_frames: int,
     rng: RngType = None,
     constant: bool = False,
-    center_prop: Union[float, int] = 0.3,
+    center_prop: float | int = 0.3,
     accel: int = 4,
     pdf: str = "gaussian",
 ):
