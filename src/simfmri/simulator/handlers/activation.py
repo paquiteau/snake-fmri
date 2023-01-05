@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Literal, Mapping
 
 import numpy as np
+import pandas as pd
 from nilearn.glm.first_level import compute_regressor
 from simfmri.utils import block_design
 
@@ -70,7 +71,7 @@ class ActivationHandler(AbstractHandler):
     def from_multi_event(
         cls,
         events: np.ndarray,
-        rois: Mappable[str, np.ndarray],
+        rois: Mapping[str, np.ndarray],
         prev_handler: AbstractHandler,
         **kwargs,
     ) -> ActivationHandler:
@@ -163,6 +164,10 @@ class ActivationHandler(AbstractHandler):
         regressor *= (1 + self._bold_strength) / np.max(regressor)
         # apply the activations
         sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
-        # save the experimental paradigm
-        sim.extra_infos["events"] = self._event_condition
+        # update the experimental paradigm
+        #
+        if isinstance(sim.extra_infos["events"], pd.DataFrame):
+            self.extra_infos["event"].concat(self._event_condition)
+        elif sim.extra_infos is None:
+            sim.extra_infos["events"] = self._event_condition
         return sim
