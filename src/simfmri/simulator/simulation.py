@@ -26,7 +26,7 @@ class SimulationParams:
     """Samping time."""
     n_coils: int = 1
     """Number of coil of the simulation."""
-    extra_infos: dict = None
+    extra_infos: dict = dataclasses.field(default=None, repr=False)
     """Extra information, to add more information to the simulation"""
 
 

@@ -37,9 +37,8 @@ class NoiseHandler(AbstractHandler):
         self._snr = snr
 
     def _callback_fun(self, old_sim, new_sim):
-        if self._verbose:
-            # compute the SNR and print it.
-            print("actual_snr:")
+        # TODO compute the SNR and print it.
+        pass
 
     def _handle(self, sim: SimulationData):
         if self._snr == 0:

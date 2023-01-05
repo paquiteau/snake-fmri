@@ -25,7 +25,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
     def __str__(self):
         return "ZeroFilled"
 
-    def reconstruct(self, sim):
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Zero filled."""
         from fmri.operators.fourier import CartesianSpaceFourier
 
@@ -60,7 +60,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
             f"-{self.optimizer}-{self.threshold}"
         )
 
-    def reconstruct(self, sim):
+    def reconstruct(self, sim: SimulationData):
         """Reconstruct with Sequential."""
         from fmri.operator.fourier import CartesianSpaceFourier
         from fmri.reconstructors.frame_based import SequentialFMRIReconstructor
