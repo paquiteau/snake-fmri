@@ -4,7 +4,11 @@ import pandas as pd
 
 
 def block_design(
-    block_on: float, block_off: float, duration: float, offset: float = 0
+    block_on: float,
+    block_off: float,
+    duration: float,
+    offset: float = 0,
+    event_name: str = "block_on",
 ) -> pd.DataFrame:
     """
     Create a simple block design paradigm.
@@ -18,8 +22,9 @@ def block_design(
     duration
         in seconds, the total amount of the experiments.
     offset
-        in seconds, the starting point of the experiment.
-
+        in seconds, the starting point of the experiment, default=0.
+    event_name:
+        name of the block event, default="block_on"
     Returns
     -------
     pd.DataFrame
@@ -45,7 +50,7 @@ def block_design(
 
     return pd.DataFrame(
         {
-            "trial_type": "block_on",
+            "trial_type": event_name,
             "onset": events[:, 0],
             "duration": events[:, 1],
             "modulation": events[:, 2],
