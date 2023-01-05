@@ -1,30 +1,61 @@
 """Analysis module."""
 import numpy as np
 
-# from nilearn.glm.first_level import the good function
-#
+from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
+
+from simfmri.simulator import SimulationData
 
 
-def make_t_test(sim, data_rec) -> np.ndarray:
-    """Get the z-score  for the reconstructed data.
+def compute_t_test(
+    sim: SimulationData,
+    data_test: np.ndarray,
+    alpha: float = 0.05,
+    correction: str = None,
+) -> np.ndarray:
+    """
+    Compute a T-Test on data_test based on the event of sim.extra_infos.
 
     Parameters
     ----------
     sim
         Simulation object
-    data_rec
+    data_test
         estimation of the data reconstructed from the simulation.
+    alpha
+        Threshold for the test
+    correction
+        Statistical correction to use (e.g. fdr)
 
     Returns
     -------
-    a statistical map of z-score for the effect of interest.
+    numpy.ndarray
+        a map of voxel detected as activating.
 
+    See Also
+    --------
+    nilearn.glm.first_level.FirstLevelModel
+        Backend for the glm computation.
     """
+    # TODO compute the z-score using sim.extra_infos["events"]
+
+    design_matrix = make_first_level_design_matrix()
+
+    first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover")
+
+    first_level_model.fit(data_test, design_matrices=design_matrix)
+    first_level_model.compute_contrast("event", output_type="z-score")
 
 
-def compute_stats(stat_map, ground_truth, p_value):
-    """Compute confusion statistics."""
-    estimation = stat_map > p_value  # TODO Change this.
+def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
+    """Compute confusion statistics.
+
+    Parameters
+    ----------
+    estimation
+        estimation of the classification
+    ground_truth
+        ground truth map for the classification
+    """
     neg = np.sum(ground_truth == 0)
     pos = np.sum(ground_truth > 0)
 
