@@ -1,16 +1,20 @@
 """Analysis module."""
 import numpy as np
+from typing import Literal
 
 from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
+from nilearn.glm import threshold_stats_img
 
 from simfmri.simulator import SimulationData
 
 
-def compute_t_test(
+def compute_test(
     sim: SimulationData,
     data_test: np.ndarray,
+    contrast_name: str,
+    stat_type: Literal["t", "F"] = "t",
     alpha: float = 0.05,
-    correction: str = None,
+    height_control: str = None,
 ) -> np.ndarray:
     """
     Compute a T-Test on data_test based on the event of sim.extra_infos.
@@ -23,7 +27,7 @@ def compute_t_test(
         estimation of the data reconstructed from the simulation.
     alpha
         Threshold for the test
-    correction
+    height_control
         Statistical correction to use (e.g. fdr)
 
     Returns
@@ -36,14 +40,22 @@ def compute_t_test(
     nilearn.glm.first_level.FirstLevelModel
         Backend for the glm computation.
     """
-    # TODO compute the z-score using sim.extra_infos["events"]
-
-    design_matrix = make_first_level_design_matrix()
-
+    # instantiate model
+    design_matrix = make_first_level_design_matrix(
+        frames_times=np.arange(sim.n_frames) * sim.TR, events=sim.extra_infos["events"]
+    )
     first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover")
 
+    # fit the model with all confounds
     first_level_model.fit(data_test, design_matrices=design_matrix)
-    first_level_model.compute_contrast("event", output_type="z-score")
+
+    # extract classification.
+    contrast = first_level_model.compute_contrast(
+        contrast_name, stat_type=stat_type, output_type="z-score"
+    )
+    thresh = threshold_stats_img(contrast, alpha=alpha, height_control=height_control)
+
+    return contrast > thresh
 
 
 def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
