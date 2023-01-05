@@ -45,7 +45,7 @@ class SimulationDataFactory:
         else:
             self.handlers = handlers
 
-    def simulate(self):
+    def simulate(self) -> SimulationData:
         """Build the simulation data."""
         sim = SimulationData.from_params(self.sim_params)
 

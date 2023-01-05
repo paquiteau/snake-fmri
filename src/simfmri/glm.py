@@ -1,5 +1,6 @@
 """Analysis module."""
 import numpy as np
+import nibabel as nib
 from typing import Literal
 
 from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
@@ -46,20 +47,26 @@ def compute_test(
     """
     # instantiate model
     design_matrix = make_first_level_design_matrix(
-        frames_times=np.arange(sim.n_frames) * sim.TR, events=sim.extra_infos["events"]
+        frame_times=np.arange(sim.n_frames) * sim.TR, events=sim.extra_infos["events"]
     )
-    first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover")
+    first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover", mask_img=False)
 
     # fit the model with all confounds
+    if isinstance(data_test, np.ndarray):
+        data_test = nib.Nifti1Image(abs(data_test), affine=np.eye(4))
     first_level_model.fit(data_test, design_matrices=design_matrix)
 
     # extract classification.
     contrast = first_level_model.compute_contrast(
-        contrast_name, stat_type=stat_type, output_type="z-score"
+        contrast_name, stat_type=stat_type, output_type="z_score"
     )
-    thresh = threshold_stats_img(contrast, alpha=alpha, height_control=height_control)
+    threshold_map, threshold = threshold_stats_img(
+        contrast,
+        alpha=alpha,
+        height_control=height_control,
+    )
 
-    return contrast > thresh
+    return threshold_map.get_fdata(), design_matrix, contrast
 
 
 def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
@@ -75,16 +82,34 @@ def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     neg = np.sum(ground_truth == 0)
     pos = np.sum(ground_truth > 0)
 
-    f_neg = np.sum(estimation == 0 & ground_truth > 0)
-    t_neg = np.sum(estimation == 0 & ground_truth == 0)
-    f_pos = np.sum(estimation == 1 & ground_truth == 0)
-    t_pos = np.sum(estimation == 1 & ground_truth > 0)
+    f_neg = np.sum((estimation == 0) & (ground_truth > 0))
+    t_neg = np.sum((estimation == 0) & (ground_truth == 0))
+    f_pos = np.sum((estimation > 0) & (ground_truth == 0))
+    t_pos = np.sum((estimation > 0) & (ground_truth > 0))
+
+    confusion = {
+        "f_neg": f_neg,
+        "t_neg": t_neg,
+        "f_pos": f_pos,
+        "t_pos": t_pos,
+    }
+    print(confusion)
+    return confusion, stats
+
+
+def compute_stats(f_neg, t_neg, f_pos, t_pos):
+    """Compute the confusion statistics."""
 
     stats = dict()
-    stats["TPR"] = t_pos / pos  # sensitivity
-    stats["TNR"] = t_neg / neg  # specificity
+    stats["TPR"] = t_pos / (t_pos + f_neg)  # sensitivity
+    stats["TNR"] = t_neg / (t_neg + f_pos)  # specificity
     stats["PPV"] = t_pos / (f_pos + t_pos)  # precision
     stats["FPR"] = f_pos / (f_pos + t_neg)  # false positive rate
     stats["FNR"] = f_neg / (t_pos + f_neg)  # false negative rate
     stats["FDR"] = f_pos / (f_pos + t_pos)  # false discovery rate
+
     return stats
+
+
+def compute_stats_df(df):
+    """Compute the confusion stastistic over the row of a dataframe."""

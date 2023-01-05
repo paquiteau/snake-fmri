@@ -118,7 +118,12 @@ class ActivationHandler(AbstractHandler):
 
     @classmethod
     def from_block_design(
-        cls, block_on: float, block_off: float, duration: float, offset: float = 0
+        cls,
+        block_on: float,
+        block_off: float,
+        duration: float,
+        offset: float = 0,
+        event_name: str = "block_on",
     ) -> ActivationHandler:
         """Create a activation handler from a block design.
 
@@ -132,13 +137,16 @@ class ActivationHandler(AbstractHandler):
             in seconds, the total amount of the experiments.
         offset
             in seconds, the starting point of the experiment.
-
+        event_name
+            name of the block event, default="block_on"
         See Also
         --------
         simfmri.utils.activations.block_design
             The helper function to create the block desing.
         """
-        return cls(block_design(block_on, block_off, duration, offset), roi=None)
+        return cls(
+            block_design(block_on, block_off, duration, offset, event_name), roi=None
+        )
 
     def _handle(self, sim: SimulationData) -> SimulationData:
 
@@ -154,7 +162,7 @@ class ActivationHandler(AbstractHandler):
             raise ValueError("roi is empty.")
         frame_times = sim.TR * np.arange(sim.n_frames)
         regressor, _ = compute_regressor(
-            self._event_condition[["onset", "duration", "modulation"]].to_numpy(),
+            self._event_condition[["onset", "duration", "modulation"]].to_numpy().T,
             self._hrf_model,
             frame_times,
             oversampling=self._oversampling,
@@ -166,8 +174,10 @@ class ActivationHandler(AbstractHandler):
         sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
         # update the experimental paradigm
         #
-        if isinstance(sim.extra_infos["events"], pd.DataFrame):
-            self.extra_infos["event"].concat(self._event_condition)
-        elif sim.extra_infos is None:
-            sim.extra_infos["events"] = self._event_condition
+        if sim.extra_infos is None:
+            sim._meta.extra_infos = {"events": self._event_condition}
+        else:
+            print(sim._meta.extra_infos)
+            if isinstance(sim.extra_infos["events"], pd.DataFrame):
+                self._meta.extra_infos["events"].concat(self._event_condition)
         return sim

@@ -87,7 +87,7 @@ class SimulationData:
         n_frames: int,
         TR: float,
         n_coils: int = 1,
-        **extra_infos,
+        extra_infos: dict = None,
     ) -> SimulationData:
         self._meta = SimulationParams(
             shape, n_frames, TR, n_coils, extra_infos=extra_infos

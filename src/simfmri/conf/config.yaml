@@ -1,4 +1,5 @@
 defaults:
+  - _self_
   - simulation: sl_basic
   - reconstruction: zero_filled
   - stats: stat_default

@@ -1,0 +1,17 @@
+# @package _global_
+
+hydra:
+  job:
+    chdir: true
+  mode: MULTIRUN
+  sweeper:
+    params:
+      simulation.handlers.noise.snr: 10,100, 1000
+
+  sweep:
+    dir: multirun/multirun/${now:%Y-%m-%d}/snr_sweep
+    subdir: snr_${simulation.handlers.noise.snr}
+
+  callbacks:
+    multirun_callback:
+      _target_: simfmri.main.MultiRunGatherer

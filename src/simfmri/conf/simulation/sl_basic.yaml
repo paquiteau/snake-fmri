@@ -22,7 +22,6 @@ handlers:
     _target_: simfmri.simulator.SlicerHandler
     axis: 0
     index: 58
-# simulation is now 2D.
   acquisition:
     _target_: simfmri.simulator.AcquisitionHandler.vds
     acs: 24
