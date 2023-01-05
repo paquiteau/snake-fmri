@@ -124,6 +124,7 @@ build-backend = "setuptools.build_meta"
 
 [project.scripts]  # Optional
 simfmri = "simfmri.main:main_app"
+simfmri-result = "simfmri.results:main"
 
 
 [tool.coverage.report]

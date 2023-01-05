@@ -79,9 +79,6 @@ def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     ground_truth
         ground truth map for the classification
     """
-    neg = np.sum(ground_truth == 0)
-    pos = np.sum(ground_truth > 0)
-
     f_neg = np.sum((estimation == 0) & (ground_truth > 0))
     t_neg = np.sum((estimation == 0) & (ground_truth == 0))
     f_pos = np.sum((estimation > 0) & (ground_truth == 0))
@@ -93,8 +90,7 @@ def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
         "f_pos": f_pos,
         "t_pos": t_pos,
     }
-    print(confusion)
-    return confusion, stats
+    return confusion
 
 
 def compute_stats(f_neg, t_neg, f_pos, t_pos):
