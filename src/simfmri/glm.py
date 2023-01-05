@@ -1,5 +1,6 @@
 """Analysis module."""
 import numpy as np
+import pandas as pd
 import nibabel as nib
 from typing import Literal
 
@@ -69,7 +70,7 @@ def compute_test(
     return threshold_map.get_fdata(), design_matrix, contrast
 
 
-def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
+def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     """Compute confusion statistics.
 
     Parameters
@@ -93,9 +94,8 @@ def compute_stats(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     return confusion
 
 
-def compute_stats(f_neg, t_neg, f_pos, t_pos):
+def compute_stats(f_neg: int, t_neg: int, f_pos: int, t_pos: int) -> dict[str, float]:
     """Compute the confusion statistics."""
-
     stats = dict()
     stats["TPR"] = t_pos / (t_pos + f_neg)  # sensitivity
     stats["TNR"] = t_neg / (t_neg + f_pos)  # specificity
@@ -107,5 +107,12 @@ def compute_stats(f_neg, t_neg, f_pos, t_pos):
     return stats
 
 
-def compute_stats_df(df):
+def append_stats_df(df: pd.DataFrame) -> pd.DataFrame:
     """Compute the confusion stastistic over the row of a dataframe."""
+    stats = []
+    for idx, row in df.iterrows():
+        stats.append(
+            compute_stats(row["f_neg"], row["t_neg"], row["f_pos"], row["t_pos"])
+        )
+
+    return pd.concat([df, pd.DataFrame(stats)], axis=1)

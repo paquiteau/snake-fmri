@@ -8,7 +8,7 @@ from nilearn.plotting import plot_design_matrix
 import os
 import numpy as np
 import pandas as pd
-from simfmri.glm import compute_test, compute_stats
+from simfmri.glm import compute_test, compute_confusion
 
 
 class MultiRunGatherer(Callback):
@@ -17,7 +17,7 @@ class MultiRunGatherer(Callback):
     def __init__(self) -> None:
         self.results = []
 
-    def on_job_end(self, config: DictConfig, job_return: JobReturn) -> None:
+    def on_job_end(self, config: DictConfig, job_return: JobReturn, **kwargs) -> None:
         """Run at the end of each job.
 
         Notes
@@ -70,9 +70,10 @@ def main_app(cfg: DictConfig) -> None:
     contrast = np.squeeze(contrast)
     estimation = np.squeeze(estimation)
     plot_design_matrix(design_matrix)
-    confusion, stats = compute_stats(estimation.T, sim.roi)
+    confusion = compute_confusion(estimation.T, sim.roi)
 
-    np.save("roi.npy", sim.roi)
+    np.save("data_test.npy", data_test)
+    np.save("data_ref.npy", sim.data_ref)
     np.save("estimation.npy", estimation.T)
     return confusion
 
