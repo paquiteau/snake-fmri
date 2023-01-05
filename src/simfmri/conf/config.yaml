@@ -1,3 +1,7 @@
 defaults:
   - simulation: sl_basic
   - reconstruction: zero_filled
+
+hydra:
+  job:
+    chdir: true
