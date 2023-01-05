@@ -1,12 +1,10 @@
 """Handler to add activations."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Mapping
 
 import numpy as np
 from nilearn.glm.first_level import compute_regressor
-from numpy.typing import NDArray
-
 from simfmri.utils import block_design
 
 from ..simulation import SimulationData
@@ -70,12 +68,12 @@ class ActivationHandler(AbstractHandler):
 
     @classmethod
     def from_multi_event(
-        cls: ActivationHandler,
-        events: NDArray,
-        rois: NDArray,
+        cls,
+        events: np.ndarray,
+        rois: Mappable[str, np.ndarray],
         prev_handler: AbstractHandler,
         **kwargs,
-    ):
+    ) -> ActivationHandler:
         """
         Create a sequence of handler from a sequence of event and associated rois.
 
@@ -84,15 +82,14 @@ class ActivationHandler(AbstractHandler):
 
         Parameters
         ----------
-        evens :
-            Array of shape (n_types_of_event, 3, n_events)
-            yields description of events for this condition as a
-            (onsets, durations, amplitudes) triplet
-        rois:
-            array-like of shape (n_types_of_event, **)
-        prev_handler:
+        events
+            Dataframe following the design_matrix structure
+        rois
+            dict (n_types_of_event, **)
+        prev_handler
             The previous handler in the chain
-        hrf_model: str, default is 'glover'
+        hrf_model
+            str, default is 'glover'
             Choice for the HRF, FIR is not supported yet.
         oversampling : int, optional
             Oversampling factor to perform the convolution. Default=50.
@@ -102,6 +99,10 @@ class ActivationHandler(AbstractHandler):
             Default=-24.
 
 
+        See Also
+        --------
+        nilearn.glm.first_level.make_first_level_design_matrix
+            Design Matrix API.
         """
         if events.ndim != 3 or events.shape[1] != 3:
             raise ValueError("Event array should be of shape N_cond, 3, N_events")
@@ -117,7 +118,7 @@ class ActivationHandler(AbstractHandler):
     @classmethod
     def from_block_design(
         cls, block_on: float, block_off: float, duration: float, offset: float = 0
-    ):
+    ) -> ActivationHandler:
         """Create a activation handler from a block design.
 
         Parameters
@@ -152,7 +153,7 @@ class ActivationHandler(AbstractHandler):
             raise ValueError("roi is empty.")
         frame_times = sim.TR * np.arange(sim.n_frames)
         regressor, _ = compute_regressor(
-            self._event_condition,
+            self._event_condition[["onset", "duration", "modulation"]].to_numpy(),
             self._hrf_model,
             frame_times,
             oversampling=self._oversampling,

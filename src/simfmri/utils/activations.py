@@ -1,8 +1,11 @@
 """Utilities function for the activation."""
 import numpy as np
+import pandas as pd
 
 
-def block_design(block_on: float, block_off: float, duration: float, offset: float = 0):
+def block_design(
+    block_on: float, block_off: float, duration: float, offset: float = 0
+) -> pd.DataFrame:
     """
     Create a simple block design paradigm.
 
@@ -17,6 +20,10 @@ def block_design(block_on: float, block_off: float, duration: float, offset: flo
     offset
         in seconds, the starting point of the experiment.
 
+    Returns
+    -------
+    pd.DataFrame
+        the data frame corresponding to a block design.
     Notes
     -----
     The design is as follows
@@ -34,4 +41,13 @@ def block_design(block_on: float, block_off: float, duration: float, offset: flo
     while t < duration:
         event.append((t, block_on, 1))
         t += block_size
-    return np.array(event).T
+    events = np.array(event)
+
+    return pd.DataFrame(
+        {
+            "trial_type": "block_on",
+            "onset": events[:, 0],
+            "duration": events[:, 1],
+            "modulation": events[:, 2],
+        }
+    )
