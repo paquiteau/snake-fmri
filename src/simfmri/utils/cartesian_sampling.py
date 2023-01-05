@@ -57,8 +57,7 @@ def get_kspace_slice_loc(
         p = np.ones(len(borders)) / len(borders)
     else:
         raise ValueError("Unsupported value for pdf.")
-    # TODO:
-    # allow custom pdf as argument (vector or function.)
+    # TODO: allow custom pdf as argument (vector or function.)
 
     sampled_in_border = list(rng.choice(borders, size=n_samples_borders, replace=False))
 

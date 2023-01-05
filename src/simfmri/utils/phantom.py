@@ -119,7 +119,7 @@ def mr_shepp_logan(N, E=None, B0=3, T2star=False, zlims=(-1, 1)):
         gamma0 = 267.52219  # 10^6 rad⋅s−1⋅T⋅−1
 
     # Put ellipses where they need to be
-    for ii in range(E.shape[0]):
+    for ii in range(E.shape[1]):
         xc, yc, zc = xs[ii], ys[ii], zs[ii]
         a, b, c = xaxis[ii], yaxis[ii], zaxis[ii]
         ct0, st0 = ct[ii], st[ii]

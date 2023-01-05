@@ -38,9 +38,8 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
         M0, T1, T2, labels = mr_shepp_logan(sim.shape, B0=self.B0, T2star=True)
 
-        sim.data_ref = np.repeat(T2[None, ...], axis=0)
+        sim.data_ref = np.repeat(T2[None, ...], sim.n_frames, axis=0)
         sim.static_vol = T2.copy()
-
         sim.roi = labels == self.roi_index
 
         return sim
@@ -72,16 +71,16 @@ class SlicerHandler(AbstractHandler):
     @property
     def slicer(self):
         """Returns slicer operator."""
-        base_slicer = [slice(None, None, None)] * 3
-        base_slicer[self.axis] = self.index
+        base_slicer = [slice(None, None, None)] * 4
+        base_slicer[self.axis + 1] = self.index
         return tuple(base_slicer)
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Performs the slicing on all relevant data and update data_shape."""
-        for data_type in ["data_ref", "_data_acq", "roi"]:
+        for data_type in ["data_ref", "_data_acq"]:
             if (array := getattr(sim, data_type)) is not None:
                 setattr(sim, data_type, array[self.slicer])
-
+        sim.roi = sim.roi[self.slicer[1:]]  # roi does not have frame dimension.
         new_shape = sim._meta.shape
         sim._meta.shape = tuple(s for ax, s in enumerate(new_shape) if ax != self.axis)
         return sim

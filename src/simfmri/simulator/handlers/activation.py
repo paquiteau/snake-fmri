@@ -148,6 +148,8 @@ class ActivationHandler(AbstractHandler):
         else:
             roi = sim.roi
 
+        if np.sum(abs(roi)) == 0:
+            raise ValueError("roi is empty.")
         frame_times = sim.TR * np.arange(sim.n_frames)
         regressor, _ = compute_regressor(
             self._event_condition,
@@ -158,5 +160,8 @@ class ActivationHandler(AbstractHandler):
         )
         regressor = np.squeeze(regressor)
         regressor *= (1 + self._bold_strength) / np.max(regressor)
-
-        sim.data_ref[:, roi] *= regressor
+        # apply the activations
+        sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
+        # save the experimental paradigm
+        sim.extra_infos["events"] = self._event_condition
+        return sim
