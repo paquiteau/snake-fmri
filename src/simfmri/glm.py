@@ -14,7 +14,7 @@ def compute_test(
     contrast_name: str,
     stat_type: Literal["t", "F"] = "t",
     alpha: float = 0.05,
-    height_control: str = None,
+    height_control: str = "fpr",
 ) -> np.ndarray:
     """
     Compute a T-Test on data_test based on the event of sim.extra_infos.
@@ -25,10 +25,14 @@ def compute_test(
         Simulation object
     data_test
         estimation of the data reconstructed from the simulation.
+    contrast_name
+        name or list of name of the contrast to test for.
+    stat_type
+        "t" for t-test, "F" for F-test, default="t",
     alpha
         Threshold for the test
     height_control
-        Statistical correction to use (e.g. fdr)
+        Statistical correction to use (e.g. fpr or fdr)
 
     Returns
     -------
