@@ -1,6 +1,8 @@
 defaults:
   - simulation: sl_basic
   - reconstruction: zero_filled
+  - stats: stat_default
+
 
 hydra:
   job:

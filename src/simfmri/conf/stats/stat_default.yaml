@@ -1,0 +1,6 @@
+_target_: simfmri.glm.compute_test
+_partial_: true
+contrast_name: ${simulation.handlers.activation.event_name}
+alpha: 0.05
+height_control: fpr
+stat_type: t

@@ -5,6 +5,8 @@ from omegaconf import DictConfig
 
 import numpy as np
 
+from simfmri.glm import compute_test, compute_stats
+
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
@@ -14,9 +16,10 @@ def main_app(cfg: DictConfig) -> None:
 
     sim = simulation_factory.simulate()
 
-    estimation = reconstructor.reconstruct(sim)
+    data_test = reconstructor.reconstruct(sim)
+    np.save("data_rec.npy", data_test)
 
-    np.save("data_rec.npy", estimation)
+    compute_test = hydra.utils.instantiate(cfg.stats)
 
 
 if __name__ == "__main__":
