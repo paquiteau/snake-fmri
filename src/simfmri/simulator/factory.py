@@ -1,7 +1,10 @@
 """Example of scenarios for the simulator."""
 
-from simfmri.utils import Shape2d3d
+import numpy as np
 
+from typing import Union, Mapping, List
+from simfmri.utils import Shape2d3d
+from omegaconf import DictConfig
 from .simulation import SimulationData, SimulationParams
 from .handlers import (
     AbstractHandler,
@@ -29,18 +32,27 @@ class SimulationDataFactory:
     This is best used with hydra configuration files. see `conf/simulations/`
     """
 
-    def __init__(self, sim_params: SimulationParams, handlers: list[AbstractHandler]):
+    def __init__(
+        self,
+        sim_params: SimulationParams,
+        handlers: Union[List[AbstractHandler], Mapping[str, AbstractHandler]],
+        checkpoints: bool = False,
+    ):
+        self.checkpoints = checkpoints
         self.sim_params = sim_params
-        self.handlers = handlers
+        if isinstance(handlers, DictConfig):
+            self.handlers = list(handlers.values())
+        else:
+            self.handlers = handlers
 
-    def simulate(self, debug=True):
+    def simulate(self):
         """Build the simulation data."""
         sim = SimulationData.from_params(self.sim_params)
 
-        print(sim)
-        for handler in self.handlers:
+        for idx, handler in enumerate(self.handlers):
             sim = handler.handle(sim)
-            print(sim)
+            if self.checkpoints:
+                np.save(f"{idx}-{handler}.npy", sim.data_ref)
         return sim
 
 

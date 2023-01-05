@@ -1,5 +1,6 @@
 ### Simulation for a Shepp Logan phantom with activation.
 _target_: simfmri.simulator.SimulationDataFactory
+checkpoints: false
 sim_params:
   _target_: simfmri.simulator.SimulationParams
   n_frames: 100
@@ -8,20 +9,25 @@ sim_params:
   n_coils: 1
 
 handlers:
-  - _target_: simfmri.simulator.SheppLoganGeneratorHandler
-  - _target_: simfmri.simulator.ActivationHandler.from_block_design
+  generator:
+    _target_: simfmri.simulator.SheppLoganGeneratorHandler
+  activation:
+    _target_: simfmri.simulator.ActivationHandler.from_block_design
     block_on: 3
     block_off: 3
     duration: ${simulation.sim_params.n_frames}
     offset: 0
-  - _target_: simfmri.simulator.SlicerHandler
-    axis: 2
-    index: 64
+  slicer:
+    _target_: simfmri.simulator.SlicerHandler
+    axis: 0
+    index: 58
 # simulation is now 2D.
-  - _target_: simfmri.simulator.AcquisitionHandler.vds
+  acquisition:
+    _target_: simfmri.simulator.AcquisitionHandler.vds
     acs: 24
     accel: 4
     constant: true
     gen_smaps: false
-  - _target_: simfmri.simulator.KspaceNoiseHandler
+  noise:
+    _target_: simfmri.simulator.KspaceNoiseHandler
     snr: 1000
