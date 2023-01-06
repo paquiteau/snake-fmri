@@ -153,6 +153,7 @@ ignore = [
     "ANN101", # missing type annotation for self
     "ANN102", # missing type annotation for cls in classmethod.
     "ANN204", # missing return type for __init__
+    "D105", # missing docstring in magic method
 ]
 [tool.ruff.pydocstyle]
 convention = "numpy"
