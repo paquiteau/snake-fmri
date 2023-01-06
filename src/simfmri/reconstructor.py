@@ -19,6 +19,22 @@ class BenchmarkReconstructor:
         raise NotImplementedError()
 
 
+def get_fourier_operator(sim: SimulationData):  # noqa ANN201
+    """Get fourier operator from from the simulation.
+
+    TODO: add support for non cartesian simulation.
+    """
+    from fmri.operator.fourier import CartesianSpaceFourier
+
+    return CartesianSpaceFourier(
+        shape=sim.shape,
+        mask=sim.kspace_mask,
+        n_frames=sim.n_frames,
+        n_coils=sim.n_coils,
+        smaps=sim.smaps,
+    )
+
+
 class ZeroFilledReconstructor(BenchmarkReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
@@ -49,7 +65,12 @@ class SequentialReconstructor(BenchmarkReconstructor):
 
     """
 
-    def __init__(self, max_iter_per_frame: int = 15, optimizer="pogm", threshold=2e-7):
+    def __init__(
+        self,
+        max_iter_per_frame: int = 15,
+        optimizer: str = "pogm",
+        threshold: float = 2e-7,
+    ):
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.threshold = threshold
@@ -60,21 +81,14 @@ class SequentialReconstructor(BenchmarkReconstructor):
             f"-{self.optimizer}-{self.threshold}"
         )
 
-    def reconstruct(self, sim: SimulationData):
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Sequential."""
-        from fmri.operator.fourier import CartesianSpaceFourier
         from fmri.reconstructors.frame_based import SequentialFMRIReconstructor
         from modopt.opt.linear import Identity
         from modopt.opt.proximity import SparseThreshold
         from mri.operators.linear.wavelet import WaveletN
 
-        fourier_op = CartesianSpaceFourier(
-            shape=sim.shape,
-            mask=sim.kspace_mask,
-            n_frames=sim.n_frames,
-            n_coils=sim.n_coils,
-            smaps=sim.smaps,
-        )
+        fourier_op = get_fourier_operator(sim)
         wavelet_op = WaveletN("sym8", dim=len(sim.shape))
         # warmup
         wavelet_op.op(np.zeros(sim.shape))
@@ -90,6 +104,90 @@ class SequentialReconstructor(BenchmarkReconstructor):
         )
 
 
-# TODO: LR+S reconstructor
-# TODO: ZeroFilled + Denosing
+class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
+    """Low Rank + Sparse Benchmark reconstructor
+
+    Parameters
+    ----------
+    lr_thresh
+        regularisation parameter for low rank prior
+    sparse_thresh
+        regularisation parameter for sparse prior
+    max_iter
+        maximal number of interation.
+    """
+
+    def __init__(self, lr_thresh: float = 0.1, sparse_thresh: float = 1, max_iter=150):
+        self.lr_thresh = lr_thresh
+        self.sparse_thresh = sparse_thresh
+        self.max_iter = max_iter
+
+    def __str__(self):
+        return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
+
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
+        """Reconstruct using LowRank+Sparse Method."""
+        from fmri.reconstructors.time_aware import LowRankPlusSparseFMRIReconstructor
+        from modopt.opt.linear import Identity
+        from modopt.opt.proximity import SparseThreshold
+        from fmri.operators.svt import FlattenSVT
+
+        fourier_op = get_fourier_operator(sim)
+        lowrank_op = FlattenSVT(
+            threshold=self.lr_thresh, initial_rank=5, thresh_type="hard-rel"
+        )
+        # lowrank_op = FlattenRankConstraint(rank=1)
+        sparse_op = SparseThreshold(
+            linear=Identity(), weights=self.sparse_thresh, thresh_type="hard"
+        )
+
+        glrs = LowRankPlusSparseFMRIReconstructor(
+            fourier_op=fourier_op, lowrank_op=lowrank_op, sparse_op=sparse_op
+        )
+        glrs_final = glrs.reconstruct(sim.kspace_data, max_iter=150)[0]
+
+        return glrs_final
+
+
+class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
+    """
+    Reconstructor using a simple adjoint and a denoiser.
+
+    Parameters
+    ----------
+    patch_shape
+    patch_overlap
+    recombination
+
+    TODO Add support for different denoising methods.
+
+    """
+
+    def __init__(
+        self, patch_shape: int, patch_overlap: int, recombination: str = "weighted"
+    ):
+        self.patch_shape = patch_shape
+        self.patch_overlap = patch_overlap
+        self.recombination = recombination
+
+    def __str__(self):
+        return (
+            f"Denoiser_{self.patch_shape}-{self.patch_overlap}-{self.recombination[0]}"
+        )
+
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
+        """Reconstruct using a simple adjoint and denoiser."""
+        from denoiser.denoise import optimal_thresholding
+
+        data_zerofilled = super().reconstruct(sim)
+
+        llr_denoise = optimal_thresholding(
+            np.moveaxis(data_zerofilled, 0, -1),
+            patch_shape=self.patch_shape,
+            patch_overlap=self.patch_overlap,
+            recombination=self.recombination,
+        )
+        return np.moveaxis(llr_denoise[0], -1, 0)
+
+
 # TODO: PnP
