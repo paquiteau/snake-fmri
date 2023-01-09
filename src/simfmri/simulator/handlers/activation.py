@@ -8,7 +8,7 @@ import pandas as pd
 from nilearn.glm.first_level import compute_regressor
 from simfmri.utils import block_design
 
-from ..simulation import SimulationData
+from ..simulation import SimulationData, sim_log
 from .base import AbstractHandler
 
 NILEARN_HRF = [
@@ -179,7 +179,8 @@ class ActivationHandler(AbstractHandler):
             min_onset=self._min_onset,
         )
         regressor = np.squeeze(regressor)
-        regressor *= (1 + self._bold_strength) / np.max(regressor)
+        regressor = 1 + (regressor * self._bold_strength / regressor.max())
+        sim_log.info(f"{regressor.min()}, {regressor.max()}")
         # apply the activations
         sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
         # update the experimental paradigm
