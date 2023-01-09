@@ -5,13 +5,16 @@ The Simulation class holds all the information and data relative to a simulation
 """
 from __future__ import annotations
 
+import logging
 import copy
 import pickle
 import dataclasses
+
 import numpy as np
-
-
 from simfmri.utils import Shape2d3d
+
+
+sim_log = logging.getLogger("simulation")
 
 
 @dataclasses.dataclass

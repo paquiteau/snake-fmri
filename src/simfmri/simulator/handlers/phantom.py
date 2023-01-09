@@ -1,9 +1,8 @@
 """Phantom Generation Handlers."""
-
 import numpy as np
 
 from ...utils.phantom import mr_shepp_logan
-from ..simulation import SimulationData
+from ..simulation import SimulationData, sim_log
 from .base import AbstractHandler
 
 
@@ -65,7 +64,7 @@ class SlicerHandler(AbstractHandler):
 
     def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
         """Callback are disable for the 2D slicer."""
-        print("Simulation is now 2D")
+        sim_log.info("Simulation is now 2D")
 
     @property
     def slicer(self) -> tuple:
