@@ -56,6 +56,7 @@ class AcquisitionHandler(AbstractHandler):
         cls,
         acs: float | int,
         accel: int,
+        accel_axis: int = -1,
         constant: bool = True,
         gen_smaps: bool = True,
     ) -> AcquisitionHandler:
@@ -81,6 +82,7 @@ class AcquisitionHandler(AbstractHandler):
                 constant=constant,
                 center_prop=acs,
                 accel=accel,
+                accel_axis=accel_axis,
                 pdf="gaussian",
             )
 

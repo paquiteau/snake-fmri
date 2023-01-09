@@ -26,6 +26,7 @@ handlers:
     _target_: simfmri.simulator.AcquisitionHandler.vds
     acs: 24
     accel: 4
+    accel_axis: 1
     constant: true
     gen_smaps: false
   noise:

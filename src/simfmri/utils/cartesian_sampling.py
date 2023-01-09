@@ -70,6 +70,7 @@ def get_cartesian_mask(
     constant: bool = False,
     center_prop: float | int = 0.3,
     accel: int = 4,
+    accel_axis: int = 0,
     pdf: str = "gaussian",
 ) -> np.ndarray:
     """
@@ -101,12 +102,17 @@ def get_cartesian_mask(
     rng = validate_rng(rng)
 
     mask = np.zeros((n_frames, *shape))
+    slicer = [slice(None, None, None)] * (len(shape) + 1)
+
     if constant:
         mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
-        mask[:, mask_loc] = 1
+        slicer[accel_axis + 1] = mask_loc
+        mask[slicer] = 1
         return mask
 
     for i in range(n_frames):
         mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
-        mask[i, mask_loc] = 1
+        slicer[0] = i
+        slicer[accel_axis + 1] = mask_loc
+        mask[slicer] = 1
     return mask
