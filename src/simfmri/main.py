@@ -72,9 +72,14 @@ def main_app(cfg: DictConfig) -> None:
     plot_design_matrix(design_matrix)
     confusion = compute_confusion(estimation.T, sim.roi)
 
-    np.save("data_test.npy", data_test)
-    np.save("data_ref.npy", sim.data_ref)
-    np.save("estimation.npy", estimation.T)
+    if cfg.save_data:
+        np.save("data_test_abs.npy", abs(data_test))
+        np.save("data_test.npy", data_test)
+        np.save("data_ref.npy", sim.data_ref)
+        np.save("estimation.npy", estimation.T)
+
+    log.info(confusion)
+    log.info(compute_stats(**confusion))
     return confusion
 
 
