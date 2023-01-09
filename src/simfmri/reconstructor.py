@@ -105,7 +105,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
 
 
 class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
-    """Low Rank + Sparse Benchmark reconstructor
+    """Low Rank + Sparse Benchmark reconstructor.
 
     Parameters
     ----------

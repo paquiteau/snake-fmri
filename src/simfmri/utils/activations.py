@@ -29,6 +29,7 @@ def block_design(
     -------
     pd.DataFrame
         the data frame corresponding to a block design.
+
     Notes
     -----
     The design is as follows

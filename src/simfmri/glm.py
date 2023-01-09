@@ -110,7 +110,7 @@ def compute_stats(f_neg: int, t_neg: int, f_pos: int, t_pos: int) -> dict[str, f
 def append_stats_df(df: pd.DataFrame) -> pd.DataFrame:
     """Compute the confusion stastistic over the row of a dataframe."""
     stats = []
-    for idx, row in df.iterrows():
+    for _idx, row in df.iterrows():
         stats.append(
             compute_stats(row["f_neg"], row["t_neg"], row["f_pos"], row["t_pos"])
         )
