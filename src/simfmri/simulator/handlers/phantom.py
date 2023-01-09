@@ -31,7 +31,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
         self.B0 = B0
         self.roi_index = roi_index
 
-    def _handle(self, sim: SimulationData):
+    def _handle(self, sim: SimulationData) -> SimulationData:
         if len(sim.shape) != 3:
             raise ValueError("simulation shape should be 3D.")
 
@@ -63,12 +63,12 @@ class SlicerHandler(AbstractHandler):
         self.axis = axis
         self.index = index
 
-    def _run_callback(self, old_sim, new_sim):
+    def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
         """Callback are disable for the 2D slicer."""
         print("Simulation is now 2D")
 
     @property
-    def slicer(self):
+    def slicer(self) -> tuple:
         """Returns slicer operator."""
         base_slicer = [slice(None, None, None)] * 4
         base_slicer[self.axis + 1] = self.index
