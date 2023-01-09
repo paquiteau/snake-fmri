@@ -11,7 +11,7 @@ def get_kspace_slice_loc(
     accel: int = 4,
     pdf: str = "gaussian",
     rng: RngType = None,
-):
+) -> np.ndarray:
     """Get slice index at a random position.
 
     Parameters
@@ -71,7 +71,7 @@ def get_cartesian_mask(
     center_prop: float | int = 0.3,
     accel: int = 4,
     pdf: str = "gaussian",
-):
+) -> np.ndarray:
     """
     Get a cartesian mask for fMRI kspace data.
 

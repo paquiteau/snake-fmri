@@ -1,6 +1,6 @@
 """Acquisition Handler to genereate Kspace data from simulation."""
+from __future__ import annotations
 from typing import Callable
-
 import numpy as np
 from fmri.operators.fourier import CartesianSpaceFourier
 from simfmri.utils import get_smaps
@@ -23,16 +23,14 @@ class AcquisitionHandler(AbstractHandler):
 
     """
 
-    def __init__(
-        self, sampling_mask: np.ndarray | Callable, gen_smaps: bool = True
-    ):
+    def __init__(self, sampling_mask: np.ndarray | Callable, gen_smaps: bool = True):
         super().__init__()
         self._sampling_mask = sampling_mask
         self._gen_smaps = gen_smaps
 
         pass
 
-    def _handle(self, sim: SimulationData):
+    def _handle(self, sim: SimulationData) -> SimulationData:
         if self._gen_smaps:
             sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
@@ -60,7 +58,7 @@ class AcquisitionHandler(AbstractHandler):
         accel: int,
         constant: bool = True,
         gen_smaps: bool = True,
-    ):
+    ) -> AcquisitionHandler:
         """
         Generate Acquisition with Variable density sampling (vds).
 
@@ -76,7 +74,7 @@ class AcquisitionHandler(AbstractHandler):
             If true, smaps are generated, and used in the acquisition.
         """
 
-        def sampling_mask(sim: SimulationData):
+        def sampling_mask(sim: SimulationData) -> np.ndarray:
             return get_cartesian_mask(
                 shape=sim.shape,
                 n_frames=sim.n_frames,

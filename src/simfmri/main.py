@@ -19,7 +19,9 @@ class MultiRunGatherer(Callback):
     def __init__(self) -> None:
         self.results = []
 
-    def on_job_end(self, config: DictConfig, job_return: JobReturn, **kwargs) -> None:
+    def on_job_end(
+        self, config: DictConfig, job_return: JobReturn, **kwargs: None
+    ) -> None:
         """Run at the end of each job.
 
         Notes
@@ -33,7 +35,7 @@ class MultiRunGatherer(Callback):
         results |= job_return.return_value
         self.results.append(results)
 
-    def on_multirun_end(self, config: DictConfig, **kwargs) -> None:
+    def on_multirun_end(self, config: DictConfig, **kwargs: None) -> None:
         """Run after all job have ended.
 
         Will write a DataFrame from all the results. at the run location.

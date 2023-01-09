@@ -73,7 +73,10 @@ class ActivationHandler(AbstractHandler):
         events: np.ndarray,
         rois: Mapping[str, np.ndarray],
         prev_handler: AbstractHandler,
-        **kwargs,
+        bold_strength: float = 0.01,
+        hrf_model: Literal[NILEARN_HRF] = "glover",
+        oversampling: int = 50,
+        min_onset: float = -24.0,
     ) -> ActivationHandler:
         """
         Create a sequence of handler from a sequence of event and associated rois.
@@ -111,7 +114,14 @@ class ActivationHandler(AbstractHandler):
             raise ValueError("Event and rois should have the same first dimension.")
         h_old = prev_handler
         for event, roi_event in zip(events, rois, strict=True):
-            h = cls(event, roi_event, **kwargs)
+            h = cls(
+                event,
+                roi_event,
+                bold_strength,
+                hrf_model,
+                oversampling,
+                min_onset,
+            )
             h_old.set_next(h)
             h_old = h
         return h
