@@ -1,27 +1,47 @@
 """Simulation of Smaps."""
 import numpy as np
+from .typing import Shape2d3d
 
 
-def get_smaps(shape, n_coils, antenna="birdcage", dtype=np.complex64):
+def get_smaps(
+    shape: Shape2d3d,
+    n_coils: int,
+    antenna: str = "birdcage",
+    dtype: np.dtype = np.complex64,
+) -> np.ndarray:
+    """Get sensitivity maps for a specific antenna.
 
+    Parameters
+    ----------
+    shape
+        Volume shape
+    n_coils
+        number of coil in the antenna
+    antenna
+        name of the antenna to emulate. Only "birdcage" is currently supported.
+    dtype
+        return datatype for the sensitivity maps.
+    """
     if antenna == "birdcage":
         return _birdcage_maps(shape, nzz=n_coils, dtype=dtype)
     else:
         raise NotImplementedError
 
 
-def _birdcage_maps(shape, r=1.5, nzz=8, dtype=np.complex64):
+def _birdcage_maps(
+    shape: Shape2d3d, r: float = 1.5, nzz: int = 8, dtype: np.dtype = np.complex64
+) -> np.ndarray:
     """Simulate birdcage coil sensitivies.
 
     Parameters
     ----------
-    shape: tuple of int
+    shape
         sensitivity maps shape (nc, x,y,z)
-    r: float
+    r
         Relative radius of birdcage.
-    nzz: int
+    nzz
         number of coils per ring.
-    dtype: data type.
+    dtype
 
     Returns
     -------

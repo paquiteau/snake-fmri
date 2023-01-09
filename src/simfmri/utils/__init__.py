@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+"""Utilities tools for simfmri."""
 from .activations import block_design
 from .coils import get_smaps
 from .phantom import mr_shepp_logan

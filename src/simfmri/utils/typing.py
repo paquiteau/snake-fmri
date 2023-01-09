@@ -7,7 +7,8 @@ import numpy as np
 RngType = Union[int, np.random.Generator]
 """Type characterising a random number generator.
 
-A random generator is either reprensented by its seed (int), or a numpy.random.Generator.
+A random generator is either reprensented by its seed (int),
+or a numpy.random.Generator.
 """
 
 

@@ -2,7 +2,13 @@
 import numpy as np
 
 
-def mr_shepp_logan(N, E=None, B0=3, T2star=False, zlims=(-1, 1)):
+def mr_shepp_logan(
+    N: int | tuple[int, int, int],
+    E: np.ndarray = None,
+    B0: float = 3,
+    T2star: bool = False,
+    zlims: tuple[float, float] = (-1, 1),
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Generate a Shepp-Logan phantom with MR tissue parameters.
 
     Parameters
@@ -149,7 +155,7 @@ def mr_shepp_logan(N, E=None, B0=3, T2star=False, zlims=(-1, 1)):
     return (M0s, T1s, T2s, labelled)
 
 
-def mr_ellipsoid_parameters():
+def mr_ellipsoid_parameters() -> np.ndarray:
     """Return parameters of ellipsoids.
 
     Returns
@@ -207,7 +213,7 @@ def mr_ellipsoid_parameters():
     return E
 
 
-def _mr_relaxation_parameters():
+def _mr_relaxation_parameters() -> dict:
     """Return MR relaxation parameters for certain tissues.
 
     Returns
@@ -234,7 +240,7 @@ def _mr_relaxation_parameters():
     return params
 
 
-def idx_in_ellipse(E, shape):
+def idx_in_ellipse(E: np.ndarray, shape: tuple[int, int, int]) -> np.ndarray:
     """Return array of index who fit in the ellipsoid.
 
     Parameters
@@ -243,6 +249,11 @@ def idx_in_ellipse(E, shape):
         1d array defining the coordinate and size of the ellipsoid.
     shape: tuple
         shape of the complete volume.
+
+    Returns
+    -------
+    np.ndarray
+        A boolean mask of index which are in the ellipse.
     """
     L, M, N = shape
 
