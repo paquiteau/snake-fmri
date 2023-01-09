@@ -54,7 +54,7 @@ class AbstractHandler(ABC):
     def __str__(self):
         return self.__class__.__name__
 
-    def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData):
+    def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
         """Run the different callbacks.
 
         Parameters
@@ -78,7 +78,7 @@ class AbstractHandler(ABC):
         """Return the list of callbacks run after the handling."""
         return self._callbacks
 
-    def add_callback(self, call: Callable):
+    def add_callback(self, call: Callable) -> None:
         """Add a callback to the callback list.
 
         Parameters
@@ -93,7 +93,7 @@ class AbstractHandler(ABC):
 
         self._callbacks.append(call)
 
-    def remove_callback(self, idx: int):
+    def remove_callback(self, idx: int) -> Callable:
         """Remove callback according to its position.
 
         Parameters
@@ -106,10 +106,10 @@ class AbstractHandler(ABC):
         callable
             the removed callback.
         """
-        self._callback.pop(idx)
+        return self._callback.pop(idx)
 
     @property
-    def next(self):
+    def next(self) -> AbstractHandler:
         """Next handler in the chain."""
         return self._next
 
@@ -133,7 +133,7 @@ class AbstractHandler(ABC):
             raise ValueError("next should be an Handler.")
         return handler
 
-    def get_chain(self):
+    def get_chain(self) -> str:
         """show the chain of actions that would be applyied to a simulation."""
         cur = self
         handler_chain = []
