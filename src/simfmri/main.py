@@ -67,23 +67,24 @@ def main_app(cfg: DictConfig) -> None:
         axis = cfg.simulation.handlers.slicer.axis
         data_test = np.expand_dims(data_test, axis=axis + 1)
         # data_test = np.repeat(data_test, 2, axis + 1)
-        data_test = data_test.T
 
-    estimation, design_matrix, contrast = compute_test(
-        sim=sim,
-        data_test=data_test,
-        **cfg.stats,
-    )
+    with PerfLogger(log, name="Estimation"):
+        estimation, design_matrix, contrast = compute_test(
+            sim=sim,
+            data_test=data_test.T,
+            **cfg.stats,
+        )
     contrast = np.squeeze(contrast)
     estimation = np.squeeze(estimation)
     plot_design_matrix(design_matrix)
     confusion = compute_confusion(estimation.T, sim.roi)
 
     if cfg.save_data:
-        np.save("data_test_abs.npy", abs(data_test))
-        np.save("data_test.npy", data_test)
+        np.save("data_test_abs.npy", np.squeeze(abs(data_test)))
         np.save("data_ref.npy", sim.data_ref)
-        np.save("estimation.npy", estimation.T)
+        np.save("data_acq.npy", sim.data_acq)
+        np.save("estimation.npy", estimation)
+        log.info("saved: data_test, data_ref, data_acq, estimation")
 
     log.info(confusion)
     log.info(compute_stats(**confusion))
