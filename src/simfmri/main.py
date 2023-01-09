@@ -4,12 +4,13 @@ import logging
 import hydra
 from hydra.experimental.callback import Callback
 from hydra.core.utils import JobReturn
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 from nilearn.plotting import plot_design_matrix
 import os
 import numpy as np
 import pandas as pd
-from simfmri.glm import compute_test, compute_confusion
+from simfmri.glm import compute_test, compute_confusion, compute_stats
+
 from simfmri.utils import PerfLogger
 
 
