@@ -1,4 +1,5 @@
 """Main script fot the reconstruction validation."""
+import logging
 
 import hydra
 from hydra.experimental.callback import Callback
@@ -9,6 +10,7 @@ import os
 import numpy as np
 import pandas as pd
 from simfmri.glm import compute_test, compute_confusion
+from simfmri.utils import PerfLogger
 
 
 class MultiRunGatherer(Callback):
@@ -36,11 +38,12 @@ class MultiRunGatherer(Callback):
 
         Will write a DataFrame from all the results. at the run location.
         """
-        print(kwargs)
         df = pd.DataFrame(self.results)
         save_dir = config.hydra.sweep.dir
-        print(config)
         df.to_csv(os.path.join(save_dir, "results.csv"))
+
+
+log = logging.getLogger(__name__)
 
 
 @hydra.main(version_base=None, config_path="conf", config_name="config")
@@ -49,17 +52,18 @@ def main_app(cfg: DictConfig) -> None:
     simulation_factory = hydra.utils.instantiate(cfg.simulation)
     reconstructor = hydra.utils.instantiate(cfg.reconstruction)
 
-    sim = simulation_factory.simulate()
+    log.debug(OmegaConf.to_yaml(cfg))
+    with PerfLogger(log, name="Simulation"):
+        sim = simulation_factory.simulate()
 
-    data_test = reconstructor.reconstruct(sim)
-    np.save("data_test_abs.npy", abs(data_test))
+    with PerfLogger(log, name="Reconstruction"):
+        data_test = reconstructor.reconstruct(sim)
 
     if len(sim.shape) == 2:
         # fake the 3rd dimension
         axis = cfg.simulation.handlers.slicer.axis
         data_test = np.expand_dims(data_test, axis=axis + 1)
         # data_test = np.repeat(data_test, 2, axis + 1)
-        print(data_test.shape)
         data_test = data_test.T
 
     estimation, design_matrix, contrast = compute_test(
