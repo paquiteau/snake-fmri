@@ -14,4 +14,4 @@ hydra:
 
   callbacks:
     multirun_callback:
-      _target_: simfmri.main.MultiRunGatherer
+      _target_: simfmri.hydra.callback.MultiRunGatherer
