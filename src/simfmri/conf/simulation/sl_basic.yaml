@@ -22,6 +22,9 @@ handlers:
     _target_: simfmri.simulator.SlicerHandler
     axis: 0
     index: 58
+  noise:
+    _target_: simfmri.simulator.GaussianNoiseHandler
+    snr: 1000
   acquisition:
     _target_: simfmri.simulator.AcquisitionHandler.vds
     acs: 24
@@ -29,6 +32,6 @@ handlers:
     accel_axis: 1
     constant: true
     gen_smaps: false
-  noise:
-    _target_: simfmri.simulator.KspaceNoiseHandler
-    snr: 1000
+  # noise:
+  #   _target_: simfmri.simulator.KspaceNoiseHandler
+  #   snr: 1000
