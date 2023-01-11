@@ -9,3 +9,7 @@ save_data: false
 hydra:
   job:
     chdir: true
+
+  callbacks:
+    multirun_callbacks:
+      _target_: simfmri.hydra.callback.MultiRunGatherer
