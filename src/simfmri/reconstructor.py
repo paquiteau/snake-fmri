@@ -96,7 +96,11 @@ class SequentialReconstructor(BenchmarkReconstructor):
         sec_rec = SequentialFMRIReconstructor(
             fourier_op,
             space_linear_op=wavelet_op,
-            space_prox_op=SparseThreshold(Identity(), 2 * 1e-7, thresh_type="soft"),
+            space_prox_op=SparseThreshold(
+                Identity(),
+                self.threshold,
+                thresh_type="soft",
+            ),
             optimizer=self.optimizer,
         )
         return sec_rec.reconstruct(
@@ -117,10 +121,17 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         maximal number of interation.
     """
 
-    def __init__(self, lr_thresh: float = 0.1, sparse_thresh: float = 1, max_iter=150):
+    def __init__(
+        self,
+        lr_thresh: float = 0.1,
+        sparse_thresh: float = 1,
+        max_iter: int = 150,
+        max_iter_frame: int = None,
+    ):
         self.lr_thresh = lr_thresh
         self.sparse_thresh = sparse_thresh
         self.max_iter = max_iter
+        self._max_iter_frame = max_iter_frame
 
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
@@ -132,6 +143,10 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         from modopt.opt.proximity import SparseThreshold
         from fmri.operators.svt import FlattenSVT
 
+        if self._max_iter_frame is not None:
+            max_iter = self._max_iter_frame * sim.n_frames
+        else:
+            max_iter = self.max_iter
         fourier_op = get_fourier_operator(sim)
         lowrank_op = FlattenSVT(
             threshold=self.lr_thresh, initial_rank=5, thresh_type="hard-rel"
@@ -144,7 +159,7 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         glrs = LowRankPlusSparseFMRIReconstructor(
             fourier_op=fourier_op, lowrank_op=lowrank_op, sparse_op=sparse_op
         )
-        glrs_final = glrs.reconstruct(sim.kspace_data, max_iter=150)[0]
+        glrs_final = glrs.reconstruct(sim.kspace_data, max_iter=max_iter)[0]
 
         return glrs_final
 
