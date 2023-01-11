@@ -107,12 +107,12 @@ def get_cartesian_mask(
     if constant:
         mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
         slicer[accel_axis + 1] = mask_loc
-        mask[slicer] = 1
+        mask[tuple(slicer)] = 1
         return mask
 
     for i in range(n_frames):
         mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
         slicer[0] = i
         slicer[accel_axis + 1] = mask_loc
-        mask[slicer] = 1
+        mask[tuple(slicer)] = 1
     return mask
