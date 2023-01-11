@@ -85,11 +85,12 @@ def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     f_pos = np.sum((estimation > 0) & (ground_truth == 0))
     t_pos = np.sum((estimation > 0) & (ground_truth > 0))
 
+    # casting to remove any numpy dtype sugar.
     confusion = {
-        "f_neg": f_neg,
-        "t_neg": t_neg,
-        "f_pos": f_pos,
-        "t_pos": t_pos,
+        "f_neg": int(f_neg),
+        "t_neg": int(t_neg),
+        "f_pos": int(f_pos),
+        "t_pos": int(t_pos),
     }
     return confusion
 
