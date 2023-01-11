@@ -2,12 +2,15 @@
 import logging
 
 import hydra
-from omegaconf import DictConfig, OmegaConf
-from nilearn.plotting import plot_design_matrix
 import numpy as np
-from simfmri.glm import compute_test, compute_confusion, compute_stats
+from nilearn.plotting import plot_design_matrix
+from omegaconf import DictConfig, OmegaConf
+
+from simfmri.glm import compute_confusion, compute_stats, compute_test
 
 from .logger import PerfLogger
+from .utils import dump_confusion
+
 
 log = logging.getLogger(__name__)
 
@@ -49,9 +52,9 @@ def main_app(cfg: DictConfig) -> None:
         np.save("estimation.npy", estimation)
         log.info("saved: data_test, data_ref, data_acq, estimation")
 
-    log.info(confusion)
+    confusion_overriden = dump_confusion(confusion)
+    log.info(confusion_overriden)
     log.info(compute_stats(**confusion))
-    return confusion
 
 
 if __name__ == "__main__":
