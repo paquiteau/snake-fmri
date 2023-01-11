@@ -77,7 +77,13 @@ def get_ptsnr(
     return np.max(get_tsnr(test, ref, roi, tax))
 
 
-def get_snr_axis(test, ref, roi=None, mean_axis=0, peak_axis=None):
+def get_snr_axis(
+    test: np.ndarray,
+    ref: np.ndarray,
+    roi: np.ndarray = None,
+    mean_axis: int = 0,
+    peak_axis: int = None,
+) -> np.ndarray:
     """Get the snr, computed over the mean axis.
 
     Parameters
