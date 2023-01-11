@@ -1,6 +1,5 @@
 """Handler to load existing simulation data."""
 
-import pickle
 from .base import AbstractHandler
 from ..simulation import SimulationData
 
@@ -16,13 +15,13 @@ class LoadDataHandler(AbstractHandler):
         Filepath to load the data
     """
 
-    def __init__(self, sim_pkl_file: str):
-
-        self.sim_pkl_file = sim_pkl_file
+    def __init__(self, sim_file: str):
+        super().__init__()
+        self.sim_file = sim_file
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Load the simulation using pickle."""
-        return pickle.load(self.sim_pkl_file)
+        return sim.load_from_file(self.sim_file)
 
 
 class SaveDataHandler(AbstractHandler):
@@ -38,12 +37,11 @@ class SaveDataHandler(AbstractHandler):
         Filepath to load the data
     """
 
-    def __init__(self, sim_pkl_file: str):
-        self.sim_pkl_file = sim_pkl_file
+    def __init__(self, sim_file: str):
+        super().__init__()
+        self.sim_file = sim_file
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Save the simulation using pickle."""
-        with open(self.sim_pkl_file, "w") as f:
-
-            pickle.dump(sim, f)
+        sim.save(self.sim_file)
         return sim

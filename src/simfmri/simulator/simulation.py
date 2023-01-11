@@ -138,7 +138,7 @@ class SimulationData:
         filename
             location of the stored Simulation.
         """
-        with open(filename) as f:
+        with open(filename, "rb") as f:
             obj = pickle.load(f)
         if obj.is_valid():
             return obj
@@ -190,7 +190,7 @@ class SimulationData:
     @property
     def TR(self) -> float:
         """Get TR."""
-        return self._meta.n_TR
+        return self._meta.TR
 
     @property
     def n_coils(self) -> int:
@@ -204,7 +204,7 @@ class SimulationData:
 
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
-        if self.data_ref:
+        if self.data_ref is not None:
             if self.data_ref.shape != (self.n_frames, *self.shape):
                 return False
             if self.data_acq.shape != self.data_ref.shape:

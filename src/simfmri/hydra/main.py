@@ -3,7 +3,6 @@ import logging
 
 import hydra
 import numpy as np
-from nilearn.plotting import plot_design_matrix
 from omegaconf import DictConfig, OmegaConf
 
 from simfmri.glm import compute_confusion, compute_stats, compute_test
@@ -30,9 +29,7 @@ def main_app(cfg: DictConfig) -> None:
 
     if len(sim.shape) == 2:
         # fake the 3rd dimension
-        axis = cfg.simulation.handlers.slicer.axis
-        data_test = np.expand_dims(data_test, axis=axis + 1)
-        # data_test = np.repeat(data_test, 2, axis + 1)
+        data_test = np.expand_dims(data_test, axis=-1)
 
     with PerfLogger(log, name="Estimation"):
         estimation, design_matrix, contrast = compute_test(
@@ -42,7 +39,6 @@ def main_app(cfg: DictConfig) -> None:
         )
     contrast = np.squeeze(contrast)
     estimation = np.squeeze(estimation)
-    plot_design_matrix(design_matrix)
     confusion = compute_confusion(estimation.T, sim.roi)
 
     if cfg.save_data:
