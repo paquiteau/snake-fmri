@@ -1,0 +1,27 @@
+### Simulation for a Shepp Logan phantom with activation.
+_target_: simfmri.simulator.SimulationDataFactory
+checkpoints: false
+sim_params:
+  _target_: simfmri.simulator.SimulationParams
+  n_frames: 100
+  shape: [128, 128, 128]
+  TR: 1.0
+  n_coils: 1
+
+handlers:
+  loader:
+    _target_: simfmri.simulator.handlers.LoadDataHandler
+    sim_file: ???
+  noise:
+    _target_: simfmri.simulator.GaussianNoiseHandler
+    snr: 1000
+  acquisition:
+    _target_: simfmri.simulator.AcquisitionHandler.vds
+    acs: 24
+    accel: 4
+    accel_axis: 1
+    constant: true
+    gen_smaps: false
+  # noise:
+  #   _target_: simfmri.simulator.KspaceNoiseHandler
+  #   snr: 1000
