@@ -2,7 +2,7 @@
 
 import pickle
 from .base import AbstractHandler
-from ..siulation import SimulationData
+from ..simulation import SimulationData
 
 
 class LoadDataHandler(AbstractHandler):
@@ -18,7 +18,7 @@ class LoadDataHandler(AbstractHandler):
 
     def __init__(self, sim_pkl_file: str):
 
-        self.sim_pkl_file = self.sim_pkl_file
+        self.sim_pkl_file = sim_pkl_file
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Load the simulation using pickle."""
@@ -39,7 +39,7 @@ class SaveDataHandler(AbstractHandler):
     """
 
     def __init__(self, sim_pkl_file: str):
-        self.sim_pkl_file = self.sim_pkl_file
+        self.sim_pkl_file = sim_pkl_file
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Save the simulation using pickle."""
