@@ -13,7 +13,3 @@ hydra:
   sweep:
     dir: multirun/${now:%Y-%m-%d}/extend_sweep
 
-  callbacks:
-    multirun_callback:
-      _target_: simfmri.main.MultiRunGatherer
-
