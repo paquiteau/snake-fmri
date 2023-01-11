@@ -25,9 +25,9 @@ def main() -> None:
         factory.handlers.append(SaveDataHandler(ns.output_file))
 
     else:
-        factory.handlers[-1].sim_pkl_file = ns.output_file
+        factory.handlers[-1].sim_file = ns.output_file
 
-    sim = factory.simulate()
+    factory.simulate()
 
 
 if __name__ == "__main__":
