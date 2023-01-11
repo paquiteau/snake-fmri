@@ -153,7 +153,7 @@ class SimulationData:
         ----------
         filename
         """
-        with open(filename) as f:
+        with open(filename, "wb") as f:
             pickle.dump(self, f)
 
     def copy(self) -> SimulationData:
