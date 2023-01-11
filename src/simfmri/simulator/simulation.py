@@ -107,7 +107,9 @@ class SimulationData:
         self.smaps = None
 
     @classmethod
-    def from_params(cls, sim_meta: SimulationParams, in_place=False) -> SimulationData:
+    def from_params(
+        cls, sim_meta: SimulationParams, in_place: bool = False
+    ) -> SimulationData:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -171,9 +173,34 @@ class SimulationData:
         return self.data_ref
 
     @data_acq.setter
-    def data_acq(self, value):
+    def data_acq(self, value: np.ndarray) -> None:
         """Set the acquired data."""
         self._data_acq = value
+
+    @property
+    def shape(self) -> Shape2d3d:
+        """Get shape."""
+        return self._meta.shape
+
+    @property
+    def n_frames(self) -> int:
+        """Get number of frames."""
+        return self._meta.n_frames
+
+    @property
+    def TR(self) -> float:
+        """Get TR."""
+        return self._meta.n_TR
+
+    @property
+    def n_coils(self) -> int:
+        """Get number of coils."""
+        return self._meta.n_coils
+
+    @property
+    def extra_infos(self) -> dict:
+        """Get extra infos."""
+        return self._meta.extra_infos
 
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
@@ -207,13 +234,3 @@ class SimulationData:
             else:
                 ret += f"{array_name}: {array}\n"
         return ret
-
-
-# expose the meta attribute at first level as read-only.
-for attr in dataclasses.fields(SimulationParams):
-    attr_n = attr.name
-    setattr(
-        SimulationData,
-        attr_n,
-        property(lambda obj, attr=attr_n: getattr(obj._meta, attr)),
-    )
