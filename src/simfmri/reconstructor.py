@@ -24,7 +24,7 @@ def get_fourier_operator(sim: SimulationData):  # noqa ANN201
 
     TODO: add support for non cartesian simulation.
     """
-    from fmri.operator.fourier import CartesianSpaceFourier
+    from fmri.operators.fourier import CartesianSpaceFourier
 
     return CartesianSpaceFourier(
         shape=sim.shape,
@@ -43,15 +43,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Zero filled."""
-        from fmri.operators.fourier import CartesianSpaceFourier
-
-        fourier_op = CartesianSpaceFourier(
-            shape=sim.shape,
-            mask=sim.kspace_mask,
-            n_frames=sim.n_frames,
-            n_coils=sim.n_coils,
-            smaps=sim.smaps,
-        )
+        fourier_op = get_fourier_operator(sim)
         return fourier_op.adj_op(sim.kspace_data)
 
 
