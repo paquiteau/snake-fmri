@@ -98,12 +98,12 @@ def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
 def compute_stats(f_neg: int, t_neg: int, f_pos: int, t_pos: int) -> dict[str, float]:
     """Compute the confusion statistics."""
     stats = dict()
-    stats["TPR"] = t_pos / (t_pos + f_neg)  # sensitivity
-    stats["TNR"] = t_neg / (t_neg + f_pos)  # specificity
-    stats["PPV"] = t_pos / (f_pos + t_pos)  # precision
-    stats["FPR"] = f_pos / (f_pos + t_neg)  # false positive rate
-    stats["FNR"] = f_neg / (t_pos + f_neg)  # false negative rate
-    stats["FDR"] = f_pos / (f_pos + t_pos)  # false discovery rate
+    stats["TPR"] = t_pos / ((t_pos + f_neg) or 1)  # sensitivity
+    stats["TNR"] = t_neg / ((t_neg + f_pos) or 1)  # specificity
+    stats["PPV"] = t_pos / ((f_pos + t_pos) or 1)  # precision
+    stats["FPR"] = f_pos / ((f_pos + t_neg) or 1)  # false positive rate
+    stats["FNR"] = f_neg / ((t_pos + f_neg) or 1)  # false negative rate
+    stats["FDR"] = f_pos / ((f_pos + t_pos) or 1)  # false discovery rate
 
     return stats
 
