@@ -42,10 +42,13 @@ def main_app(cfg: DictConfig) -> None:
     confusion = compute_confusion(estimation.T, sim.roi)
 
     if cfg.save_data:
-        np.save("data_test_abs.npy", np.squeeze(abs(data_test)))
-        np.save("data_ref.npy", sim.data_ref)
-        np.save("data_acq.npy", sim.data_acq)
-        np.save("estimation.npy", estimation)
+        np.savez_compressed(
+            "data.npz",
+            data_test=np.squeeze(abs(data_test)),
+            data_ref=sim.data_ref,
+            data_acq=sim.data_acq,
+            estimation=estimation,
+        )
         log.info("saved: data_test, data_ref, data_acq, estimation")
 
     confusion_overriden = dump_confusion(confusion)
