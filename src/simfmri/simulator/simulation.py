@@ -11,7 +11,7 @@ import pickle
 import dataclasses
 
 import numpy as np
-from simfmri.utils import Shape2d3d
+from simfmri.utils import Shape2d3d, cplx_type
 
 
 sim_log = logging.getLogger("simulation")
@@ -130,17 +130,28 @@ class SimulationData:
         return obj
 
     @classmethod
-    def load_from_file(cls, filename: str) -> SimulationData:
+    def load_from_file(cls, filename: str, dtype: str) -> SimulationData:
         """Load a simulation from file.
 
         Parameters
         ----------
         filename
             location of the stored Simulation.
+        dtype
+            The dtype
         """
         with open(filename, "rb") as f:
             obj = pickle.load(f)
         if obj.is_valid():
+            for attr in obj.__dict__:
+                val = getattr(obj, attr)
+                if isinstance(val, np.ndarray):
+                    if np.iscomplexobj(val):
+                        cdtype = cplx_type(dtype)
+                    else:
+                        cdtype = dtype
+                    setattr(obj, attr, val.astype(cdtype))
+
             return obj
         else:
             raise ValueError("Simulation object not valid.")
@@ -223,7 +234,7 @@ class SimulationData:
 
         return True
 
-    def __str__(self):
+    def __str__(self) -> str:
         ret = "SimulationData: \n"
         ret += f"{self._meta}\n"
 

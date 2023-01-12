@@ -2,6 +2,7 @@
 """General utility tools."""
 
 import numpy as np
+import warnings
 
 
 def validate_rng(rng: int | np.random.Generator = None) -> np.random.Generator:
@@ -14,3 +15,24 @@ def validate_rng(rng: int | np.random.Generator = None) -> np.random.Generator:
         return rng
     else:
         raise ValueError("rng shoud be a numpy Generator, None or an integer seed.")
+
+
+def cplx_type(dtype: str | np.dtype) -> np.dtype:
+    """Return the complex dtype with the same precision as a real one.
+
+    Example
+    -------
+    >>> cplx_type(np.float32)
+    np.complex64
+    """
+
+    d = np.dtype(dtype)
+    if d.type is np.float64:
+        return np.complex128
+    elif d.type is np.float128:
+        return np.complex256
+    elif d.type is np.float32:
+        return np.complex64
+    else:
+        warnings.warn("not supported dtype, use complex64")
+        return np.complex64

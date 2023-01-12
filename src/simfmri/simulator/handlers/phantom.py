@@ -25,10 +25,16 @@ class SheppLoganGeneratorHandler(AbstractHandler):
     utils.phantom: Module defining the shepp logan phantom.
     """
 
-    def __init__(self, B0: int | float = 7, roi_index: int = 10):
+    def __init__(
+        self,
+        B0: int | float = 7,
+        roi_index: int = 10,
+        dtype: np.dtype | str = np.float32,
+    ):
         super().__init__()
         self.B0 = B0
         self.roi_index = roi_index
+        self.dtype = dtype
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         if len(sim.shape) != 3:
@@ -36,6 +42,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
         M0, T1, T2, labels = mr_shepp_logan(sim.shape, B0=self.B0, T2star=True)
 
+        T2 = T2.astype(self.dtype)
         sim.data_ref = np.repeat(T2[None, ...], sim.n_frames, axis=0)
         sim.static_vol = T2.copy()
         sim.roi = labels == self.roi_index

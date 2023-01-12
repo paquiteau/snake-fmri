@@ -15,13 +15,14 @@ class LoadDataHandler(AbstractHandler):
         Filepath to load the data
     """
 
-    def __init__(self, sim_file: str):
+    def __init__(self, sim_file: str, dtype="float32"):
         super().__init__()
         self.sim_file = sim_file
+        self.dtype = dtype
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         """Load the simulation using pickle."""
-        return sim.load_from_file(self.sim_file)
+        return sim.load_from_file(self.sim_file, dtype=self.dtype)
 
 
 class SaveDataHandler(AbstractHandler):
