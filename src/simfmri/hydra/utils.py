@@ -1,6 +1,7 @@
 """Utility function for hydra scripts."""
 from hydra.utils import HydraConfig
 import json
+import os
 
 
 def safe_cast(val: str) -> int | float | str:
@@ -24,6 +25,7 @@ def dump_confusion(results: dict) -> None:
         key = key.split(".")[-1]
         # cast the value to the correct type:
         new_results[key] = safe_cast(val)
+    new_results["directory"] = os.getcwd()
     with open("result.json", "w") as f:
         json.dump(new_results, f)
     return new_results
