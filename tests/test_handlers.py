@@ -3,7 +3,3 @@
 import pytest
 
 import simfmri
-
-
-def test_handler():
-    pass
