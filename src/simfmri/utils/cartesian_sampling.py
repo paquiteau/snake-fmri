@@ -51,14 +51,16 @@ def get_kspace_slice_loc(
 
     if pdf == "gaussian":
         p = norm.pdf(np.linspace(norm.ppf(0.001), norm.ppf(0.999), len(borders)))
-        p /= np.sum(p)
     elif pdf == "uniform":
-        p = np.ones(len(borders)) / len(borders)
+        p = np.ones(len(borders))
     else:
         raise ValueError("Unsupported value for pdf.")
-    # TODO: allow custom pdf as argument (vector or function.)
+        # TODO: allow custom pdf as argument (vector or function.)
 
-    sampled_in_border = list(rng.choice(borders, size=n_samples_borders, replace=False))
+    p /= np.sum(p)
+    sampled_in_border = list(
+        rng.choice(borders, size=n_samples_borders, replace=False, p=p)
+    )
 
     return np.array(sorted(center_indexes + sampled_in_border))
 
