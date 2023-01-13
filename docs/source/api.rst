@@ -7,3 +7,4 @@ API Reference
    :recursive:
 
     simfmri
+    simfmri_runner
