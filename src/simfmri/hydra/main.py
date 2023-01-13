@@ -8,7 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 from simfmri.glm import compute_confusion, compute_stats, compute_test
 
 from .logger import PerfLogger
-from .utils import dump_confusion
+from .utils import dump_confusion, save_data
 
 
 log = logging.getLogger(__name__)
@@ -17,10 +17,13 @@ log = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
+    # 1. Setup
     simulation_factory = hydra.utils.instantiate(cfg.simulation)
     reconstructor = hydra.utils.instantiate(cfg.reconstruction)
 
     log.debug(OmegaConf.to_yaml(cfg))
+
+    # 2. Run
     with PerfLogger(log, name="Simulation"):
         sim = simulation_factory.simulate()
 
@@ -37,20 +40,16 @@ def main_app(cfg: DictConfig) -> None:
             data_test=data_test.T,
             **cfg.stats,
         )
+    # 3. Clean up and saving
     contrast = np.squeeze(contrast)
     estimation = np.squeeze(estimation)
     confusion = compute_confusion(estimation.T, sim.roi)
 
-    if cfg.save_data:
-        np.savez_compressed(
-            "data.npz",
-            data_test=np.squeeze(abs(data_test)),
-            data_ref=sim.data_ref,
-            data_acq=sim.data_acq,
-            estimation=estimation,
-        )
-        log.info("saved: data_test, data_ref, data_acq, estimation")
+    sim.extra_infos["contrast"] = contrast
+    sim.extra_infos["estimation"] = estimation
 
+    if cfg.save_data:
+        save_data(cfg.save_data, sim, log)
     confusion_overriden = dump_confusion(confusion)
     log.info(confusion_overriden)
     log.info(compute_stats(**confusion))

@@ -4,7 +4,7 @@ defaults:
   - reconstruction: zero_filled
   - stats: stat_default
 
-save_data: false
+save_data: "mini"
 
 hydra:
   job:
