@@ -22,6 +22,7 @@ def main_app(cfg: DictConfig) -> None:
     reconstructor = hydra.utils.instantiate(cfg.reconstruction)
 
     log.debug(OmegaConf.to_yaml(cfg))
+    logging.captureWarnings(True)
 
     # 2. Run
     with PerfLogger(log, name="Simulation"):
@@ -47,6 +48,7 @@ def main_app(cfg: DictConfig) -> None:
 
     sim.extra_infos["contrast"] = contrast
     sim.extra_infos["estimation"] = estimation
+    sim.extra_infos["data_test"] = data_test
 
     if cfg.save_data:
         save_data(cfg.save_data, sim, log)
