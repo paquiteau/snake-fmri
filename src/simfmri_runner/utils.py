@@ -83,5 +83,5 @@ def save_data(save_data: str | list[str], sim: SimulationData, log: Logger) -> N
             except KeyError:
                 log.warn(f"'{data_name}' not found in simulation")
 
-    np.savez_compressed("data.npz", data_dict)
+    np.savez_compressed("data.npz", **data_dict)
     log.info(f"saved: {to_save}")

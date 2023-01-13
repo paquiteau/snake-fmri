@@ -57,7 +57,7 @@ test = ["pytest", "pytest-black", "pytest-cov", "pytest-sugar", "pytest-xdist"]
 
 
 [project.scripts]  # Optional
-simfmri = "hydra_runner.main:main_app"
+simfmri = "simfmri_runner.main:main_app"
 simfmri-result = "simfmri.results:main"
 
 [build-system]
