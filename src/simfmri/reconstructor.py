@@ -7,6 +7,8 @@ import numpy as np
 
 from simfmri.simulator import SimulationData
 
+from fmri.operators.fourier import SpaceFourierBase, CartesianSpaceFourier
+
 
 class BenchmarkReconstructor:
     """Represents the interface required to be benchmark-able."""
@@ -19,13 +21,15 @@ class BenchmarkReconstructor:
         raise NotImplementedError()
 
 
-def get_fourier_operator(sim: SimulationData):  # noqa ANN201
+def get_fourier_operator(sim: SimulationData) -> SpaceFourierBase:  # noqa ANN201
     """Get fourier operator from from the simulation.
 
+    Parameters
+    ----------
+    sim
+        Simulation Data that contains all the information to create a fourier operator.
     TODO: add support for non cartesian simulation.
     """
-    from fmri.operators.fourier import CartesianSpaceFourier
-
     return CartesianSpaceFourier(
         shape=sim.shape,
         mask=sim.kspace_mask,
@@ -42,7 +46,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
         return "ZeroFilled"
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
-        """Reconstruct with Zero filled."""
+        """Reconstruct with Zero filled method."""
         fourier_op = get_fourier_operator(sim)
         return fourier_op.adj_op(sim.kspace_data)
 
@@ -54,7 +58,10 @@ class SequentialReconstructor(BenchmarkReconstructor):
     ----------
     max_iter_frame
         Number of iteration to allow per frame.
-
+    optimizer
+        Optimizer name, available are pogm and fista.
+    threshold
+        Threshold value for the wavelet regularisation.
     """
 
     def __init__(
@@ -91,7 +98,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
             space_prox_op=SparseThreshold(
                 Identity(),
                 self.threshold,
-                thresh_type="soft",
+                thresh_type="hard",
             ),
             optimizer=self.optimizer,
         )
