@@ -1,8 +1,5 @@
 # @package _global_
 
-defaults:
-  - override /reconstruction: sequential
-
 hydra:
   job:
     chdir: true
@@ -11,7 +8,6 @@ hydra:
     params:
       simulation.handlers.noise.snr: 1, 3, 10, 30, 100, 300, 1000
       simulation.handlers.acquisition.accel: 1, 2, 4, 8, 16
-      reconstruction.sequential.threshold: 1e-3, 1e-4, 1e-5
       +n_runs: range(5)
 
   sweep:
