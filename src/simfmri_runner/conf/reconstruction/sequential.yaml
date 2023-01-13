@@ -1,4 +1,4 @@
 _target_: simfmri.reconstructor.SequentialReconstructor
 max_iter_per_frame: 30
 optimizer: pogm
-threshold: 2e-7
+threshold: 1e-5
