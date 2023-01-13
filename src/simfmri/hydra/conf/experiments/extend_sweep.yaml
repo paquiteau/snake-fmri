@@ -11,5 +11,4 @@ hydra:
       +n_runs: range(5)
 
   sweep:
-    dir: multirun/${now:%Y-%m-%d}/extend_sweep
-
+    dir: multirun/extend_sweep/${now:%Y-%m-%d}/${%H-%M-%S}
