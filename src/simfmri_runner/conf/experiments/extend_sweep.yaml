@@ -1,7 +1,7 @@
 # @package _global_
 
 defaults:
-  - reconstruction: sequential
+  - /reconstruction: sequential
 
 hydra:
   job:
