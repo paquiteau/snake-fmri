@@ -37,8 +37,6 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # generate autosummary even if no references
 autosummary_generate = True
 
-# mock the import of pysap-fmri
-autodoc_mock_imports = ["fmri"]
 # ignore abc stuff
 autodoc_default_options = {"exclude-members": "_abc_impl"}
 autodoc_typehints = "both"
