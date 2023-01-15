@@ -1,8 +1,14 @@
 """Example of simulation generation."""
-
+import numpy as np
+import matplotlib.pyplot as plt
 
 from simfmri.simulator import SimulationData
-
+from simfmri.simulator import (
+    SheppLoganGeneratorHandler,
+    ActivationHandler,
+    AcquisitionHandler,
+    KspaceNoiseHandler,
+)
 
 #%%
 # We are going to simulate a 2D+t fMRI scan of a phantom with activations. .
@@ -30,15 +36,7 @@ print(sim_data)
 #
 # Then we are going to build the simulator from elementary steps,
 # which all *handles* a particular aspect of the simulation.
-
-from simfmri.simulator import (
-    SheppLoganGeneratorHandler,
-    ActivationHandler,
-    AcquisitionHandler,
-    KspaceNoiseHandler,
-)
-
-#%%
+#
 # The handlers can be chained easily by using the `@` operator (or by setting the
 # ``next`` attribute of an Handler)
 # Some handlers comes with preset function to ease their creation.
@@ -55,11 +53,24 @@ simulator = (
     @ KspaceNoiseHandler(snr=snr)
 )
 
+print(simulator.get_chain())
 #%% The simulation can then be run easily:
 
+
+def print_callback(old_sim, new_sim):
+    print(old_sim)
+    print("->")
+    print(new_sim)
+
+
+cur = simulator
+while cur is not None:
+    cur.add_callback(print_callback)
+    cur = cur.prev
+
 sim_data = simulator(sim_data)
-
-#%%
-# Now lets see the effect of the simulation
-
 print(sim_data)
+
+plt.imshow(abs(sim_data.data_ref[0][32]))
+plt.axis("off")
+plt.show()
