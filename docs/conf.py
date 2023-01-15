@@ -46,9 +46,9 @@ napoleon_include_private_with_doc = True
 # -- Options for Sphinx Gallery ----------------------------------------------
 
 sphinx_gallery_conf = {
-    "examples_dirs": ["../../examples/"],
+    "examples_dirs": ["../examples/"],
     "filename_pattern": "/example_",
-    "ignore_pattern": "conftest.py",
+    "ignore_pattern": r"/(__init__|conftest)\.py",
 }
 
 

@@ -23,4 +23,4 @@ On top of the simulator, this package also provides an hydra-based configuration
 
    api
    models
-   examples
+   auto_examples/index
