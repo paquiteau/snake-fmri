@@ -166,9 +166,9 @@ class AbstractHandler(ABC):
         """show the chain of actions that would be applyied to a simulation."""
         cur = self
         handler_chain = []
-        while cur._next is not None:
+        while cur is not None:
             handler_chain.append(cur)
-            cur = cur._next
+            cur = cur.prev
         ret_str = ""
         for h in handler_chain[::-1]:
             ret_str += f"{h.__class__.__name__}" + "->"
@@ -184,8 +184,7 @@ class AbstractHandler(ABC):
             new_sim = self._handle(sim)
             self._run_callbacks(old_sim, new_sim)
             return new_sim
-        else:
-            return self._handle(sim)
+        return self._handle(sim)
 
     @abstractmethod
     def _handle(self, sim: SimulationData) -> None:
