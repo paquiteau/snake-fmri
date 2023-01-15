@@ -30,9 +30,10 @@ class AbstractHandler(ABC):
     def __init__(self):
         self._callbacks = []
         self._next = None
+        self._prev = None
 
     def __matmul__(self, obj: AbstractHandler):
-        """Chain the handler with the righhandside.
+        """Chain the handler with the righhandside, and return the righhandside.
 
         Example
         -------
@@ -43,7 +44,8 @@ class AbstractHandler(ABC):
         True
         """
         if isinstance(obj, AbstractHandler):
-            return self.set_next(obj)
+            self.next = obj
+            return obj
         else:
             raise TypeError
 
@@ -129,8 +131,35 @@ class AbstractHandler(ABC):
         """
         if isinstance(handler, AbstractHandler):
             self._next = handler
+            handler._prev = self
         else:
             raise ValueError("next should be an Handler.")
+        return handler
+
+    @property
+    def prev(self) -> AbstractHandler:
+        """Prev handler in the chain."""
+        return self._prev
+
+    @prev.setter
+    def prev(self, handler: AbstractHandler) -> AbstractHandler:
+        """Set the prev handler to call.
+
+        Parameters
+        ----------
+        handler
+            The prev handler to call
+
+        Returns
+        -------
+        handler
+            The prev handler to call
+        """
+        if isinstance(handler, AbstractHandler):
+            self._prev = handler
+            handler._next = self
+        else:
+            raise ValueError("prev should be an Handler.")
         return handler
 
     def get_chain(self) -> str:
@@ -148,16 +177,15 @@ class AbstractHandler(ABC):
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
+        if self._prev is not None:
+            sim = self._prev.handle(sim)
         if self._callbacks is not None:
             old_sim = copy.deepcopy(sim)
             new_sim = self._handle(sim)
             self._run_callbacks(old_sim, new_sim)
-        else:
-            new_sim = self._handle(sim)
-        if self._next:
-            return self._next.handle(new_sim)
-        else:
             return new_sim
+        else:
+            return self._handle(sim)
 
     @abstractmethod
     def _handle(self, sim: SimulationData) -> None:
