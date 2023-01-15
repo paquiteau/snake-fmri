@@ -23,6 +23,7 @@ extensions = [
     "sphinx.ext.mathjax",  # LaTeX support
     "sphinx.ext.viewcode",  # link to source code
     "sphinx.ext.napoleon",  # numpy docstring support
+    "sphinx_gallery.gen_gallery",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -42,6 +43,15 @@ autodoc_mock_imports = ["fmri"]
 autodoc_default_options = {"exclude-members": "_abc_impl"}
 autodoc_typehints = "both"
 napoleon_include_private_with_doc = True
+
+
+# -- Options for Sphinx Gallery ----------------------------------------------
+
+sphinx_gallery_conf = {
+    "examples_dirs": ["../../examples/"],
+    "filename_pattern": "/example_",
+    "ignore_pattern": "conftest.py",
+}
 
 
 # -- Options for HTML output -------------------------------------------------

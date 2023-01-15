@@ -8,6 +8,12 @@ Welcome to simfmri's documentation!
 
 **Simfmri** is a python library to simulate fMRI data acquisition and validate reconstructions methods.
 
+
+On top of the simulator, this package also provides an hydra-based configuration interface to create simulation and validate reconstruction methods, managed in `pysap-fmri <https://github.com/paquiteau/pysap-fmri>`_
+
+
+
+
 .. note::
    This project is under heavy development.
 
@@ -17,3 +23,4 @@ Welcome to simfmri's documentation!
 
    api
    models
+   examples
