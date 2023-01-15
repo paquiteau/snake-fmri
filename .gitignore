@@ -1,17 +1,20 @@
 # general things to ignore
-build/
+*build/
 dist/
-docs/source/_autosummary
+docs/_autosummary
+docs/auto_examples/
 *.egg-info/
 *.egg
 *.py[cod]
 __pycache__/
 *.so
 *~
-
 # due to using tox and pytest
 .tox
 .cache
 
 # hydra
 outputs/
+
+# personal stuff
+scripts/
