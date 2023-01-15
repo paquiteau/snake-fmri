@@ -104,16 +104,23 @@ def get_cartesian_mask(
     rng = validate_rng(rng)
 
     mask = np.zeros((n_frames, *shape))
-    slicer = [slice(None, None, None)] * (len(shape) + 1)
-
+    slicer = [slice(None, None, None)] * (1 + len(shape))
+    if accel_axis < 0:
+        accel_axis = len(shape) + accel_axis
+    if not (0 < accel_axis < len(shape)):
+        raise ValueError(
+            "accel_axis should be lower than the number of spatial dimension."
+        )
+    print(slicer)
     if constant:
-        mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
+        mask_loc = get_kspace_slice_loc(shape[accel_axis], center_prop, accel, pdf, rng)
         slicer[accel_axis + 1] = mask_loc
+        print(slicer)
         mask[tuple(slicer)] = 1
         return mask
 
     for i in range(n_frames):
-        mask_loc = get_kspace_slice_loc(shape[-1], center_prop, accel, pdf, rng)
+        mask_loc = get_kspace_slice_loc(shape[accel_axis], center_prop, accel, pdf, rng)
         slicer[0] = i
         slicer[accel_axis + 1] = mask_loc
         mask[tuple(slicer)] = 1
