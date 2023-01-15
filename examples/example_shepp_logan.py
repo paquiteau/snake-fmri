@@ -1,5 +1,10 @@
-"""Example of simulation generation."""
-import numpy as np
+"""
+Generate a 2D+t simple simulation
+=================================
+
+Example of simulation generation.
+"""
+
 import matplotlib.pyplot as plt
 
 from simfmri.simulator import SimulationData
