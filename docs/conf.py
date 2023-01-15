@@ -6,6 +6,12 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
+import sys
+from pathlib import Path
+
+# find project.
+sys.path.insert(0, str(Path(__file__).parents[1]))
+
 project = "simfmri"
 copyright = "2022, Pierre-Antoine Comby"
 author = "Pierre-Antoine Comby"
