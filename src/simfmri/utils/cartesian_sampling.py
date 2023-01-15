@@ -111,11 +111,9 @@ def get_cartesian_mask(
         raise ValueError(
             "accel_axis should be lower than the number of spatial dimension."
         )
-    print(slicer)
     if constant:
         mask_loc = get_kspace_slice_loc(shape[accel_axis], center_prop, accel, pdf, rng)
         slicer[accel_axis + 1] = mask_loc
-        print(slicer)
         mask[tuple(slicer)] = 1
         return mask
 
