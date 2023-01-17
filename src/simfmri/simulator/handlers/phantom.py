@@ -61,10 +61,19 @@ class BigPhantomGeneratorHandler(AbstractHandler):
         location of the phantom parameter.
     """
 
-    def __init__(self, raster_osf: int = 4, phantom_data: str = "big"):
+    def __init__(
+        self,
+        raster_osf: int = 4,
+        roi_index: int = 10,
+        dtype: np.dtype | str = np.float32,
+        phantom_data: str = "big",
+    ):
+
         super().__init__()
         self.raster_osf = raster_osf
         self.phantom_data = phantom_data
+        self.roi_index = roi_index
+        self.dtype = dtype
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         if len(sim.shape) > 2:
@@ -75,7 +84,10 @@ class BigPhantomGeneratorHandler(AbstractHandler):
             phantom_data=self.phantom_data,
         )
         sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
-        sim.roi = raster_phantom(sim.shape, self.phantom_data, weighting="label")
+        sim.roi = (
+            raster_phantom(sim.shape, self.phantom_data, weighting="label") == self.roi
+        )
+        return sim
 
 
 class SlicerHandler(AbstractHandler):
