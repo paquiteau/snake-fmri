@@ -48,7 +48,9 @@ def compute_test(
     """
     # instantiate model
     design_matrix = make_first_level_design_matrix(
-        frame_times=np.arange(sim.n_frames) * sim.TR, events=sim.extra_infos["events"]
+        frame_times=np.arange(sim.n_frames) * sim.TR,
+        events=sim.extra_infos["events"],
+        drift_model=sim.extra_infos.get("drift_model", None),
     )
     first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover", mask_img=False)
 
