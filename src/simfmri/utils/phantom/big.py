@@ -5,11 +5,40 @@ import scipy as sp
 import matplotlib.path as mpltPath
 from importlib.resources import files
 
+NUMBA_AVAILABLE = True
+try:
+    import numba
+except ImportError:
+    NUMBA_AVAILABLE = False
+
 
 def _inside_poly(points: np.ndarray, vertices: np.ndarray) -> np.ndarray:
     path = mpltPath.Path(vertices)
     mask = path.contains_points(points)
     return mask
+
+
+def _is_in_triangle(
+    pts: np.ndarray, x: np.ndarray, y: np.ndarray, z: np.ndarray
+) -> np.ndarray:
+    """Check if pt is in the triangle defined by v1,v2, v3."""
+    a = (pts[:, 0] - y[0]) * (x[1] - y[1]) - (x[0] - y[0]) * (pts[:, 1] - y[1]) < 0
+    b = (pts[:, 0] - z[0]) * (y[1] - z[1]) - (y[0] - z[0]) * (pts[:, 1] - z[1]) < 0
+    c = (pts[:, 0] - x[0]) * (z[1] - x[1]) - (z[0] - x[0]) * (pts[:, 1] - x[1]) < 0
+    return (a == b) & (b == c)
+
+
+def _is_in_triangle_mplt(
+    pts: np.ndarray, x: np.ndarray, y: np.ndarray, z: np.ndarray
+) -> np.ndarray:
+    """Check if points are in triangle using check for polygons."""
+    return _inside_poly(pts, np.vstack([x, y, z]))
+
+
+if NUMBA_AVAILABLE:
+    is_in_triangle = numba.njit("f4[:,:],f4[:],f4[:],f4[:]")(_is_in_triangle)
+else:
+    is_in_triangle = _is_in_triangle_mplt
 
 
 def inside_bezier_region(
@@ -62,7 +91,7 @@ def inside_bezier_region(
     for i in range(len(a)):
         #: ind = find(inpoly(X,Y,[r(i,1) c(i,1) rp1(i,1)],[r(i,2) c(i,2) rp1(i,2)]));
         # consider the points inside the triangle node - control - node
-        ind = np.argwhere(_inside_poly(points_in_hull, np.vstack((r[i], c[i], rp1[i]))))
+        ind = np.argwhere(is_in_triangle(points_in_hull, r[i], c[i], rp1[i]))
         #: b = -(X(ind)-r(i,1))*gamma(i,2)+(Y(ind)-r(i,2))*gamma(i,1);
         #: d = -(X(ind)-r(i,1))*beta(i,2)+(Y(ind)-r(i,2))*beta(i,1);
         tmp = points_in_hull[ind, :] - r[i]
@@ -167,6 +196,8 @@ def generate_phantom(
     Generated phantom
 
     """
+    if isinstance(shape, int):
+        shape = [shape] * 2
     im_big = raster_phantom(np.array(shape) * raster_osf, phantom_data=phantom_data)
     if raster_osf == 1:
         return im_big
