@@ -1,7 +1,7 @@
 """Phantom Generation Handlers."""
 import numpy as np
 
-from ...utils.phantom import mr_shepp_logan
+from ...utils.phantom import mr_shepp_logan, generate_phantom, raster_phantom
 from ..simulation import SimulationData, sim_log
 from .base import AbstractHandler
 
@@ -48,6 +48,34 @@ class SheppLoganGeneratorHandler(AbstractHandler):
         sim.roi = labels == self.roi_index
 
         return sim
+
+
+class BigPhantomGeneratorHandler(AbstractHandler):
+    """Handler to create phantom based on bezier curves.
+
+    Parameters
+    ----------
+    raster_osf
+        rasterisation oversampling factor
+    phantom_data
+        location of the phantom parameter.
+    """
+
+    def __init__(self, raster_osf: int = 4, phantom_data: str = "big"):
+        super().__init__()
+        self.raster_osf = raster_osf
+        self.phantom_data = phantom_data
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+        if len(sim.shape) > 2:
+            raise ValueError("simulation shape should be 2D.")
+        sim.static_vol = generate_phantom(
+            sim.shape,
+            raster_osf=self.raster_osf,
+            phantom_data=self.phantom_data,
+        )
+        sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
+        sim.roi = raster_phantom(sim.shape, self.phantom_data, weighting="label")
 
 
 class SlicerHandler(AbstractHandler):

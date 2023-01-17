@@ -31,6 +31,7 @@ def inside_bezier_region(
     -------
     np.ndarray
         Boolean array masking the inner region.
+
     Notes
     -----
     This function was adapted from the code of Guerquin-Kern_2012.
@@ -59,21 +60,18 @@ def inside_bezier_region(
 
     # for each bézier curve of the polyline
     for i in range(len(a)):
-        # MATLAB: ind = find(inpoly(X,Y,[r(i,1) c(i,1) rp1(i,1)],[r(i,2) c(i,2) rp1(i,2)]));
+        #: ind = find(inpoly(X,Y,[r(i,1) c(i,1) rp1(i,1)],[r(i,2) c(i,2) rp1(i,2)]));
         # consider the points inside the triangle node - control - node
-        ind = np.argwhere(
-            inside_poly(points_in_hull, np.vstack((r[i, :], c[i, :], rp1[i, :])))
-        )
-        # MATLAB:  b = -(X(ind)-r(i,1))*gamma(i,2)+(Y(ind)-r(i,2))*gamma(i,1);
-        # MATLAB: d = -(X(ind)-r(i,1))*beta(i,2)+(Y(ind)-r(i,2))*beta(i,1);
-
+        ind = np.argwhere(_inside_poly(points_in_hull, np.vstack((r[i], c[i], rp1[i]))))
+        #: b = -(X(ind)-r(i,1))*gamma(i,2)+(Y(ind)-r(i,2))*gamma(i,1);
+        #: d = -(X(ind)-r(i,1))*beta(i,2)+(Y(ind)-r(i,2))*beta(i,1);
         tmp = points_in_hull[ind, :] - r[i]
         b = -tmp[..., 0] * gamma[i, 1] + tmp[..., 1] * gamma[i, 0]
         d = -tmp[..., 0] * beta[i, 1] + tmp[..., 1] * beta[i, 0]
-        # MATLAB: map(ind(b.^2<a(i)*d)) = (a(i)>=0);
+        #: map(ind(b.^2<a(i)*d)) = (a(i)>=0);
         cond = b**2 < (a[i] * d)
         inside[ind[cond]] = a[i] >= 0
-        # # a>=0 for outward-pointing triangles: add the interior points
+        # a>=0 for outward-pointing triangles: add the interior points
         # a<0 for inside-pointing triangles: remove the exterior points
     inside_hull[np.argwhere(inside_hull)[~inside]] = 0
     return inside_hull.reshape(X.shape)
@@ -82,16 +80,22 @@ def inside_bezier_region(
 def raster_phantom(
     shape: int | tuple[int, int],
     phantom_data: str | list[dict] = "big",
+    weighting: str = "rel",
 ) -> np.ndarray:
-    """rasterize a 2D phantom using data specified in json file.
+    """Rasterize a 2D phantom using data specified in json file.
 
     Parameters
     ----------
-    shape:
+    shape
         2D shape of the phantom
     phantom_data , optional
         List of dict describing a region, or path to json file.
         By default this build the phantom from the BIG group.
+    weighting
+        how should the contrast be computed.
+        - "rel" : the contrast of the region is added relatively (+=)
+        - "abs" : the constrast of the region is set absolutely (=)
+        - "label": each region gets an integer labelling.
 
     Returns
     -------
@@ -119,9 +123,10 @@ def raster_phantom(
     )
     X /= shape[0]
     Y /= shape[1]
+    label = 1
     for region in phantom_data:
         if region["type"] == "bezier":
-            im[inside_bezier_region(region["control"], X, Y)] += region["weight"]
+            mask = inside_bezier_region(region["control"], X, Y)
         elif region["type"] == "ellipse":
             ct = np.cos(region["angle"])
             st = np.sin(region["angle"])
@@ -129,8 +134,16 @@ def raster_phantom(
             x2 = Y - region["center"][1]
             u1 = 2 / region["width"][0] * (ct * x1 + st * x2)
             u2 = 2 / region["width"][1] * (-st * x1 + ct * x2)
-            support_ell = np.sqrt(u1**2 + u2**2) <= 1
-            im[support_ell] += region["weight"]
+            mask = np.sqrt(u1**2 + u2**2) <= 1
+        else:
+            raise ValueError("Unsupported region type.")
+        if weighting == "label":
+            im[mask] = label
+            label += 1
+        elif weighting == "rel":
+            im[mask] += region["weight"]
+        elif weighting == "abs":
+            im[mask] = region["weight"]
     return im
 
 
