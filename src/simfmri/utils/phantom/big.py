@@ -67,7 +67,7 @@ def inside_bezier_region(
     """
     # The quadratic bézier poly-line is defined by a list of controls points.
     # at the midway of two control point lies a node of the poly-line.
-    controls = np.array(controls)
+    controls = np.array(controls, dtype="float32")
     r = 0.5 * (np.roll(controls, [1, 1]) + np.roll(controls, [2, 2]))
     c = np.roll(controls, [1, 1])
     rp1 = np.roll(r, [-1, -1])
@@ -77,7 +77,7 @@ def inside_bezier_region(
 
     a = beta[:, 0] * gamma[:, 1] - beta[:, 1] * gamma[:, 0]
 
-    all_points = np.empty((X.size, 2))
+    all_points = np.empty((X.size, 2), dtype=np.float32)
     all_points[:, 0] = X.flatten()
     all_points[:, 1] = Y.flatten()
     # A bezier curve is contains in the convex hull of its control points.
@@ -150,8 +150,8 @@ def raster_phantom(
         np.arange(-np.floor(shape[0] / 2), np.floor((shape[0]) / 2)),
         np.arange(-np.floor(shape[0] / 2), np.floor((shape[0]) / 2)),
     )
-    X /= shape[0]
-    Y /= shape[1]
+    X = np.float32(X / shape[0])
+    Y = np.float32(Y / shape[1])
     label = 1
     for region in phantom_data:
         if region["type"] == "bezier":
