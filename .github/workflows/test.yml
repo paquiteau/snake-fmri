@@ -20,6 +20,6 @@ jobs:
       with:
         python-version: ${{ matrix.python }}
     - name: Install test dependencies
-      run: python -m pip install .[test] matplotlib
+      run: python -m pip install .[test] matplotlib git+https://github.com/paquiteau/pysap-fmri
     - name: Test
       run: pytest
