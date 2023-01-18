@@ -40,8 +40,10 @@ classifiers = [  # Optional
 
 dependencies = [ # Optional
   "oldest-supported-numpy",
+  "scipy",
   "nilearn",
   "hydra-core",
+  "scikit-image"
 ]
 
 [project.optional-dependencies] # Optional
