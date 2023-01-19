@@ -3,6 +3,7 @@ import numpy as np
 from importlib.resources import files
 
 from ...utils.phantom import mr_shepp_logan, generate_phantom, raster_phantom
+from ...utils import validate_rng, RngType
 from ..simulation import SimulationData, sim_log
 from .base import AbstractHandler
 
@@ -102,12 +103,10 @@ class RoiDefinerHandler(AbstractHandler):
         roi definition
     """
 
-    def __init__(self, roi_data: list[dict] | dict = None):
-        super().__init__(self)
+    def __init__(self, roi_data: list[dict] | dict = None, rng=None):
+        super().__init__()
         if roi_data is None:
-            roi_data = files("simfmri.utils.phantom.big").joinpath(
-                "big_phantom_roi.json"
-            )
+            roi_data = files("simfmri.utils.phantom").joinpath("big_phantom_roi.json")
         self.roi_data = roi_data
 
     def _handle(self, sim: SimulationData) -> SimulationData:

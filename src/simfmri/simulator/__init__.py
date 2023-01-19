@@ -8,12 +8,15 @@ from .handlers import (
     AbstractHandler,
     AcquisitionHandler,
     ActivationHandler,
+    BigPhantomGeneratorHandler,
     GaussianNoiseHandler,
     KspaceNoiseHandler,
     NoiseHandler,
     RicianNoiseHandler,
+    RoiDefinerHandler,
     SheppLoganGeneratorHandler,
     SlicerHandler,
+    TextureAdderHandler,
 )
 
 __all__ = [
@@ -25,10 +28,13 @@ __all__ = [
     "AbstractHandler",
     "AcquisitionHandler",
     "ActivationHandler",
+    "BigPhantomGeneratorHandler",
     "GaussianNoiseHandler",
     "KspaceNoiseHandler",
     "NoiseHandler",
     "RicianNoiseHandler",
-    "SlicerHandler",
+    "RoiDefinerHandler",
     "SheppLoganGeneratorHandler",
+    "SlicerHandler",
+    "TextureAdderHandler",
 ]

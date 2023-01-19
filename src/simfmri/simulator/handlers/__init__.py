@@ -13,18 +13,27 @@ from .noise import (
     NoiseHandler,
     RicianNoiseHandler,
 )
-from .phantom import SheppLoganGeneratorHandler, SlicerHandler
+from .phantom import (
+    SheppLoganGeneratorHandler,
+    SlicerHandler,
+    BigPhantomGeneratorHandler,
+    RoiDefinerHandler,
+    TextureAdderHandler,
+)
 
 __all__ = [
     "AbstractHandler",
     "AcquisitionHandler",
     "ActivationHandler",
+    "BigPhantomGeneratorHandler",
     "GaussianNoiseHandler",
     "KspaceNoiseHandler",
     "LoadDataHandler",
     "NoiseHandler",
     "RicianNoiseHandler",
+    "RoiDefinerHandler",
     "SaveDataHandler",
     "SheppLoganGeneratorHandler",
     "SlicerHandler",
+    "TextureAdderHandler",
 ]
