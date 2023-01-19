@@ -120,6 +120,32 @@ class RoiDefinerHandler(AbstractHandler):
         return sim
 
 
+class TextureAdderHandler(AbstractHandler):
+    """Add texture to the image by playing a white noise.
+
+    Parameters
+    ----------
+    var_texture
+        relative factor to compute the noise variance.
+    """
+
+    def __init__(self, var_texture: float = 0.005, rng: RngType = None):
+        super().__init__()
+        self._var_texture = var_texture
+
+        self._rng = validate_rng(rng)
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+
+        sigma_noise = self._var_texture * sim.data_ref[0]
+
+        sim.data_ref += sigma_noise * self._rng.standard_normal(
+            sim.data_ref.shape, dtype=sim.data_ref.dtype
+        )
+
+        return sim
+
+
 class SlicerHandler(AbstractHandler):
     """Handler to get a 2D+T slice from a 3D+T simulation.
 
