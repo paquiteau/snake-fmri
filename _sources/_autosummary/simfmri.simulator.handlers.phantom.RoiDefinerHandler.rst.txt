@@ -1,0 +1,37 @@
+RoiDefinerHandler
+=================
+
+.. currentmodule:: simfmri.simulator.handlers.phantom
+
+.. autoclass:: RoiDefinerHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~RoiDefinerHandler.__init__
+      ~RoiDefinerHandler.add_callback
+      ~RoiDefinerHandler.get_chain
+      ~RoiDefinerHandler.handle
+      ~RoiDefinerHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~RoiDefinerHandler.callbacks
+      ~RoiDefinerHandler.next
+      ~RoiDefinerHandler.prev
+   
+   

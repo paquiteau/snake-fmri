@@ -1,0 +1,38 @@
+SlicerHandler
+=============
+
+.. currentmodule:: simfmri.simulator.handlers.phantom
+
+.. autoclass:: SlicerHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~SlicerHandler.__init__
+      ~SlicerHandler.add_callback
+      ~SlicerHandler.get_chain
+      ~SlicerHandler.handle
+      ~SlicerHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~SlicerHandler.callbacks
+      ~SlicerHandler.next
+      ~SlicerHandler.prev
+      ~SlicerHandler.slicer
+   
+   

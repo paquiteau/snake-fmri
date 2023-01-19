@@ -1,0 +1,35 @@
+simfmri.simulator.handlers.noise
+================================
+
+.. automodule:: simfmri.simulator.handlers.noise
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      GaussianNoiseHandler
+      KspaceNoiseHandler
+      NoiseHandler
+      RicianNoiseHandler
+   
+   
+
+   
+   
+   
+
+
+

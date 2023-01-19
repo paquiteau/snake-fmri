@@ -1,0 +1,35 @@
+simfmri.metric
+==============
+
+.. automodule:: simfmri.metric
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      get_ptsnr
+      get_signal_noise
+      get_snr
+      get_snr_axis
+      get_tsnr
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

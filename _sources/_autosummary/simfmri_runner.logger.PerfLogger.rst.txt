@@ -1,0 +1,32 @@
+PerfLogger
+==========
+
+.. currentmodule:: simfmri_runner.logger
+
+.. autoclass:: PerfLogger
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~PerfLogger.__init__
+      ~PerfLogger.recap
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~PerfLogger.timers
+   
+   

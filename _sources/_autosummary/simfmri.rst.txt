@@ -1,0 +1,34 @@
+﻿simfmri
+=======
+
+.. automodule:: simfmri
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   simfmri.glm
+   simfmri.metric
+   simfmri.reconstructor
+   simfmri.simulator
+   simfmri.utils
+

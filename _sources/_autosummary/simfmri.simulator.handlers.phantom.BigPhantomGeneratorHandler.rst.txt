@@ -1,0 +1,37 @@
+BigPhantomGeneratorHandler
+==========================
+
+.. currentmodule:: simfmri.simulator.handlers.phantom
+
+.. autoclass:: BigPhantomGeneratorHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~BigPhantomGeneratorHandler.__init__
+      ~BigPhantomGeneratorHandler.add_callback
+      ~BigPhantomGeneratorHandler.get_chain
+      ~BigPhantomGeneratorHandler.handle
+      ~BigPhantomGeneratorHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~BigPhantomGeneratorHandler.callbacks
+      ~BigPhantomGeneratorHandler.next
+      ~BigPhantomGeneratorHandler.prev
+   
+   

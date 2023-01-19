@@ -1,0 +1,37 @@
+LoadDataHandler
+===============
+
+.. currentmodule:: simfmri.simulator.handlers.loader
+
+.. autoclass:: LoadDataHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~LoadDataHandler.__init__
+      ~LoadDataHandler.add_callback
+      ~LoadDataHandler.get_chain
+      ~LoadDataHandler.handle
+      ~LoadDataHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~LoadDataHandler.callbacks
+      ~LoadDataHandler.next
+      ~LoadDataHandler.prev
+   
+   

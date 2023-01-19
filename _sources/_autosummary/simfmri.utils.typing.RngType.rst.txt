@@ -1,0 +1,6 @@
+simfmri.utils.typing.RngType
+============================
+
+.. currentmodule:: simfmri.utils.typing
+
+.. autodata:: RngType

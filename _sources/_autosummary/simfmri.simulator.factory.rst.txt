@@ -1,0 +1,32 @@
+simfmri.simulator.factory
+=========================
+
+.. automodule:: simfmri.simulator.factory
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      SimulationDataFactory
+   
+   
+
+   
+   
+   
+
+
+

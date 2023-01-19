@@ -1,0 +1,6 @@
+simfmri.utils.phantom.shepp\_logan.mr\_shepp\_logan
+===================================================
+
+.. currentmodule:: simfmri.utils.phantom.shepp_logan
+
+.. autofunction:: mr_shepp_logan

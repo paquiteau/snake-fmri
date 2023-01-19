@@ -1,0 +1,33 @@
+simfmri.simulator.handlers.loader
+=================================
+
+.. automodule:: simfmri.simulator.handlers.loader
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      LoadDataHandler
+      SaveDataHandler
+   
+   
+
+   
+   
+   
+
+
+

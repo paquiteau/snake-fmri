@@ -1,0 +1,31 @@
+simfmri.utils.coils
+===================
+
+.. automodule:: simfmri.utils.coils
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      get_smaps
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

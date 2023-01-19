@@ -1,0 +1,6 @@
+simfmri.utils.phantom.big.raster\_phantom
+=========================================
+
+.. currentmodule:: simfmri.utils.phantom.big
+
+.. autofunction:: raster_phantom

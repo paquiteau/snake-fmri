@@ -1,0 +1,6 @@
+simfmri.glm.compute\_test
+=========================
+
+.. currentmodule:: simfmri.glm
+
+.. autofunction:: compute_test

@@ -1,0 +1,37 @@
+NoiseHandler
+============
+
+.. currentmodule:: simfmri.simulator.handlers.noise
+
+.. autoclass:: NoiseHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~NoiseHandler.__init__
+      ~NoiseHandler.add_callback
+      ~NoiseHandler.get_chain
+      ~NoiseHandler.handle
+      ~NoiseHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~NoiseHandler.callbacks
+      ~NoiseHandler.next
+      ~NoiseHandler.prev
+   
+   

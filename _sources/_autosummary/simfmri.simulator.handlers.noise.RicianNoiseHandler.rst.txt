@@ -1,0 +1,37 @@
+RicianNoiseHandler
+==================
+
+.. currentmodule:: simfmri.simulator.handlers.noise
+
+.. autoclass:: RicianNoiseHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~RicianNoiseHandler.__init__
+      ~RicianNoiseHandler.add_callback
+      ~RicianNoiseHandler.get_chain
+      ~RicianNoiseHandler.handle
+      ~RicianNoiseHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~RicianNoiseHandler.callbacks
+      ~RicianNoiseHandler.next
+      ~RicianNoiseHandler.prev
+   
+   

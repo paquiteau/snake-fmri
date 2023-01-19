@@ -1,0 +1,6 @@
+simfmri.utils.typing.Shape2d3d
+==============================
+
+.. currentmodule:: simfmri.utils.typing
+
+.. autodata:: Shape2d3d

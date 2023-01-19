@@ -1,0 +1,6 @@
+simfmri.utils.cartesian\_sampling.get\_kspace\_slice\_loc
+=========================================================
+
+.. currentmodule:: simfmri.utils.cartesian_sampling
+
+.. autofunction:: get_kspace_slice_loc

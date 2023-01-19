@@ -1,0 +1,6 @@
+simfmri.utils.cartesian\_sampling.get\_cartesian\_mask
+======================================================
+
+.. currentmodule:: simfmri.utils.cartesian_sampling
+
+.. autofunction:: get_cartesian_mask

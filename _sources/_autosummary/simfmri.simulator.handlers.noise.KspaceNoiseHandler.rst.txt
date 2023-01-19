@@ -1,0 +1,37 @@
+KspaceNoiseHandler
+==================
+
+.. currentmodule:: simfmri.simulator.handlers.noise
+
+.. autoclass:: KspaceNoiseHandler
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~KspaceNoiseHandler.__init__
+      ~KspaceNoiseHandler.add_callback
+      ~KspaceNoiseHandler.get_chain
+      ~KspaceNoiseHandler.handle
+      ~KspaceNoiseHandler.remove_callback
+   
+   
+
+   
+   
+   .. rubric:: Attributes
+
+   .. autosummary::
+   
+      ~KspaceNoiseHandler.callbacks
+      ~KspaceNoiseHandler.next
+      ~KspaceNoiseHandler.prev
+   
+   

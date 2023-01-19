@@ -1,0 +1,6 @@
+simfmri.utils.coils.get\_smaps
+==============================
+
+.. currentmodule:: simfmri.utils.coils
+
+.. autofunction:: get_smaps

@@ -1,0 +1,32 @@
+simfmri.simulator
+=================
+
+.. automodule:: simfmri.simulator
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   simfmri.simulator.factory
+   simfmri.simulator.handlers
+   simfmri.simulator.simulation
+

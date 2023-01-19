@@ -1,0 +1,32 @@
+simfmri.simulator.handlers.base
+===============================
+
+.. automodule:: simfmri.simulator.handlers.base
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      AbstractHandler
+   
+   
+
+   
+   
+   
+
+
+

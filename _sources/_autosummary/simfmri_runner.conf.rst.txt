@@ -1,0 +1,23 @@
+simfmri\_runner.conf
+====================
+
+.. automodule:: simfmri_runner.conf
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

@@ -1,0 +1,32 @@
+simfmri.simulator.handlers.acquisition
+======================================
+
+.. automodule:: simfmri.simulator.handlers.acquisition
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Classes
+
+   .. autosummary::
+      :toctree:
+      :template: custom-class-template.rst
+      :nosignatures:
+   
+      AcquisitionHandler
+   
+   
+
+   
+   
+   
+
+
+

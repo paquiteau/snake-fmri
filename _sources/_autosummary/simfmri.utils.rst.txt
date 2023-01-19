@@ -1,0 +1,35 @@
+simfmri.utils
+=============
+
+.. automodule:: simfmri.utils
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   simfmri.utils.activations
+   simfmri.utils.cartesian_sampling
+   simfmri.utils.coils
+   simfmri.utils.phantom
+   simfmri.utils.typing
+   simfmri.utils.utils
+

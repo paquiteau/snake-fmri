@@ -1,0 +1,6 @@
+simfmri\_runner.utils.dump\_confusion
+=====================================
+
+.. currentmodule:: simfmri_runner.utils
+
+.. autofunction:: dump_confusion

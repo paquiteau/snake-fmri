@@ -1,0 +1,34 @@
+﻿simfmri\_runner
+===============
+
+.. automodule:: simfmri_runner
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+
+.. autosummary::
+   :toctree:
+   :template: custom-module-template.rst
+   :recursive:
+
+   simfmri_runner.callback
+   simfmri_runner.conf
+   simfmri_runner.logger
+   simfmri_runner.main
+   simfmri_runner.utils
+

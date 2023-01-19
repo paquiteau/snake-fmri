@@ -1,0 +1,26 @@
+ZeroFilledReconstructor
+=======================
+
+.. currentmodule:: simfmri.reconstructor
+
+.. autoclass:: ZeroFilledReconstructor
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~ZeroFilledReconstructor.__init__
+      ~ZeroFilledReconstructor.reconstruct
+   
+   
+
+   
+   
+   

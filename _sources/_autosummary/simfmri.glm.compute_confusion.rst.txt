@@ -1,0 +1,6 @@
+simfmri.glm.compute\_confusion
+==============================
+
+.. currentmodule:: simfmri.glm
+
+.. autofunction:: compute_confusion

@@ -1,0 +1,31 @@
+LatestRunLink
+=============
+
+.. currentmodule:: simfmri_runner.callback
+
+.. autoclass:: LatestRunLink
+   :members:
+   :private-members:
+   :show-inheritance:
+   :special-members: __call__, __add__, __mul__, __matmul__
+
+   
+   
+   .. rubric:: Methods
+
+   .. autosummary::
+      :nosignatures:
+   
+      ~LatestRunLink.__init__
+      ~LatestRunLink.on_job_end
+      ~LatestRunLink.on_job_start
+      ~LatestRunLink.on_multirun_end
+      ~LatestRunLink.on_multirun_start
+      ~LatestRunLink.on_run_end
+      ~LatestRunLink.on_run_start
+   
+   
+
+   
+   
+   

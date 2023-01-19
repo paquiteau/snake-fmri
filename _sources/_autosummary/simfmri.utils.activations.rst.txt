@@ -1,0 +1,31 @@
+simfmri.utils.activations
+=========================
+
+.. automodule:: simfmri.utils.activations
+
+   
+   
+   
+
+   
+   
+   .. rubric:: Functions
+
+   .. autosummary::
+      :toctree:
+      :nosignatures:
+   
+      block_design
+   
+   
+
+   
+   
+   
+
+   
+   
+   
+
+
+

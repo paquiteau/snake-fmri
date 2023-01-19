@@ -1,0 +1,6 @@
+simfmri.metric.get\_tsnr
+========================
+
+.. currentmodule:: simfmri.metric
+
+.. autofunction:: get_tsnr

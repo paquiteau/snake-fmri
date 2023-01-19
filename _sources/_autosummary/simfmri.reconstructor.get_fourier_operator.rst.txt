@@ -1,0 +1,6 @@
+simfmri.reconstructor.get\_fourier\_operator
+============================================
+
+.. currentmodule:: simfmri.reconstructor
+
+.. autofunction:: get_fourier_operator

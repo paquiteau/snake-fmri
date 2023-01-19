@@ -1,0 +1,6 @@
+simfmri\_runner.utils.safe\_cast
+================================
+
+.. currentmodule:: simfmri_runner.utils
+
+.. autofunction:: safe_cast

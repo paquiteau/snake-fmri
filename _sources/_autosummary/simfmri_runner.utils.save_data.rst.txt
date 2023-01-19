@@ -1,0 +1,6 @@
+simfmri\_runner.utils.save\_data
+================================
+
+.. currentmodule:: simfmri_runner.utils
+
+.. autofunction:: save_data
