@@ -1,5 +1,6 @@
 """Phantom Generation Handlers."""
 import numpy as np
+from importlib.resources import files
 
 from ...utils.phantom import mr_shepp_logan, generate_phantom, raster_phantom
 from ..simulation import SimulationData, sim_log
@@ -84,9 +85,38 @@ class BigPhantomGeneratorHandler(AbstractHandler):
             phantom_data=self.phantom_data,
         )
         sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
-        sim.roi = (
-            raster_phantom(sim.shape, self.phantom_data, weighting="label") == self.roi
+        if self.roi_index is not None:
+            sim.roi = (
+                raster_phantom(sim.shape, self.phantom_data, weighting="label")
+                == self.roi_index
+            )
+        return sim
+
+
+class RoiDefinerHandler(AbstractHandler):
+    """Define a Region of interest based on a bézier parametrization.
+
+    Parameters
+    ----------
+    roi_data
+        roi definition
+    """
+
+    def __init__(self, roi_data: list[dict] | dict = None):
+        super().__init__(self)
+        if roi_data is None:
+            roi_data = files("simfmri.utils.phantom.big").joinpath(
+                "big_phantom_roi.json"
+            )
+        self.roi_data = roi_data
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+        sim.roi = raster_phantom(
+            sim.shape,
+            phantom_data=self.roi_data,
+            weighting="label",
         )
+        sim.roi = sim.roi > 0
         return sim
 
 
