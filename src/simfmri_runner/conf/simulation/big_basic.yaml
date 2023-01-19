@@ -1,0 +1,38 @@
+
+### Simulation using the BIG defined phantom with activation.
+_target_: simfmri.simulator.SimulationDataFactory
+checkpoints: false
+sim_params:
+  _target_: simfmri.simulator.SimulationParams
+  n_frames: 100
+  shape: [256, 256]
+  TR: 1.0
+  n_coils: 1
+
+handlers:
+  generator:
+    _target_: simfmri.simulator.BigPhantomGeneratorHandler
+  generator2:
+    _target_: simfmri.simulator.RoiDefinerHandler
+  generator3:
+    _target_: simfmri.simulator.TextureAdderHandler
+  activation:
+    _target_: simfmri.simulator.ActivationHandler.from_block_design
+    event_name: block_on
+    block_on: 3
+    block_off: 3
+    duration: ${sim_params.n_frames}
+    offset: 0
+  noise:
+    _target_: simfmri.simulator.GaussianNoiseHandler
+    snr: 1000
+  acquisition:
+    _target_: simfmri.simulator.AcquisitionHandler.vds
+    acs: 24
+    accel: 4
+    accel_axis: 1
+    constant: true
+    gen_smaps: false
+  # noise:
+  #   _target_: simfmri.simulator.KspaceNoiseHandler
+  #   snr: 1000
