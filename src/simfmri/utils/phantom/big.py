@@ -2,6 +2,7 @@
 import json
 import numpy as np
 import scipy as sp
+from skimage.transform import resize
 import matplotlib.path as mpltPath
 from importlib.resources import files
 
@@ -108,7 +109,7 @@ def inside_bezier_region(
 
 def raster_phantom(
     shape: int | tuple[int, int],
-    phantom_data: str | list[dict] = "big",
+    phantom_data: str | dict | list[dict] = "big",
     weighting: str = "rel",
 ) -> np.ndarray:
     """Rasterize a 2D phantom using data specified in json file.
@@ -142,6 +143,8 @@ def raster_phantom(
     elif isinstance(phantom_data, str):
         with open(phantom_data) as f:
             phantom_data = json.load(f)
+    elif isinstance(phantom_data, dict):
+        phantom_data = [phantom_data]
     elif not isinstance(phantom_data, list):
         raise ValueError("phantom data is not usable.")
 
@@ -173,14 +176,22 @@ def raster_phantom(
             im[mask] += region["weight"]
         elif weighting == "abs":
             im[mask] = region["weight"]
+        else:
+            raise ValueError("Unsupported weighted type")
     return im
 
 
 def generate_phantom(
-    shape: int | tuple[int, int], raster_osf: int = 4, phantom_data: str = "big"
+    shape: int | tuple[int, int],
+    raster_osf: int = 4,
+    phantom_data: str = "big",
+    anti_aliasing: bool = True,
 ) -> np.ndarray:
     """
-    Generate a phantom at the correct shape by rasterizing a high resolution phantom.
+    Generate a phantom at the correct shape.
+
+    For best results a high resolution phantom is first rasterize
+    and downsampled at the correct shape.
 
     Parameters
     ----------
@@ -188,6 +199,11 @@ def generate_phantom(
         target 2D-Shape
     raster_osf
         oversampling factor for the rasterization.
+    phantom_data
+        phantom definition, see raster_phantom for complete description.
+    anti_aliasing
+        If True, the high resolution phantom is smooth with a gaussian kernel
+        prior to the downsizing.
 
     Returns
     -------
@@ -195,13 +211,17 @@ def generate_phantom(
 
     Generated phantom
 
+    See Also
+    --------
+    raster_phantom
+        Method to raster at a defined resolution.
+    sklearn.transform.resize
+        Resize a 2D image
     """
     if isinstance(shape, int):
         shape = [shape] * 2
     im_big = raster_phantom(np.array(shape) * raster_osf, phantom_data=phantom_data)
     if raster_osf == 1:
         return im_big
-    im_final = sp.signal.decimate(
-        sp.signal.decimate(im_big, raster_osf, axis=0), raster_osf, axis=1
-    )
+    im_final = resize(im_big, shape, anti_aliasing=anti_aliasing)
     return im_final
