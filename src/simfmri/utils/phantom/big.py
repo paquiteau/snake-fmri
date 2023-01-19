@@ -3,6 +3,7 @@ import json
 import numpy as np
 import scipy as sp
 from skimage.transform import resize
+from pathlib import Path
 import matplotlib.path as mpltPath
 from importlib.resources import files
 
@@ -111,6 +112,7 @@ def raster_phantom(
     shape: int | tuple[int, int],
     phantom_data: str | dict | list[dict] = "big",
     weighting: str = "rel",
+    medical_view: bool = True,
 ) -> np.ndarray:
     """Rasterize a 2D phantom using data specified in json file.
 
@@ -126,7 +128,8 @@ def raster_phantom(
         - "rel" : the contrast of the region is added relatively (+=)
         - "abs" : the constrast of the region is set absolutely (=)
         - "label": each region gets an integer labelling.
-
+    medical_view
+        If true the spatial axis are flipped to get the classical anatomical view.
     Returns
     -------
     np.ndarray
@@ -140,12 +143,13 @@ def raster_phantom(
             files("simfmri.utils.phantom").joinpath("big_phantom_data.json")
         ) as f:
             phantom_data = json.load(f)
-    elif isinstance(phantom_data, str):
+    elif isinstance(phantom_data, (str, Path)):
         with open(phantom_data) as f:
             phantom_data = json.load(f)
     elif isinstance(phantom_data, dict):
         phantom_data = [phantom_data]
     elif not isinstance(phantom_data, list):
+        print(phantom_data, type(phantom_data))
         raise ValueError("phantom data is not usable.")
 
     im = np.zeros(shape)
@@ -178,6 +182,8 @@ def raster_phantom(
             im[mask] = region["weight"]
         else:
             raise ValueError("Unsupported weighted type")
+    if medical_view is True:
+        im = im.T
     return im
 
 
