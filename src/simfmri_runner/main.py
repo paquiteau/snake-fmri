@@ -38,23 +38,26 @@ def main_app(cfg: DictConfig) -> None:
     with PerfLogger(log, name="Estimation"):
         estimation, design_matrix, contrast = compute_test(
             sim=sim,
-            data_test=data_test.T,
+            data_test=np.moveaxis(data_test, 0, -1),
             **cfg.stats,
         )
     # 3. Clean up and saving
-    contrast = np.squeeze(contrast)
-    estimation = np.squeeze(estimation)
-    confusion = compute_confusion(estimation.T, sim.roi)
+    with PerfLogger(log, name="Cleanup"):
+        contrast = np.squeeze(contrast)
+        estimation = np.squeeze(estimation)
+        confusion = compute_confusion(estimation, sim.roi)
 
-    sim.extra_infos["contrast"] = contrast
-    sim.extra_infos["estimation"] = estimation
-    sim.extra_infos["data_test"] = data_test
+        sim.extra_infos["contrast"] = contrast
+        sim.extra_infos["estimation"] = estimation
 
-    if cfg.save_data:
-        save_data(cfg.save_data, sim, log)
-    confusion_overriden = dump_confusion(confusion)
+        sim.extra_infos["data_test"] = np.squeeze(data_test)
+
+        if cfg.save and cfg.save.data:
+            save_data(cfg.save.data, cfg.save.compress, sim, log)
+        confusion_overriden = dump_confusion(confusion)
     log.info(confusion_overriden)
     log.info(compute_stats(**confusion))
+    log.info(PerfLogger.recap())
 
 
 if __name__ == "__main__":

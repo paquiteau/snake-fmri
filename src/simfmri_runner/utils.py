@@ -34,7 +34,9 @@ def dump_confusion(results: dict) -> None:
     return new_results
 
 
-def save_data(save_data: str | list[str], sim: SimulationData, log: Logger) -> None:
+def save_data(
+    save_data: str | list[str], compress: bool, sim: SimulationData, log: Logger
+) -> None:
     """Save part of the data of the simulation.
 
     Parameters
@@ -65,6 +67,8 @@ def save_data(save_data: str | list[str], sim: SimulationData, log: Logger) -> N
         "mini": ["data_test", "data_ref", "data_acq"],
     }
 
+    if save_data is True:
+        save_data = "all"
     if isinstance(save_data, str):
         try:
             to_save = _save_preset[save_data]
@@ -73,6 +77,7 @@ def save_data(save_data: str | list[str], sim: SimulationData, log: Logger) -> N
 
     if isinstance(save_data, list):
         to_save = save_data
+
     data_dict = {}
     for data_name in to_save:
         try:
@@ -82,6 +87,12 @@ def save_data(save_data: str | list[str], sim: SimulationData, log: Logger) -> N
                 data_dict[data_name] = sim.extra_infos.get(data_name)
             except KeyError:
                 log.warn(f"'{data_name}' not found in simulation")
+        if np.iscomplexobj(data_dict[data_name]):
+            data_dict[data_name + "_abs"] = np.abs(data_dict[data_name])
+    if compress:
+        np.savez_compressed("data.npz", **data_dict)
+    else:
+        for name, arr in data_dict.items():
+            np.save(name, arr)
 
-    np.savez_compressed("data.npz", **data_dict)
     log.info(f"saved: {to_save}")

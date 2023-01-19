@@ -54,6 +54,7 @@ class PerfLogger:
         elif callable(self.logger):
             self.logger(formatted)
 
+    @classmethod
     def recap(self) -> str:
         """Return a string summarizing all the registered timers."""
-        return "\n".join([f"{name}:{t:.2f}s" for name, t in self.timers.items()])
+        return ", ".join([f"{name}: {t:.2f}s" for name, t in self.timers.items()])

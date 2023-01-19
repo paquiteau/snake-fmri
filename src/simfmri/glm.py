@@ -69,7 +69,7 @@ def compute_test(
         height_control=height_control,
     )
 
-    return threshold_map.get_fdata(), design_matrix, contrast
+    return threshold_map.get_fdata(), design_matrix, contrast.get_fdata()
 
 
 def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
