@@ -4,8 +4,9 @@ defaults:
   - reconstruction: zero_filled
   - stats: stat_default
 
-save_data: "mini"
-
+save:
+  data: "mini"
+  compress: true
 hydra:
   job:
     chdir: true
