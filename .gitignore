@@ -15,6 +15,6 @@ __pycache__/
 
 # hydra
 outputs/
-
+multirun/
 # personal stuff
 scripts/
