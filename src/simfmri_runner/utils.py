@@ -2,7 +2,9 @@
 from hydra.utils import HydraConfig
 import json
 import os
+import itertools
 import numpy as np
+from collections.abc import Iterator
 from simfmri.simulator import SimulationData
 from logging import Logger
 
@@ -18,8 +20,32 @@ def safe_cast(val: str) -> int | float | str:
     return fval
 
 
-def dump_confusion(results: dict) -> None:
+def product_dict(**kwargs: None) -> Iterator[dict]:
+    """Generate a list of dict from the cartesian product of dict values.
+
+    References
+    ----------
+    https://stackoverflow.com/questions/5228158/cartesian-product-of-a-dictionary-of-lists
+    """
+    keys = kwargs.keys()
+    vals = kwargs.values()
+    vals = [[val] if not isinstance(val, (list, tuple)) else val for val in vals]
+    return [dict(zip(keys, inst, strict=True)) for inst in itertools.product(*vals)]
+
+
+def dump_confusion(
+    results: dict | list[dict], result_file: str = "result.json"
+) -> None:
     """Dump the result of the confusion matrix into a json file."""
+    if isinstance(results, list):
+        new_results = []
+        for r in results:
+            new_results.append(dump_confusion(r, result_file=None))
+
+        with open(result_file, "w") as f:
+            json.dump(new_results, f)
+        return new_results
+
     new_results = results.copy()
     task_overriden = HydraConfig.get().overrides.task
     for overrided in task_overriden:
@@ -29,8 +55,9 @@ def dump_confusion(results: dict) -> None:
         # cast the value to the correct type:
         new_results[key] = safe_cast(val)
     new_results["directory"] = os.getcwd()
-    with open("result.json", "w") as f:
-        json.dump(new_results, f)
+    if result_file:
+        with open(result_file, "w") as f:
+            json.dump(new_results, f)
     return new_results
 
 

@@ -1,0 +1,4 @@
+contrast_name: block_on
+alpha: [0.05, 0.01, 0.005, 0.001]
+height_control: fpr
+stat_type: t
