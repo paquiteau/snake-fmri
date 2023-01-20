@@ -21,7 +21,7 @@ handlers:
     event_name: block_on
     block_on: 3
     block_off: 3
-    duration: ${sim_params.n_frames}
+    duration: 100
     offset: 0
   noise:
     _target_: simfmri.simulator.GaussianNoiseHandler
