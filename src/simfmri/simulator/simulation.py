@@ -224,10 +224,10 @@ class SimulationData:
         if self.smaps:
             if self.smaps.shape != (self.n_coils, *self.shape):
                 return False
-        if self.kspace_data:
+        if self.kspace_data is not None:
             if self.kspace_data.shape[0] != self.n_frames:
                 return False
-        if self.kspace_data and self.smaps:
+        if self.kspace_data is not None and self.smaps is not None:
             if self.kspace_data.shape[1] != self.n_coils:
                 return False
         # TODO: add test on the mask

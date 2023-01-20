@@ -130,6 +130,7 @@ def raster_phantom(
         - "label": each region gets an integer labelling.
     medical_view
         If true the spatial axis are flipped to get the classical anatomical view.
+
     Returns
     -------
     np.ndarray

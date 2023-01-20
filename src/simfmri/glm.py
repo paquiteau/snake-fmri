@@ -15,7 +15,7 @@ def compute_test(
     data_test: np.ndarray,
     contrast_name: str,
     stat_type: Literal["t", "F"] = "t",
-    alpha: float = 0.05,
+    alpha: float | list[float] = 0.05,
     height_control: str = "fpr",
 ) -> np.ndarray:
     """
@@ -63,6 +63,7 @@ def compute_test(
     contrast = first_level_model.compute_contrast(
         contrast_name, stat_type=stat_type, output_type="z_score"
     )
+
     threshold_map, threshold = threshold_stats_img(
         contrast,
         alpha=alpha,
