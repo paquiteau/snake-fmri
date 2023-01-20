@@ -17,6 +17,10 @@ log = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
+    if cfg.dry_mode:
+        print(cfg)
+        return None
+
     # 1. Setup
     simulation_factory = hydra.utils.instantiate(cfg.simulation)
     reconstructor = hydra.utils.instantiate(cfg.reconstruction)
