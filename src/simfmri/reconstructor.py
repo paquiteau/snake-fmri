@@ -68,11 +68,13 @@ class SequentialReconstructor(BenchmarkReconstructor):
         self,
         max_iter_per_frame: int = 15,
         optimizer: str = "pogm",
+        wavelet: str = "sym8",
         threshold: float = 2e-7,
     ):
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.threshold = threshold
+        self.wavelet = wavelet
 
     def __str__(self):
         return (
@@ -88,7 +90,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         from mri.operators.linear.wavelet import WaveletN
 
         fourier_op = get_fourier_operator(sim)
-        wavelet_op = WaveletN("sym8", dim=len(sim.shape))
+        wavelet_op = WaveletN(self.wavelet, dim=len(sim.shape))
         # warmup
         wavelet_op.op(np.zeros(sim.shape))
 
@@ -101,6 +103,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
                 thresh_type="hard",
             ),
             optimizer=self.optimizer,
+            progbar_disable=True,
         )
         return sec_rec.reconstruct(
             sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame
