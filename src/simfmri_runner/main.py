@@ -55,7 +55,7 @@ def main_app(cfg: DictConfig) -> None:
             )
             contrasts.append(np.squeeze(contrast))
             estimations.append(np.squeeze(estimation))
-            confusion = compute_confusion(estimation, sim.roi)
+            confusion = compute_confusion(np.squeeze(estimation), sim.roi)
             confusion |= stat_conf
             confusions.append(confusion)
     # 3. Clean up and saving
