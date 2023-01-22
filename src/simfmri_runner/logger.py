@@ -57,5 +57,5 @@ class PerfLogger:
     @classmethod
     def recap(self) -> str:
         """Return a string summarizing all the registered timers."""
-        self.timers["Total"] = sum(self.timers.values)
+        self.timers["Total"] = sum(self.timers.values())
         return ", ".join([f"{name}: {t:.2f}s" for name, t in self.timers.items()])
