@@ -128,7 +128,7 @@ class TextureAdderHandler(AbstractHandler):
         relative factor to compute the noise variance.
     """
 
-    def __init__(self, var_texture: float = 0.005, rng: RngType = None):
+    def __init__(self, var_texture: float = 0.001, rng: RngType = None):
         super().__init__()
         self._var_texture = var_texture
 
@@ -139,7 +139,7 @@ class TextureAdderHandler(AbstractHandler):
         sigma_noise = self._var_texture * sim.data_ref[0]
 
         sim.data_ref += sigma_noise * self._rng.standard_normal(
-            sim.data_ref.shape, dtype=sim.data_ref.dtype
+            sim.data_ref.shape[1:], dtype=sim.data_ref.dtype
         )
 
         return sim
