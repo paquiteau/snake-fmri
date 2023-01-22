@@ -11,7 +11,7 @@ import pandas as pd
 
 
 class MultiRunGatherer(Callback):
-    """Callback to gather job results."""
+    """Define a callback to gather job results."""
 
     def on_multirun_end(self, config: DictConfig, **kwargs: None) -> None:
         """Run after all job have ended.
@@ -23,8 +23,11 @@ class MultiRunGatherer(Callback):
         results = []
         for filename in glob.glob("*/result.json"):
             with open(filename) as f:
-                results.append(json.load(f))
-
+                loaded = json.load(f)
+                if isinstance(loaded, list):
+                    results.extend(loaded)
+                else:
+                    results.append(loaded)
         df = pd.DataFrame(results)
         df.to_csv("agg_results.csv")
 
