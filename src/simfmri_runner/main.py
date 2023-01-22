@@ -5,7 +5,7 @@ import hydra
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.glm import compute_confusion, compute_test
+from simfmri.glm import compute_confusion, compute_test, compute_stats
 
 from .logger import PerfLogger
 from .utils import dump_confusion, save_data, product_dict
@@ -68,7 +68,8 @@ def main_app(cfg: DictConfig) -> None:
         if cfg.save and cfg.save.data:
             save_data(cfg.save.data, cfg.save.compress, sim, log)
         confusion_overriden = dump_confusion(confusions)
-    log.info(confusion_overriden)
+    for c in confusion_overriden:
+        log.info(c | compute_stats(c["f_neg"], c["t_neg"], c["f_pos"], c["t_pos"]))
     log.info(PerfLogger.recap())
 
 
