@@ -9,7 +9,7 @@ from .base import AbstractHandler
 
 
 class SheppLoganGeneratorHandler(AbstractHandler):
-    """Handler to create the base phantom.
+    """Create handler to generate the base phantom.
 
     Phantom generation should be the first step of the simulation.
     Moreover, it only accept 3D shape.
@@ -53,7 +53,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
 
 class BigPhantomGeneratorHandler(AbstractHandler):
-    """Handler to create phantom based on bezier curves.
+    """Create Handler to create phantom based on bezier curves.
 
     Parameters
     ----------
@@ -146,7 +146,7 @@ class TextureAdderHandler(AbstractHandler):
 
 
 class SlicerHandler(AbstractHandler):
-    """Handler to get a 2D+T slice from a 3D+T simulation.
+    """Create an handler to get a 2D+T slice from a 3D+T simulation.
 
     Parameters
     ----------
@@ -165,18 +165,18 @@ class SlicerHandler(AbstractHandler):
         self.index = index
 
     def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
-        """Callback are disable for the 2D slicer."""
+        """Notify that we are now in  2D."""
         sim_log.info("Simulation is now 2D")
 
     @property
     def slicer(self) -> tuple:
-        """Returns slicer operator."""
+        """Return slicer operator."""
         base_slicer = [slice(None, None, None)] * 4
         base_slicer[self.axis + 1] = self.index
         return tuple(base_slicer)
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-        """Performs the slicing on all relevant data and update data_shape."""
+        """Perform the slicing on all relevant data and update data_shape."""
         for data_type in ["data_ref", "_data_acq"]:
             if (array := getattr(sim, data_type)) is not None:
                 setattr(sim, data_type, array[self.slicer])
