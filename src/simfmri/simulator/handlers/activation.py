@@ -8,7 +8,7 @@ import pandas as pd
 from nilearn.glm.first_level import compute_regressor
 from simfmri.utils import block_design
 
-from ..simulation import SimulationData, sim_log
+from ..simulation import SimulationData
 from .base import AbstractHandler
 
 NILEARN_HRF = [
