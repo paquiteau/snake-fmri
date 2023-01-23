@@ -50,7 +50,7 @@ class ActivationHandler(AbstractHandler):
         self,
         event_condition: np.ndarray,
         roi: np.ndarray,
-        bold_strength: float = 0.05,
+        bold_strength: float = 0.02,
         hrf_model: Literal[NILEARN_HRF] = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
@@ -73,7 +73,7 @@ class ActivationHandler(AbstractHandler):
         events: np.ndarray,
         rois: Mapping[str, np.ndarray],
         prev_handler: AbstractHandler,
-        bold_strength: float = 0.05,
+        bold_strength: float = 0.02,
         hrf_model: Literal[NILEARN_HRF] = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
@@ -180,7 +180,6 @@ class ActivationHandler(AbstractHandler):
         )
         regressor = np.squeeze(regressor)
         regressor = 1 + (regressor * self._bold_strength / regressor.max())
-        sim_log.info(f"{regressor.min()}, {regressor.max()}")
         # apply the activations
         sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
         # update the experimental paradigm
@@ -188,7 +187,6 @@ class ActivationHandler(AbstractHandler):
         if sim.extra_infos is None:
             sim._meta.extra_infos = {"events": self._event_condition}
         else:
-            print(sim._meta.extra_infos)
             if isinstance(sim.extra_infos["events"], pd.DataFrame):
                 self._meta.extra_infos["events"].concat(self._event_condition)
         return sim

@@ -150,7 +150,6 @@ def raster_phantom(
     elif isinstance(phantom_data, dict):
         phantom_data = [phantom_data]
     elif not isinstance(phantom_data, list):
-        print(phantom_data, type(phantom_data))
         raise ValueError("phantom data is not usable.")
 
     im = np.zeros(shape)

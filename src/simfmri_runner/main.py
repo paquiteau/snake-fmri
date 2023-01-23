@@ -45,9 +45,7 @@ def main_app(cfg: DictConfig) -> None:
         contrasts = []
         estimations = []
         confusions = []
-        print(stat_configs)
         for stat_conf in stat_configs:
-            print(stat_conf)
             estimation, design_matrix, contrast = compute_test(
                 sim=sim,
                 data_test=np.moveaxis(data_test, 0, -1),

@@ -19,8 +19,8 @@ handlers:
   activation:
     _target_: simfmri.simulator.ActivationHandler.from_block_design
     event_name: block_on
-    block_on: 3
-    block_off: 3
+    block_on: 20
+    block_off: 10
     duration: 100
     offset: 0
   noise:
