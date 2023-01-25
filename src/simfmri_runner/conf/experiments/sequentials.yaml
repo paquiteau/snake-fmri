@@ -11,7 +11,7 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      simulation.handlers.noise.snr: 10, 30, 100, 300
+      simulation.handlers.noise.snr: 25, 50, 75, 100
       simulation.handlers.acquisition.accel: 1, 2, 4, 8, 16
       reconstruction.threshold: 1e-3, 1e-4, 1e-5
       +reconstruction.wavelet: sym4, sym8, haar, db2, db4, bior44
