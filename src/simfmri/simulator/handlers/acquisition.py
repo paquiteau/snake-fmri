@@ -87,3 +87,16 @@ class AcquisitionHandler(AbstractHandler):
             )
 
         return cls(sampling_mask=sampling_mask, gen_smaps=gen_smaps)
+
+
+class NonCartesianAcquisitionHandler(AbstractHandler):
+    def __init__(self, sampling_mask: np.ndarray | Callable, gen_smaps: bool = True):
+        super().__init__()
+        self._sampling_mask = sampling_mask
+        self._gen_smaps = gen_smaps
+
+        pass
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+        if self._gen_smaps:
+            sim.smaps = get_smaps(sim.shape, sim.n_coils)
