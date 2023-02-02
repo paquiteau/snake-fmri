@@ -1,8 +1,8 @@
 """
-Generate a 2D+t simple simulation
+Generate a 3d+t Simple Phantom
 =================================
 
-Example of simulation generation.
+In this example we are going to simulate a 3D phantom and add a simple activation pattern.
 """
 
 import matplotlib.pyplot as plt
