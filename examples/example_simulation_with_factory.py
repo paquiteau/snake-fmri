@@ -51,12 +51,13 @@ handlers:
 
 #%%
 # .. note::
-# In the handlers section, the name of each handler does not matter.
-# They will be processed in order.
+#     In the handlers section, the name of each handler does not matter.
+#     They will be processed in order.
 #
-# .. info::
-# For more information on Hydra and its configuration be sure to check the sister
-# package ``simfmri_runner``.
+# .. tip::
+#     For more information on Hydra and its configuration be sure to check the sister
+#     package ``simfmri_runner``.
+#
 
 #%%
 # Launching the simulator
