@@ -108,6 +108,24 @@ def inside_bezier_region(
     return inside_hull.reshape(X.shape)
 
 
+def _get_phantom_data(phantom_data_name: str | Path) -> list[dict]:
+    roi_idx = None
+    if phantom_data_name == "big":
+        location = files("simfmri.utils.phantom").joinpath("big_phantom_data.json")
+    elif "big_roi" in phantom_data_name:
+        roi_idx = phantom_data_name.split("-")[-1]
+        location = files("simfmri.utils.phantom").joinpath("big_phantom_roi.json")
+    elif isinstance(phantom_data_name, (str, Path)):
+        location = phantom_data_name
+
+    with open(location) as f:
+        phantom_data = json.load(f)
+    if roi_idx and roi_idx.isnumeric():
+        phantom_data[int(roi_idx)]
+
+    return phantom_data
+
+
 def raster_phantom(
     shape: int | tuple[int, int],
     phantom_data: str | dict | list[dict] = "big",
@@ -138,15 +156,8 @@ def raster_phantom(
     """
     if isinstance(shape, int):
         shape = [shape] * 2
-
-    if phantom_data == "big":
-        with open(
-            files("simfmri.utils.phantom").joinpath("big_phantom_data.json")
-        ) as f:
-            phantom_data = json.load(f)
-    elif isinstance(phantom_data, (str, Path)):
-        with open(phantom_data) as f:
-            phantom_data = json.load(f)
+    if isinstance(phantom_data, (str, Path)):
+        phantom_data = _get_phantom_data(phantom_data)
     elif isinstance(phantom_data, dict):
         phantom_data = [phantom_data]
     elif not isinstance(phantom_data, list):
