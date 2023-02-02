@@ -1,12 +1,12 @@
 [project]
 name = "simfmri"  # Required
-version = "0.0.0"  # Required, see PEP440
 # corresponds to the "Summary" metadata field:
 description = "A simulator and validator of fMRI reconstruction methods."
 # This field corresponds to the "Description" metadata field:
 readme = "README.md" # Optional
 
 requires-python = ">=3.8"
+dynamic = ["version"]
 
 license = {file = "LICENSE.txt"}
 
@@ -65,11 +65,13 @@ simfmri-result = "simfmri.results:main"
 [build-system]
 # These are the assumed default build requirements from pip:
 # https://pip.pypa.io/en/stable/reference/pip/#pep-517-and-518-support
-requires = ["setuptools>=43.0.0", "wheel"]
+requires = ["setuptools>=43.0.0", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
-# [tool.setuptools.packages.find]
-# where=["src"]
+[tool.setuptools.packages.find]
+where=["src"]
+
+[tool.setuptools_scm]
 
 [tool.coverage.report]
 precision = 2
