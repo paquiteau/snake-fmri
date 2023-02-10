@@ -69,11 +69,18 @@ class GaussianNoiseHandler(NoiseHandler):
     def _add_noise(self, sim: SimulationData, sigma_noise: float) -> None:
 
         noise = sigma_noise * self._rng.standard_normal(
-            sim.data_ref.shape, dtype=sim.data_ref.dtype
+            sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
         )
 
         if sim.data_ref.dtype in [np.complex128, np.complex64]:
-            noise += 1j * sigma_noise * self._rng.standard_normal(sim.data_ref.shape)
+            noise += (
+                1j
+                * sigma_noise
+                * self._rng.standard_normal(
+                    sim.data_ref.shape,
+                    dtype=abs(sim.data_ref[:][0]).dtype,
+                )
+            )
 
         sim.data_acq = sim.data_ref + noise
 
