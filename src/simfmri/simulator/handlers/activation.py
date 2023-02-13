@@ -134,6 +134,7 @@ class ActivationHandler(AbstractHandler):
         duration: float,
         offset: float = 0,
         event_name: str = "block_on",
+        **kwargs,
     ) -> ActivationHandler:
         """Create a activation handler from a block design.
 
@@ -155,7 +156,9 @@ class ActivationHandler(AbstractHandler):
             The helper function to create the block desing.
         """
         return cls(
-            block_design(block_on, block_off, duration, offset, event_name), roi=None
+            block_design(block_on, block_off, duration, offset, event_name),
+            roi=None,
+            **kwargs,
         )
 
     def _handle(self, sim: SimulationData) -> SimulationData:
@@ -188,5 +191,5 @@ class ActivationHandler(AbstractHandler):
             sim._meta.extra_infos = {"events": self._event_condition}
         else:
             if isinstance(sim.extra_infos["events"], pd.DataFrame):
-                self._meta.extra_infos["events"].concat(self._event_condition)
+                sim._meta.extra_infos["events"].concat(self._event_condition)
         return sim
