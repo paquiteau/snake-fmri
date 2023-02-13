@@ -71,6 +71,7 @@ class GaussianNoiseHandler(NoiseHandler):
         noise = sigma_noise * self._rng.standard_normal(
             sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
         )
+        noise = noise.astype(sim.data_ref.dtype)
 
         if sim.data_ref.dtype in [np.complex128, np.complex64]:
             noise += (
