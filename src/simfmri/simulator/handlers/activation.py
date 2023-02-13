@@ -188,7 +188,8 @@ class ActivationHandler(AbstractHandler):
         # update the experimental paradigm
         #
         if sim.extra_infos is None:
-            sim._meta.extra_infos = {"events": self._event_condition}
+            sim._meta.extra_infos = {"events": self._event_condition, 'regressor': regressor}
+            #changed here
         else:
             if isinstance(sim.extra_infos["events"], pd.DataFrame):
                 sim._meta.extra_infos["events"].concat(self._event_condition)
