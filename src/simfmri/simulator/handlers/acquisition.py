@@ -31,7 +31,7 @@ class AcquisitionHandler(AbstractHandler):
         pass
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-        if self._gen_smaps:
+        if self._gen_smaps and sim.n_coils > 1:
             sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
         if callable(self._sampling_mask):
