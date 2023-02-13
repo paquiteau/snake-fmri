@@ -44,8 +44,9 @@ class NoiseHandler(AbstractHandler):
         if self._snr == 0:
             return sim
         else:
-            sigma_noise = np.max(abs(sim.data_ref)) / self._snr
-            self._add_noise(sim, sigma_noise)
+            # SNR is defined as average(brain signal) / noise_std
+            noise_std = np.mean(abs(sim.data_ref > 0)) / self._snr
+            self._add_noise(sim, noise_std)
 
         sim.extra_infos["input_snr"] = self._snr
         return sim
@@ -66,16 +67,15 @@ class NoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
-    def _add_noise(self, sim: SimulationData, sigma_noise: float) -> None:
-
-        noise = sigma_noise * self._rng.standard_normal(
+    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
+        noise = noise_std * self._rng.standard_normal(
             sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
         )
 
         if sim.data_ref.dtype in [np.complex128, np.complex64]:
             noise += (
                 1j
-                * sigma_noise
+                * noise_std
                 * self._rng.standard_normal(
                     sim.data_ref.shape,
                     dtype=abs(sim.data_ref[:][0]).dtype,
@@ -88,21 +88,21 @@ class GaussianNoiseHandler(NoiseHandler):
 class RicianNoiseHandler(NoiseHandler):
     """Add rician noise to the data."""
 
-    def _add_noise(self, sim: SimulationData, sigma_noise: float) -> None:
+    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
             raise ValueError(
                 "The Rice distribution is only applicable to real-valued data."
             )
         sim.data_acq = sps.rice(
             sim.data_ref,
-            scale=sigma_noise,
+            scale=noise_std,
         )
 
 
 class KspaceNoiseHandler(NoiseHandler):
     """Add gaussian in the kspace."""
 
-    def _add_noise(self, sim: SimulationData, sigma_noise: float) -> None:
+    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 
@@ -112,6 +112,6 @@ class KspaceNoiseHandler(NoiseHandler):
         kspace_noise += 1j * self._rng.standard_normal(
             sim.kspace_data.shape, dtype="float32"
         )
-        kspace_noise *= sigma_noise
+        kspace_noise *= noise_std
 
         sim.kspace_data += kspace_noise * sim.kspace_mask
