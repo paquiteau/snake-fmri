@@ -112,11 +112,11 @@ def _get_phantom_data(phantom_data_name: str | Path) -> list[dict]:
     roi_idx = None
     if phantom_data_name == "big":
         location = files("simfmri.utils.phantom").joinpath("big_phantom_data.json")
+    elif isinstance(phantom_data_name, (str, Path)):
+        location = phantom_data_name
     elif "big_roi" in phantom_data_name:
         roi_idx = phantom_data_name.split("-")[-1]
         location = files("simfmri.utils.phantom").joinpath("big_phantom_roi.json")
-    elif isinstance(phantom_data_name, (str, Path)):
-        location = phantom_data_name
 
     with open(location) as f:
         phantom_data = json.load(f)
