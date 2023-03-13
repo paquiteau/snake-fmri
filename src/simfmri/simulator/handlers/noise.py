@@ -68,6 +68,8 @@ class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
     def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
+        if np.iscomplexobj(sim.data_ref):
+            noise_std /= np.sqrt(2)
         noise = noise_std * self._rng.standard_normal(
             sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
         )
@@ -106,6 +108,9 @@ class KspaceNoiseHandler(NoiseHandler):
     def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
+
+        # Complex Value, so the std is spread.
+        noise_std /= np.sqrt(2)
 
         kspace_noise = np.complex64(
             self._rng.standard_normal(sim.kspace_data.shape, dtype="float32")
