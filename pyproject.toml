@@ -59,7 +59,8 @@ doc = ["sphinx", "pydata-sphinx-theme", "sphinx-gallery", "matplotlib"]
 
 
 [project.scripts]  # Optional
-simfmri = "simfmri_runner.main:main_app"
+simfmri-main= "simfmri_runner.main:main_app"
+simfmri-data= "simfmri_runner.generate_dataset:generate_data"
 simfmri-result = "simfmri.results:main"
 
 [build-system]
