@@ -1,0 +1,14 @@
+defaults:
+  - simulation: big_basic.yaml
+  - _self_
+
+
+dry_mode: false
+
+hydra:
+  job:
+    chdir: true
+  callbacks:
+    retrieve_dataset:
+      _target_: simfmri_runner.generate_dataset.RetrieveDatasetCallback
+      dataset_dir: datasets
