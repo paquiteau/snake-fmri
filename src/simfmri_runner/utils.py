@@ -62,7 +62,7 @@ def dump_confusion(
 
 
 def save_data(
-    save_data: str | list[str], compress: bool, sim: SimulationData, log: Logger
+    data_saved: str | list[str], compress: bool, sim: SimulationData, log: Logger
 ) -> None:
     """Save part of the data of the simulation.
 
@@ -94,16 +94,16 @@ def save_data(
         "mini": ["data_test", "data_ref", "data_acq"],
     }
 
-    if save_data is True:
-        save_data = "all"
-    if isinstance(save_data, str):
+    if data_saved is True:
+        data_saved = "all"
+    if isinstance(data_saved, str):
         try:
-            to_save = _save_preset[save_data]
+            to_save = _save_preset[data_saved]
         except KeyError:
             log.error("save data preset not found.")
 
-    if isinstance(save_data, list):
-        to_save = save_data
+    if isinstance(data_saved, list):
+        to_save = data_saved
 
     data_dict = {}
     for data_name in to_save:
@@ -118,8 +118,10 @@ def save_data(
             data_dict[data_name + "_abs"] = np.abs(data_dict[data_name])
     if compress:
         np.savez_compressed("data.npz", **data_dict)
+        filename = "data.npz"
     else:
         for name, arr in data_dict.items():
             np.save(name, arr)
-
+        filename = [f"{name}.npy" for name in data_dict.keys()]
     log.info(f"saved: {to_save}")
+    return filename
