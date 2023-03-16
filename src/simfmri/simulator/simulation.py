@@ -29,6 +29,8 @@ class SimulationParams:
     """Samping time."""
     n_coils: int = 1
     """Number of coil of the simulation."""
+    rng: int = 19980408
+    """Random number generator seed."""
     extra_infos: dict = dataclasses.field(default=None, repr=False)
     """Extra information, to add more information to the simulation"""
 
@@ -46,6 +48,8 @@ class SimulationData:
         Acquisition time for one volume/frame
     n_coils
         Number of coils acquired, default 1
+    rng
+        Random number generator seed
     **extra_infos
         dict
 
@@ -59,6 +63,8 @@ class SimulationData:
         Acquisition time for one volume/frame
     n_coils
         Number of coils acquired, default 1
+    rng
+        Random number generator seed
     extra_infos: dict
         Extra information store in a dictionnary.
     static_vol: np.ndarray
@@ -90,10 +96,11 @@ class SimulationData:
         n_frames: int,
         TR: float,
         n_coils: int = 1,
+        rng: int = 19980408,
         extra_infos: dict = None,
     ) -> SimulationData:
         self._meta = SimulationParams(
-            shape, n_frames, TR, n_coils, extra_infos=extra_infos
+            shape, n_frames, TR, n_coils, rng=rng, extra_infos=extra_infos
         )
 
         self.static_vol = None
@@ -213,6 +220,10 @@ class SimulationData:
         """Get extra infos."""
         return self._meta.extra_infos
 
+    @property
+    def rng(self) -> int:
+        """Get the random number generator seed."""
+        return self._meta.rng
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
         if self.data_ref is not None:
