@@ -132,13 +132,11 @@ class TextureAdderHandler(AbstractHandler):
         super().__init__()
         self._var_texture = var_texture
 
-        self._rng = validate_rng(rng)
-
     def _handle(self, sim: SimulationData) -> SimulationData:
 
         sigma_noise = self._var_texture * sim.data_ref[0]
-
-        sim.data_ref += sigma_noise * self._rng.standard_normal(
+        rng = validate_rng(sim.rng)
+        sim.data_ref += sigma_noise * rng.standard_normal(
             sim.data_ref.shape[1:], dtype=sim.data_ref.dtype
         )
 

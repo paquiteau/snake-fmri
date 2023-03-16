@@ -6,7 +6,7 @@ from __future__ import annotations
 from .base import AbstractHandler
 from ..simulation import SimulationData
 
-from simfmri.utils import validate_rng, RngType
+from simfmri.utils import validate_rng
 
 import numpy as np
 import scipy.stats as sps
@@ -27,10 +27,9 @@ class NoiseHandler(AbstractHandler):
         If True, a callback function is setup to return the computed snr.
     """
 
-    def __init__(self, verbose: bool = True, rng: RngType = None, snr: float = 0):
+    def __init__(self, verbose: bool = True, snr: float = 0):
         super().__init__()
         self._verbose = verbose
-        self._rng = validate_rng(rng)
         if self._verbose:
             self.add_callback(self._callback_fun)
 
@@ -44,6 +43,7 @@ class NoiseHandler(AbstractHandler):
         if self._snr == 0:
             return sim
         else:
+            self._rng = validate_rng(sim.rng)
             # SNR is defined as average(brain signal) / noise_std
             noise_std = np.mean(abs(sim.data_ref > 0)) / self._snr
             self._add_noise(sim, noise_std)
@@ -52,9 +52,10 @@ class NoiseHandler(AbstractHandler):
         return sim
 
     def _add_noise(self, sim: SimulationData) -> None:
-        """add noise to the simulation.
+        """Add noise to the simulation.
 
-        This should only update the attribute data_acq  of a Simulation object.
+        This should only update the attribute data_acq  of a Simulation object
+        and use the ``_rng`` attribute to generate the noise.
 
         Parameters
         ----------

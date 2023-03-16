@@ -84,12 +84,15 @@ class AcquisitionHandler(AbstractHandler):
                 accel=accel,
                 accel_axis=accel_axis,
                 pdf="gaussian",
+                rng=sim._meta.rng,
             )
 
         return cls(sampling_mask=sampling_mask, gen_smaps=gen_smaps)
 
 
 class NonCartesianAcquisitionHandler(AbstractHandler):
+    """Non Cartesian Acquisition Handler to genereate Kspace data from simulation."""
+
     def __init__(self, sampling_mask: np.ndarray | Callable, gen_smaps: bool = True):
         super().__init__()
         self._sampling_mask = sampling_mask
