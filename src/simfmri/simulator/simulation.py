@@ -224,6 +224,18 @@ class SimulationData:
     def rng(self) -> int:
         """Get the random number generator seed."""
         return self._meta.rng
+
+    @property
+    def meta(self) -> SimulationParams:
+        """Get meta Parameters."""
+        return self._meta
+
+    @meta.setter
+    def meta(self, value: SimulationParams) -> None:
+        if not isinstance(value, SimulationParams):
+            raise ValueError("meta must be a SimulationParams object")
+        self._meta = value
+
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
         if self.data_ref is not None:
