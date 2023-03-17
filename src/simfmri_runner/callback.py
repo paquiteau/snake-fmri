@@ -40,7 +40,6 @@ class LatestRunLink(Callback):
     run_base_dir
         name of the basedir
     multirun_base_dir
-
     """
 
     def __init__(
