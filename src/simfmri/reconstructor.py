@@ -140,7 +140,7 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct using LowRank+Sparse Method."""
-        from fmri.reconstructors.time_aware import LowRankPlusSparseFMRIReconstructor
+        from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from modopt.opt.linear import Identity
         from modopt.opt.proximity import SparseThreshold
         from fmri.operators.svt import FlattenSVT
@@ -158,7 +158,7 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
             linear=Identity(), weights=self.sparse_thresh, thresh_type="hard"
         )
 
-        glrs = LowRankPlusSparseFMRIReconstructor(
+        glrs = LowRankPlusSparseReconstructor(
             fourier_op=fourier_op, lowrank_op=lowrank_op, sparse_op=sparse_op
         )
         glrs_final = glrs.reconstruct(sim.kspace_data, max_iter=max_iter)[0]
