@@ -38,22 +38,24 @@ class RetrieveDatasetCallback(Callback):
             output_dir: The directory where the dataset will be saved.
         """
         self.dataset_dir = dataset_dir
-        os.mkdir(dataset_dir)
         self.configs = []
 
     def on_multirun_start(self, config: DictConfig, **kwargs: None) -> None:
         print(os.getcwd())
+        os.makedirs(self.dataset_dir, exist_ok=True)
         print("MULTIRUN_START")
 
     def on_job_end(
         self, config: DictConfig, job_return: JobReturn, **kwargs: None
     ) -> None:
         self.configs.append(
-            [config.simulation | {"filename": os.path.abspath(job_return.return_value)}]
+            OmegaConf.to_container(config.simulation)
+            | {"filename": os.path.abspath(job_return.return_value)}
         )
 
-    def _remove_target_key(d):
+    def _remove_target_key(self, d: dict | list[dict]) -> (dict | list[dict]):
         if isinstance(d, dict):
+            # Make a copy of the keys, otherwise the dict complains it has changed size
             for k in list(d.keys()):
                 if k == "_target_":
                     del d[k]
@@ -64,19 +66,46 @@ class RetrieveDatasetCallback(Callback):
                 self._remove_target_key(i)
         return d
 
+    def _unnest_dict(self, d: dict) -> dict:
+        """Return a dict where keys are dot-separated."""
+        out = {}
+        for k, v in d.items():
+            if isinstance(v, dict):
+                for k2, v2 in self._unnest_dict(v).items():
+                    out[f"{k}.{k2}"] = v2
+            elif isinstance(v, list):
+                out[k] = tuple(v)
+            else:
+                out[k] = v
+        return out
+
     def on_multirun_end(self, config: DictConfig, **kwargs: None) -> None:
+        """Save the dataset info to a csv  and copy the dataset to directory."""
         os.chdir(self.dataset_dir)
 
+        print(self.configs)
+
         self.configs = self._remove_target_key(self.configs)
+        self.configs = [self._unnest_dict(c) for c in self.configs]
+        print(self.configs)
         for c in self.configs:
             # Move the file to the current directory
             try:
                 os.rename(c["filename"], c["filename"].split("/")[-1])
             except FileExistsError:
                 log.info(f"File {c['filename']} already exists, skipping")
-
+            # Don't need the full path anymore
+            c["filename"] = c["filename"].split("/")[-1]
         df = pd.DataFrame(self.configs)
-        df.to_csv("dataset.csv")
+        try:
+            df_orig = pd.read_csv("dataset.csv", index_col=0)
+        except FileNotFoundError:
+            pass
+        else:
+            df = pd.concat([df_orig, df], ignore_index=True).drop_duplicates(
+                subset="filename", ignore_index=True
+            )
+        df.to_csv("dataset.csv", mode="w")
 
 
 @hydra.main(config_path="conf", config_name="dataset_config")
@@ -94,10 +123,11 @@ def generate_data(cfg: DictConfig) -> None:
         print(sim)
     # Save the dataset
     with PerfLogger(log, name="Saving dataset"):
-        filename = hashlib.sha256(pickle.dumps(sim)).hexdigest()
-        with open(f"{filename}.pkl", "wb") as f:
+        simhash = hashlib.sha256(pickle.dumps(sim)).hexdigest()
+        filename = f"{simhash}.pkl"
+        with open(filename, "wb") as f:
             pickle.dump(sim, f)
-        log.info(f"{filename}.pkl")
+        log.info(filename)
 
     return filename
 
