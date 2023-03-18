@@ -98,7 +98,9 @@ def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
     return confusion
 
 
-def compute_stats(f_neg: int, t_neg: int, f_pos: int, t_pos: int) -> dict[str, float]:
+def compute_confusion_stats(
+    f_neg: int, t_neg: int, f_pos: int, t_pos: int
+) -> dict[str, float]:
     """Compute the confusion statistics."""
     stats = dict()
     stats["TPR"] = t_pos / ((t_pos + f_neg) or 1)  # sensitivity
@@ -116,7 +118,9 @@ def append_stats_df(df: pd.DataFrame) -> pd.DataFrame:
     stats = []
     for _idx, row in df.iterrows():
         stats.append(
-            compute_stats(row["f_neg"], row["t_neg"], row["f_pos"], row["t_pos"])
+            compute_confusion_stats(
+                row["f_neg"], row["t_neg"], row["f_pos"], row["t_pos"]
+            )
         )
 
     return pd.concat([df, pd.DataFrame(stats)], axis=1)
