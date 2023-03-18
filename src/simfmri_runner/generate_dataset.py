@@ -109,7 +109,7 @@ class RetrieveDatasetCallback(Callback):
 
 
 @hydra.main(config_path="conf", config_name="dataset_config")
-def generate_data(cfg: DictConfig) -> None:
+def generate_data(cfg: DictConfig) -> str:
     """Generate a dataset for the simulation."""
     log.info("Generating dataset")
 

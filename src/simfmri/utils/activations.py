@@ -15,16 +15,17 @@ def block_design(
 
     Parameters
     ----------
-    block_on
+    block_on: float
         in seconds, the amount of time the stimuli is on
-    block_off
+    block_off: float
         in seconds, the amount of time the stimuli is off (rest) after the on state.
-    duration
+    duration: float
         in seconds, the total amount of the experiments.
-    offset
+    offset: float
         in seconds, the starting point of the experiment, default=0.
-    event_name:
+    event_name: str
         name of the block event, default="block_on"
+
     Returns
     -------
     pd.DataFrame
