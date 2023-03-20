@@ -152,7 +152,7 @@ class SimulationData:
         if obj.is_valid():
             for attr in obj.__dict__:
                 val = getattr(obj, attr)
-                if isinstance(val, np.ndarray):
+                if attr != "roi" and isinstance(val, np.ndarray):
                     if np.iscomplexobj(val):
                         cdtype = cplx_type(dtype)
                     else:
