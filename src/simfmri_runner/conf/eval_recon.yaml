@@ -1,0 +1,19 @@
+defaults:
+  - reconstruction: sequential.yaml
+  - _self_
+
+
+dry_mode: false
+
+save: true
+
+hydra:
+  job:
+    chdir: true
+  callbacks:
+    git_info:
+      _target_: simfmri_runner.callback.GitInfo
+      clean: false
+    retrieve_dataset:
+      _target_: simfmri_runner.generate_dataset.RetrieveDatasetCallback
+      dataset_dir: datasets

@@ -62,7 +62,7 @@ doc = ["sphinx", "pydata-sphinx-theme", "sphinx-gallery", "matplotlib"]
 [project.scripts]  # Optional
 simfmri-main= "simfmri_runner.main:main_app"
 simfmri-data= "simfmri_runner.generate_dataset:generate_data"
-simfmri-result = "simfmri.results:main"
+simfmri-rec= "simfmri_runner.eval_recon:eval_recon"
 
 [build-system]
 # These are the assumed default build requirements from pip:
