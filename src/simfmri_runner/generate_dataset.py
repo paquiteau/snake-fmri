@@ -27,8 +27,8 @@ log = logging.getLogger(__name__)
 class RetrieveDatasetCallback(Callback):
     """Retrieve the generated dataset.
 
-    This callback is used to retrieve the generated dataset from each hydra job, and save it to a
-    single folder.
+    This callback is used to retrieve the generated dataset from each hydra job,
+    and save it to a single folder.
     """
 
     def __init__(self, dataset_dir: str) -> None:
@@ -43,6 +43,7 @@ class RetrieveDatasetCallback(Callback):
     def on_job_end(
         self, config: DictConfig, job_return: JobReturn, **kwargs: None
     ) -> None:
+        """Save the current simulation config"""
         self.configs.append(
             OmegaConf.to_container(config.simulation)
             | {"filename": os.path.abspath(job_return.return_value)}

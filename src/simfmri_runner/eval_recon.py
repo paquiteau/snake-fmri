@@ -9,15 +9,15 @@ import pandas as pd
 from omegaconf import DictConfig, OmegaConf
 
 from simfmri.glm import compute_confusion, compute_test
-from simfmri.metrics import get_ptsnr, get_snr
-from simfmri.simulation import Simulation
+from simfmri.metric import get_ptsnr, get_snr
+from simfmri.simulator import SimulationData
 
-from .logger import PerfLogger
+from hydra_callbacks import PerfLogger
 
 log = logging.getLogger(__name__)
 
 
-def get_metrics(test: np.ndarray, sim: Simulation) -> dict:
+def get_metrics(test: np.ndarray, sim: SimulationData) -> dict:
     """
     Get all metrics comparing test and references data.
 
@@ -86,7 +86,7 @@ def eval_recon(cfg: DictConfig) -> None:
             log.info(f"Reconstruction method hash: {hash_recon}")
             log.info(f"Reconstruction method: {cfg.reconstruction}")
 
-            sim = Simulation.load(os.path.join(cfg.dataset_path, row["filename"]))
+            sim = SimulationData.load(os.path.join(cfg.dataset_path, row["filename"]))
             data_test = reconstructor.reconstruct(sim)
 
             if len(sim.shape) == 2:
