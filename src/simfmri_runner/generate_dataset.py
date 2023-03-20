@@ -40,11 +40,6 @@ class RetrieveDatasetCallback(Callback):
         self.dataset_dir = dataset_dir
         self.configs = []
 
-    def on_multirun_start(self, config: DictConfig, **kwargs: None) -> None:
-        print(os.getcwd())
-        os.makedirs(self.dataset_dir, exist_ok=True)
-        print("MULTIRUN_START")
-
     def on_job_end(
         self, config: DictConfig, job_return: JobReturn, **kwargs: None
     ) -> None:
