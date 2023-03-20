@@ -50,7 +50,7 @@ def get_snr(test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None) -> float:
     """
     signal, noise = get_signal_noise(test, ref, roi)
 
-    return np.sqrt(np.mean(signal**2) / np.mean(noise**2))
+    return np.sqrt(np.mean(abs(signal) ** 2) / np.mean(abs(noise) ** 2))
 
 
 def get_tsnr(
@@ -73,7 +73,9 @@ def get_tsnr(
     """
     signal, noise = get_signal_noise(test, ref, roi)
 
-    return np.sqrt(np.mean(signal**2, axis=tax) / np.mean(noise**2, axis=tax))
+    return np.sqrt(
+        np.mean(abs(signal) ** 2, axis=tax) / np.mean(abs(noise) ** 2, axis=tax)
+    )
 
 
 def get_ptsnr(
