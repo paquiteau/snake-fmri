@@ -43,7 +43,8 @@ dependencies = [ # Optional
   "scipy",
   "nilearn",
   "hydra-core",
-  "scikit-image==0.19" # problems on install otherwise ?
+  "scikit-image", # problems on install otherwise ?
+  "hydra-callbacks @ git+https://github.com/paquiteau/hydra-callbacks",
 ]
 
 [project.optional-dependencies] # Optional

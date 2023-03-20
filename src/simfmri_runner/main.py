@@ -7,7 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from simfmri.glm import compute_confusion, compute_test, compute_confusion_stats
 
-from .logger import PerfLogger
+from hydra_callbacks import PerfLogger
 from .utils import dump_confusion, save_data, product_dict
 
 

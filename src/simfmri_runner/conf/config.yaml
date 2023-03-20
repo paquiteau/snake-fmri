@@ -15,6 +15,6 @@ hydra:
     chdir: true
   callbacks:
     gather_files:
-      _target_: simfmri_runner.callback.MultiRunGatherer
+      _target_: hydra_callbacks.MultiRunGatherer
     latest_link:
-      _target_: simfmri_runner.callback.LatestRunLink
+      _target_: hydra_callbacks.LatestRunLink
