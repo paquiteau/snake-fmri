@@ -123,3 +123,31 @@ def get_cartesian_mask(
         slicer[accel_axis + 1] = mask_loc
         mask[tuple(slicer)] = 1
     return mask
+
+
+def flip2center(mask_cols: list | np.array, center_pos: int):
+    """
+    Reorder a list by starting by a center_position and alternating left/right.
+
+    Parameters
+    ----------
+    mask_cols: list or np.array
+        List of columns to reorder.
+    center_pos: int
+        Position of the center column.
+
+    Returns
+    -------
+    np.array: reordered columns.
+    """
+
+    mask_cols = list(mask_cols)
+    left = mask_cols[center_pos::-1]
+    right = mask_cols[center_pos + 1 :]
+    new_cols = []
+    while left or right:
+        if left:
+            new_cols.append(left.pop(0))
+        if right:
+            new_cols.append(right.pop(0))
+    return np.array(new_cols)
