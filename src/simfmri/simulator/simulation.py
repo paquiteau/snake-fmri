@@ -25,8 +25,8 @@ class SimulationParams:
     """Shape of the volume of the simulation."""
     n_frames: int
     """Number of frame of the simulation."""
-    TR: float
-    """Samping time."""
+    sim_tr: float
+    """Time resolution for the simulation."""
     n_coils: int = 1
     """Number of coil of the simulation."""
     rng: int = 19980408
@@ -44,8 +44,8 @@ class SimulationData:
         Shape of the volume simulated
     n_frames
         Number of frames acquired
-    TR
-        Acquisition time for one volume/frame
+    sim_tr
+        Acquisition time for one volume
     n_coils
         Number of coils acquired, default 1
     rng
@@ -59,8 +59,8 @@ class SimulationData:
         Shape of the volume simulated
     n_frames
         Number of frames acquired
-    TR
-        Acquisition time for one volume/frame
+    sim_tr
+        Time resolution for the simulation.
     n_coils
         Number of coils acquired, default 1
     rng
@@ -94,13 +94,13 @@ class SimulationData:
         self,
         shape: Shape2d3d,
         n_frames: int,
-        TR: float,
+        sim_tr: float,
         n_coils: int = 1,
         rng: int = 19980408,
         extra_infos: dict = None,
     ) -> SimulationData:
         self._meta = SimulationParams(
-            shape, n_frames, TR, n_coils, rng=rng, extra_infos=extra_infos
+            shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
         )
 
         self.static_vol = None
@@ -206,9 +206,14 @@ class SimulationData:
         return self._meta.n_frames
 
     @property
-    def TR(self) -> float:
+    def sim_tr(self) -> float:
         """Get TR."""
-        return self._meta.TR
+        return self._meta.sim_tr
+
+    @property
+    def sim_time(self) -> float:
+        """Get the total simulation time."""
+        return self.n_frames * self.sim_tr
 
     @property
     def n_coils(self) -> int:

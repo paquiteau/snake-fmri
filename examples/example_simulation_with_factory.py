@@ -3,7 +3,7 @@
 Using a simulation configuration file
 =====================================
 
-In this example we are going to describe how to use the simulation factory interface.
+In this example we are going to describe how to use the simulation factory interface available in the runner package.
 
 """
 
@@ -12,7 +12,7 @@ import io  # to simulate a file access.
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
 
-#%%
+# %%
 # Describing all the step of a simulation can be tedious.
 # In order to have easy reproducible simulation, the configuration can be extracted to
 # an external file, using the YAML syntax.
@@ -29,7 +29,7 @@ sim_params:
   _target_: simfmri.simulator.SimulationParams
   n_frames: 100
   shape: [128, 128, 128]
-  TR: 1.0
+  sim_tr: 1.0
   n_coils: 1
 
 handlers:
@@ -49,7 +49,7 @@ handlers:
 """
 
 
-#%%
+# %%
 # .. note::
 #     In the handlers section, the name of each handler does not matter.
 #     They will be processed in order.
@@ -59,7 +59,7 @@ handlers:
 #     package ``simfmri_runner``.
 #
 
-#%%
+# %%
 # Launching the simulator
 # -----------------------
 #

@@ -15,29 +15,29 @@ from simfmri.simulator import (
     KspaceNoiseHandler,
 )
 
-#%%
+# %%
 # We are going to simulate a 2D+t fMRI scan of a phantom with activations. .
 shape = (64, 64, 64)
 n_frames = 50
-TR = 1.0
+sim_tr = 1.0
 n_coils = 1
 
-#%%
+# %%
 # Moreover, for the acquisition we are going to specify the acceleration factor
 # and the signal to noise ratio
 
 accel = 2
 snr = 100
 
-#%%
+# %%
 # This data is used to createa the main SimulationData object, which gather
 # all the data related to this simulation
 
-sim_data = SimulationData(shape=shape, n_frames=n_frames, TR=1, n_coils=1)
+sim_data = SimulationData(shape=shape, n_frames=n_frames, sim_tr=1, n_coils=1)
 
 print(sim_data)
 
-#%%
+# %%
 #
 # Then we are going to build the simulator from elementary steps,
 # which all *handles* a particular aspect of the simulation.
@@ -59,7 +59,7 @@ simulator = (
 )
 
 print(simulator.get_chain())
-#%% The simulation can then be run easily:
+# %% The simulation can then be run easily:
 
 
 def print_callback(old_sim, new_sim):

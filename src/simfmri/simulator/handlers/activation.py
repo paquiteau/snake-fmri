@@ -162,7 +162,6 @@ class ActivationHandler(AbstractHandler):
         )
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-
         if self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
         if sim.roi is None:
@@ -173,11 +172,10 @@ class ActivationHandler(AbstractHandler):
 
         if np.sum(abs(roi)) == 0:
             raise ValueError("roi is empty.")
-        frame_times = sim.TR * np.arange(sim.n_frames)
         regressor, _ = compute_regressor(
             self._event_condition[["onset", "duration", "modulation"]].to_numpy().T,
             self._hrf_model,
-            frame_times,
+            sim.sim_time,
             oversampling=self._oversampling,
             min_onset=self._min_onset,
         )
