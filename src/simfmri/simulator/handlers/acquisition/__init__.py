@@ -1,6 +1,9 @@
 """Acquisition Handlers."""
 
-from .base import VDSAcquisitionHandler
+from .base import AcquisitionHandler, VDSAcquisitionHandler
 
 
-__all__ = ["VDSAcquisitionHandler"]
+__all__ = [
+    "AcquisitionHandler",
+    "VDSAcquisitionHandler",
+]

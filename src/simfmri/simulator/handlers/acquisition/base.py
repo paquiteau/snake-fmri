@@ -7,12 +7,11 @@ from typing import Literal
 import numpy as np
 from fmri.operators.fft import FFT
 
-from simfmri.utils import get_smaps
+from simfmri.simulator.handlers.base import AbstractHandler
+from simfmri.simulator.simulation import SimulationData
+from simfmri.utils import get_smaps, validate_rng
+from simfmri.utils.typing import RngType
 
-from ..base import AbstractHandler
-from ..simulation import SimulationData
-from ..utils import validate_rng
-from ..utils.typing import RngType
 from .trajectory import KspaceTrajectory, accelerate_TR
 
 
