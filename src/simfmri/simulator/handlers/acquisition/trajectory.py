@@ -61,6 +61,7 @@ class KspaceTrajectory:
     ):
         self.is_cartesian = is_cartesian
         self.TR = TR
+        self.n_points = n_points
 
         # sampling time should remain sorted.
         self._sampling_times = np.linspace(0, TR, n_shots, endpoint=False)
@@ -145,12 +146,12 @@ class KspaceTrajectory:
         """
         if not self.is_cartesian:
             raise NotImplementedError("Non cartesian sampling not implemented.")
-        if len(shape) != len(self._shots[0]):
+        if len(shape) != self._shots.shape[-1]:
             raise ValueError("Shape should be of length %d" % len(self._shots[0]))
 
         mask = np.zeros(shape, dtype=bool)
         for shot in self._shots:
-            mask[shot[:, 0], shot[:, 1], shot[:, 2]] = 1
+            mask[shot] = 1
         return mask
 
     @classmethod

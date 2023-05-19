@@ -175,7 +175,7 @@ class ActivationHandler(AbstractHandler):
         regressor, _ = compute_regressor(
             self._event_condition[["onset", "duration", "modulation"]].to_numpy().T,
             self._hrf_model,
-            sim.sim_time,
+            np.linspace(0, sim.sim_time, sim.n_frames),
             oversampling=self._oversampling,
             min_onset=self._min_onset,
         )
