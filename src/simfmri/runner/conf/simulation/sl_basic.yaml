@@ -2,10 +2,9 @@
 _target_: simfmri.runner.factory.SimulationDataFactory
 checkpoints: false
 sim_params:
-  _target_: simfmri.simulator.SimulationParams
-  n_frames: 100
+  n_frames: 300
   shape: [128, 128, 128]
-  TR: 1.0
+  sim_tr: 0.2
   n_coils: 1
 
 handlers:

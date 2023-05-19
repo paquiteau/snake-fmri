@@ -30,12 +30,12 @@ class SimulationDataFactory:
 
     def __init__(
         self,
-        sim_params: SimulationParams,
+        sim_params: DictConfig,
         handlers: list[AbstractHandler] | Mapping[str, AbstractHandler],
         checkpoints: bool = False,
     ):
         self.checkpoints = checkpoints
-        self.sim_params = sim_params
+        self.sim_params = OmegaConf.to_container(sim_params, resolve=True)
         if isinstance(handlers, DictConfig):
             self.handlers = list(handlers.values())
         else:
@@ -43,7 +43,7 @@ class SimulationDataFactory:
 
     def simulate(self) -> SimulationData:
         """Build the simulation data."""
-        sim = SimulationData.from_params(self.sim_params)
+        sim = SimulationData(**self.sim_params)
 
         for idx, handler in enumerate(self.handlers):
             sim = handler.handle(sim)

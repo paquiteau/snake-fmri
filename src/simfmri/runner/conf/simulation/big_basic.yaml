@@ -3,10 +3,9 @@
 _target_: simfmri.runner.factory.SimulationDataFactory
 checkpoints: false
 sim_params:
-  _target_: simfmri.simulator.SimulationParams
-  n_frames: 100
+  sim_tr: 0.2
+  sim_time: 300
   shape: [256, 256]
-  TR: 1.0
   n_coils: 1
   rng: 19980408
 handlers:
@@ -26,12 +25,14 @@ handlers:
     _target_: simfmri.simulator.GaussianNoiseHandler
     snr: 1000
   acquisition:
-    _target_: simfmri.simulator.AcquisitionHandler.vds
+    _target_: simfmri.simulator.VDSAcquisitionHandler
+    base_TR: 2
     acs: 24
     accel: 4
     accel_axis: 1
-    constant: true
-    gen_smaps: false
+    constant: false
+    smaps: false
+    direction: center-out
   # noise:
   #   _target_: simfmri.simulator.KspaceNoiseHandler
   #   snr: 1000
