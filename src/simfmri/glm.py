@@ -50,12 +50,14 @@ def compute_test(
         Backend for the glm computation.
     """
     # instantiate model
+    TR = getattr(sim, "TR", None) or getattr(sim.extra_infos, "TR", None) or sim.sim_tr
+    logger.debug(f"Using a TR of: {TR}")
     design_matrix = make_first_level_design_matrix(
-        frame_times=np.arange(sim.n_frames) * sim.TR,
+        frame_times=np.arange(sim.n_frames) * TR,
         events=sim.extra_infos["events"],
         drift_model=sim.extra_infos.get("drift_model", None),
     )
-    first_level_model = FirstLevelModel(t_r=sim.TR, hrf_model="glover", mask_img=False)
+    first_level_model = FirstLevelModel(t_r=TR, hrf_model="glover", mask_img=False)
 
     # fit the model with all confounds
     if isinstance(data_test, np.ndarray):
