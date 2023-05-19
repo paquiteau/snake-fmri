@@ -93,12 +93,17 @@ class SimulationData:
     def __init__(
         self,
         shape: Shape2d3d,
-        n_frames: int,
         sim_tr: float,
+        n_frames: int = None,
+        sim_time: float = None,
         n_coils: int = 1,
         rng: int = 19980408,
         extra_infos: dict = None,
     ) -> SimulationData:
+        if sim_time is None and n_frames is None:
+            raise ValueError("Either sim_time or n_frames must be defined")
+        if sim_time is not None and n_frames is None:
+            n_frames = int(sim_time / sim_tr)
         self._meta = SimulationParams(
             shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
         )
