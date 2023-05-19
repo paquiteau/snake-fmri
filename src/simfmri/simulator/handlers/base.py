@@ -178,14 +178,17 @@ class AbstractHandler(ABC):
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
+        self.log("start handling")
         if self._prev is not None:
             sim = self._prev.handle(sim)
         if self._callbacks is not None:
             old_sim = copy.deepcopy(sim)
             new_sim = self._handle(sim)
             self._run_callbacks(old_sim, new_sim)
-            return new_sim
-        return self._handle(sim)
+        else:
+            new_sim = self._handle(sim)
+        self.log("end handling")
+        return new_sim
 
     def log(self, msg: str, level: int = logging.INFO) -> None:
         """Log the current action."""
@@ -193,5 +196,5 @@ class AbstractHandler(ABC):
         logger.log(level, msg)
 
     @abstractmethod
-    def _handle(self, sim: SimulationData) -> None:
+    def _handle(self, sim: SimulationData) -> SimulationData:
         pass
