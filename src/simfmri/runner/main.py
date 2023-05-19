@@ -3,13 +3,12 @@ import logging
 
 import hydra
 import numpy as np
+from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.glm import compute_confusion, compute_test, compute_confusion_stats
+from simfmri.glm import compute_confusion, compute_confusion_stats, compute_test
 
-from hydra_callbacks import PerfLogger
-from .utils import dump_confusion, save_data, product_dict
-
+from .utils import dump_confusion, product_dict, save_data
 
 log = logging.getLogger(__name__)
 

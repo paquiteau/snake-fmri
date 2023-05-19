@@ -1,13 +1,16 @@
 """Analysis module."""
-import numpy as np
-import pandas as pd
-import nibabel as nib
+import logging
 from typing import Literal
 
-from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
+import nibabel as nib
+import numpy as np
+import pandas as pd
 from nilearn.glm import threshold_stats_img
+from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
 
 from simfmri.simulator import SimulationData
+
+logger = logging.getLogger(__name__)
 
 
 def compute_test(

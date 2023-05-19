@@ -1,18 +1,14 @@
 """Example of scenarios for the simulator."""
 
-import numpy as np
-
 from typing import Mapping
-from simfmri.utils import Shape2d3d
-from omegaconf import DictConfig
-from .simulation import SimulationData, SimulationParams
-from .handlers import (
+
+import numpy as np
+from omegaconf import DictConfig, OmegaConf
+
+from simfmri.simulator.handlers import (
     AbstractHandler,
-    SheppLoganGeneratorHandler,
-    ActivationHandler,
-    AcquisitionHandler,
-    KspaceNoiseHandler,
 )
+from simfmri.simulator.simulation import SimulationData, SimulationParams
 
 
 class SimulationDataFactory:
