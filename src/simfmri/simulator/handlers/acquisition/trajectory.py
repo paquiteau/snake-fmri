@@ -213,7 +213,7 @@ class KspaceTrajectory:
         elif direction == "random":
             line_locs = rng.permutation(line_locs)
         else:
-            raise ValueError("Unknown direction %s" % direction)
+            raise ValueError(f"Unknown direction '{direction}'.")
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
