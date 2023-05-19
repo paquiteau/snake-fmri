@@ -30,10 +30,11 @@ def get_fourier_operator(sim: SimulationData) -> SpaceFourierBase:  # noqa ANN20
         Simulation Data that contains all the information to create a fourier operator.
     TODO: add support for non cartesian simulation.
     """
+    # the number of reconstructed frames is different from the number of simframes!
     return CartesianSpaceFourier(
         shape=sim.shape,
         mask=sim.kspace_mask,
-        n_frames=sim.n_frames,
+        n_frames=len(sim.kspace_data),
         n_coils=sim.n_coils,
         smaps=sim.smaps,
     )
