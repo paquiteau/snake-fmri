@@ -127,7 +127,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         kspace_data = []
         kspace_mask = []
         sim_frame = -1
-        while current_time < sim.sim_time:
+        while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
             sim_frame += 1
             current_time_frame += sim.sim_tr
             shot_selected = trajectory.extract_trajectory(
@@ -163,4 +163,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         self.log(f"Acquired {len(kspace_data)} kspace volumes.")
         sim.kspace_data = np.array(kspace_data)
         sim.kspace_mask = np.array(kspace_mask)
+        sim.extra_infos["TR"] = self.TR
+        sim.extra_infos["traj_name"] = "vds"
+        sim.extra_infos["traj_params"] = self._traj_params
         return sim
