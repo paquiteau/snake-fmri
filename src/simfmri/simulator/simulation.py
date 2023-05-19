@@ -277,4 +277,11 @@ class SimulationData:
                 ret += f"{array_name}: {array.dtype}({array.shape})\n"
             else:
                 ret += f"{array_name}: {array}\n"
+
+        ret += "extra_infos:\n"
+        for k, v in self.extra_infos.items():
+            if isinstance(v, np.ndarray):
+                ret += f" {k}: {v.dtype}({v.shape})\n"
+            else:
+                ret += f" {k}: {v}\n"
         return ret
