@@ -104,6 +104,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             "rng": rng,
         }
         self.TR = accelerate_TR(TR, base_TR, accel)
+        self.constant = constant
+        self.smaps = smaps
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         if self.TR > sim.sim_time:
@@ -111,8 +113,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         if self.TR < sim.sim_tr:
             raise ValueError("TR should be larger than or equal to sim_tr.")
 
-        if self.smaps:
-            sim.smaps = get_smaps(sim.image, sim.n_coils)
+        if self.smaps and sim.n_coils > 1:
+            sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
         current_time = 0  # current time in the kspace
         current_time_frame = 0  # current time in the frame
@@ -123,6 +125,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             **self._traj_params,
         )
         kspace_data = []
+        kspace_mask = []
         sim_frame = -1
         while current_time < sim.sim_time:
             sim_frame += 1
@@ -130,20 +133,23 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             shot_selected = trajectory.extract_trajectory(
                 current_time_frame, current_time_frame + sim.sim_tr
             )
-            volume_kspace = np.zeros((sim.n_coils, *sim.shape))
-            shots_mask = shot_selected.get_binary_mask(
-                sim.shape, current_time, current_time + sim.sim_tr
+            volume_kspace = np.squeeze(
+                np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
             )
+            shots_mask = shot_selected.get_binary_mask(sim.shape)
 
             FFT_op = FFT(sim.shape, shots_mask, smaps=sim.smaps, n_coils=sim.n_coils)
 
-            shots_kspace_data = FFT_op(sim.data_acq[sim_frame])
-            volume_kspace[:, shots_mask] = shots_kspace_data
-
+            shots_kspace_data = FFT_op.op(sim.data_acq[sim_frame])
+            if sim.n_coils > 1:
+                pass
+            else:
+                volume_kspace += shots_kspace_data
             current_time += sim.sim_tr
             if current_time_frame >= self.TR:
                 # a full kspace has been acquired
                 kspace_data.append(volume_kspace.copy())
+                kspace_mask.append(trajectory.get_binary_mask(sim.shape))
 
                 current_time_frame = 0
                 if not self.constant:
@@ -154,5 +160,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                         **self._traj_params,
                     )
 
+        self.log(f"Acquired {len(kspace_data)} kspace volumes.")
         sim.kspace_data = np.array(kspace_data)
+        sim.kspace_mask = np.array(kspace_mask)
         return sim
