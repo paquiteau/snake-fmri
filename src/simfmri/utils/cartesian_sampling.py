@@ -125,7 +125,7 @@ def get_cartesian_mask(
     return mask
 
 
-def flip2center(mask_cols: list | np.array, center_pos: int):
+def flip2center(mask_cols: np.array | np.array, center_value: int) -> np.array:
     """
     Reorder a list by starting by a center_position and alternating left/right.
 
@@ -140,7 +140,7 @@ def flip2center(mask_cols: list | np.array, center_pos: int):
     -------
     np.array: reordered columns.
     """
-
+    center_pos = np.argmin(np.abs(np.array(mask_cols) - center_value))
     mask_cols = list(mask_cols)
     left = mask_cols[center_pos::-1]
     right = mask_cols[center_pos + 1 :]
