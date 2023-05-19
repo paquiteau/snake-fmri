@@ -1,0 +1,25 @@
+defaults:
+  - reconstruction: zero_filled.yaml
+  - stats: stat_default.yaml
+  - override hydra/sweeper: dataset_sweeper
+  - _self_
+
+dry_mode: false
+save: true
+
+
+dataset_sample: null
+
+hydra:
+  job:
+    chdir: true
+  callbacks:
+    git_info:
+      _target_: hydra_callbacks.GitInfo
+      clean: false
+    latest_link:
+      _target_: hydra_callbacks.LatestRunLink
+  sweeper:
+    max_batch_size: 10
+    samples_per_job: 2
+    dataset_path: "/home/pac/gits/nsp/simfmri_runner/datasets/dataset.csv"

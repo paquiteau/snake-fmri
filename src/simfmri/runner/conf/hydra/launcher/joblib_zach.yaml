@@ -1,0 +1,9 @@
+defaults:
+  - joblib
+
+n_jobs: 1
+prefer: processes
+require: null
+batch_size: auto
+pre_dispatch: "2*n_jobs"
+verbose: 0

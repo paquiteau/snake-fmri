@@ -1,0 +1,10 @@
+# @package _global_
+
+hydra:
+  job:
+    chdir: true
+  mode: MULTIRUN
+  sweeper:
+    params:
+      simulation.handlers.noise.snr: 3, 10, 30, 100, 500
+      simulation.handlers.acquisition.accel: 2, 4, 8, 16
