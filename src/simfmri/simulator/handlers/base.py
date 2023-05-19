@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from abc import ABC, abstractmethod
 from typing import Callable
 
@@ -163,7 +164,7 @@ class AbstractHandler(ABC):
         return handler
 
     def get_chain(self) -> str:
-        """show the chain of actions that would be applyied to a simulation."""
+        """Show the chain of actions that would be applyied to a simulation."""
         cur = self
         handler_chain = []
         while cur is not None:
@@ -185,6 +186,11 @@ class AbstractHandler(ABC):
             self._run_callbacks(old_sim, new_sim)
             return new_sim
         return self._handle(sim)
+
+    def log(self, msg: str, level: int = logging.INFO) -> None:
+        """Log the current action."""
+        logger = logging.getLogger(self.__class__.__name__)
+        logger.log(level, msg)
 
     @abstractmethod
     def _handle(self, sim: SimulationData) -> None:
