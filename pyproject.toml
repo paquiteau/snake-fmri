@@ -43,6 +43,11 @@ dependencies = [ # Optional
   "scipy",
   "nilearn",
   "scikit-image", # problems on install otherwise ?
+  "matplotlib",
+  "seaborn",
+  "hydra-core",
+  "hydra-callbacks",
+
 ]
 
 [project.optional-dependencies] # Optional
@@ -55,6 +60,12 @@ doc = ["sphinx", "pydata-sphinx-theme", "sphinx-gallery", "matplotlib"]
 "Homepage" = "https://github.com/paquiteau/simfmri"
 "Bug Reports" = "https://github.com/paquiteau/simfmri/issues"
 "Source" = "https://github.com/paquiteau/simfmri"
+
+[project.scripts]
+simfmri-main ="simfmri.runner.main:main_app"
+simfmri-data ="simfmrmi.runner.generate_dataset:generate_data"
+simfmri-rec="simfmri.runner.eval_recon:eval_recon"
+
 
 [build-system]
 # These are the assumed default build requirements from pip:
