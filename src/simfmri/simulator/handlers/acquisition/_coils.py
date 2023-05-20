@@ -1,6 +1,6 @@
 """Simulation of Smaps."""
 import numpy as np
-from .typing import Shape2d3d
+from simfmri.utils.typing import Shape2d3d
 
 
 def get_smaps(
