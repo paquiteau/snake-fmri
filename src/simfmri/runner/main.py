@@ -38,8 +38,8 @@ def main_app(cfg: DictConfig) -> None:
         # fake the 3rd dimension
         data_test = np.expand_dims(data_test, axis=-1)
 
+    log.debug("Current simulation state: %s", sim)
     with PerfLogger(log, name="Estimation"):
-
         stat_configs = product_dict(**OmegaConf.to_container(cfg.stats))
         contrasts = []
         estimations = []

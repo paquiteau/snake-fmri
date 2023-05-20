@@ -30,6 +30,7 @@ def compute_test(
         Simulation object
     data_test
         estimation of the data reconstructed from the simulation.
+        Time dimension is the last one, following nilearn convention.
     contrast_name
         name or list of name of the contrast to test for.
     stat_type
