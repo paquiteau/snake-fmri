@@ -47,6 +47,7 @@ dependencies = [ # Optional
   "seaborn",
   "hydra-core",
   "hydra-callbacks",
+  "hydra-colorlog",
 
 ]
 
