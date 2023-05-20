@@ -178,7 +178,7 @@ class AbstractHandler(ABC):
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
-        self.log("start handling", level=logging.DEBUG)
+        self.log.debug("start handling")
         if self._prev is not None:
             sim = self._prev.handle(sim)
         if self._callbacks is not None:
@@ -187,13 +187,12 @@ class AbstractHandler(ABC):
             self._run_callbacks(old_sim, new_sim)
         else:
             new_sim = self._handle(sim)
-        self.log("end handling", level=logging.DEBUG)
+        self.log.debug("end handling")
         return new_sim
 
-    def log(self, msg: str, level: int = logging.INFO) -> None:
+    def log(self) -> None:
         """Log the current action."""
-        logger = logging.getLogger(self.__class__.__name__)
-        logger.log(level, msg)
+        return logging.getLogger(self.__class__.__name__)
 
     @abstractmethod
     def _handle(self, sim: SimulationData) -> SimulationData:
