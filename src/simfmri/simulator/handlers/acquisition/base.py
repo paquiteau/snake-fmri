@@ -117,25 +117,24 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         if self.smaps and sim.n_coils > 1:
             sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
+        # initialization of the frame variables.
         current_time = 0  # current time in the kspace
         current_time_frame = 0  # current time in the frame
 
         trajectory = KspaceTrajectory.vds(
-            shape=sim.shape,
-            TR=self.TR,
-            **self._traj_params,
+            shape=sim.shape, TR=self.TR, **self._traj_params
         )
         kspace_data = []
         kspace_mask = []
         sim_frame = -1
+        volume_kspace = np.squeeze(
+            np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
+        )
         while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
             sim_frame += 1
             current_time_frame += sim.sim_tr
             shot_selected = trajectory.extract_trajectory(
                 current_time_frame, current_time_frame + sim.sim_tr
-            )
-            volume_kspace = np.squeeze(
-                np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
             )
             shots_mask = shot_selected.get_binary_mask(sim.shape)
 
@@ -151,8 +150,10 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                 # a full kspace has been acquired
                 kspace_data.append(volume_kspace.copy())
                 kspace_mask.append(trajectory.get_binary_mask(sim.shape))
-
                 current_time_frame = 0
+                volume_kspace = np.squeeze(
+                    np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
+                )
                 if not self.constant:
                     # new frame, new sampling
                     trajectory = KspaceTrajectory.vds(
