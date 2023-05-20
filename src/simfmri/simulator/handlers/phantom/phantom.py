@@ -1,11 +1,15 @@
 """Phantom Generation Handlers."""
-import numpy as np
 from importlib.resources import files
 
-from ...utils.phantom import mr_shepp_logan, generate_phantom, raster_phantom
-from ...utils import validate_rng, RngType
-from ..simulation import SimulationData, sim_log
-from .base import AbstractHandler
+import numpy as np
+
+from simfmri.simulator.simulation import SimulationData
+from simfmri.utils import validate_rng
+from simfmri.utils.typing import RngType
+
+from ..base import AbstractHandler
+from ._big import generate_phantom, raster_phantom
+from ._shepp_logan import mr_shepp_logan
 
 
 class SheppLoganGeneratorHandler(AbstractHandler):
@@ -70,7 +74,6 @@ class BigPhantomGeneratorHandler(AbstractHandler):
         dtype: np.dtype | str = np.float32,
         phantom_data: str = "big",
     ):
-
         super().__init__()
         self.raster_osf = raster_osf
         self.phantom_data = phantom_data
@@ -133,7 +136,6 @@ class TextureAdderHandler(AbstractHandler):
         self._var_texture = var_texture
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-
         sigma_noise = self._var_texture * sim.data_ref[0]
         rng = validate_rng(sim.rng)
         sim.data_ref += sigma_noise * rng.standard_normal(
@@ -164,7 +166,7 @@ class SlicerHandler(AbstractHandler):
 
     def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
         """Notify that we are now in  2D."""
-        sim_log.info("Simulation is now 2D")
+        self.log.warning("Simulation is now 2D")
 
     @property
     def slicer(self) -> tuple:
