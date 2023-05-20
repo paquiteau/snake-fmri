@@ -9,7 +9,8 @@ from fmri.operators.fft import FFT
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
-from simfmri.utils import get_smaps, validate_rng
+from ._coils import get_smaps
+from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
 from .trajectory import KspaceTrajectory, accelerate_TR
@@ -160,7 +161,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                         **self._traj_params,
                     )
 
-        self.log(f"Acquired {len(kspace_data)} kspace volumes.")
+        self.log.info(f"Acquired {len(kspace_data)} kspace volumes.")
         sim.kspace_data = np.array(kspace_data)
         sim.kspace_mask = np.array(kspace_mask)
         sim.extra_infos["TR"] = self.TR

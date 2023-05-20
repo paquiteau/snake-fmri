@@ -6,11 +6,12 @@ from typing import Literal
 import numpy as np
 
 from simfmri.utils import validate_rng
-from simfmri.utils.cartesian_sampling import (
+from simfmri.utils.typing import RngType, Shape2d3d
+
+from .cartesian_sampling import (
     flip2center,
     get_kspace_slice_loc,
 )
-from simfmri.utils.typing import RngType, Shape2d3d
 
 
 def accelerate_TR(TR: float, base_TR: float, accel: int) -> float:
