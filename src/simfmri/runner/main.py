@@ -6,7 +6,7 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.glm import compute_confusion, compute_confusion_stats, compute_test
+from .glm import compute_confusion, compute_confusion_stats, compute_test
 
 from .utils import dump_confusion, product_dict, save_data
 

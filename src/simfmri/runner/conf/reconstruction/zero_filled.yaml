@@ -1,1 +1,1 @@
-_target_: simfmri.reconstructor.ZeroFilledReconstructor
+_target_: simfmri.runner.reconstructor.ZeroFilledReconstructor
