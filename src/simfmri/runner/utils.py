@@ -11,6 +11,7 @@ import logging
 
 def setup_warning_logger() -> None:
     """Set up the logging system to catch warnings and format them."""
+
     # Better formatting for the warnings
     class CustomHandler(logging.Handler):
         """Custom Handler for Logging."""
@@ -163,7 +164,7 @@ def save_data(
     return filename
 
 
-def log_kwargs(log, oneline=False, **kwargs):
+def log_kwargs(log: logging.Logger, oneline: True = False, **kwargs: None) -> None:
     """Log the kwargs."""
     if oneline:
         log.info(f"kwargs: {kwargs}")

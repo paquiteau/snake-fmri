@@ -8,7 +8,7 @@ from omegaconf import DictConfig, OmegaConf
 from simfmri.simulator.handlers import (
     AbstractHandler,
 )
-from simfmri.simulator.simulation import SimulationData, SimulationParams
+from simfmri.simulator.simulation import SimulationData
 
 
 class SimulationDataFactory:

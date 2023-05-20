@@ -39,7 +39,7 @@ def get_signal_noise(
 
 def get_snr(test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None) -> float:
     """
-    Compute the overall SNR between test (signal+noise) and ref(signal only). in the roi
+    Compute the overall SNR between test (signal+noise) and ref(signal only). in the roi.
 
     Parameters
     ----------

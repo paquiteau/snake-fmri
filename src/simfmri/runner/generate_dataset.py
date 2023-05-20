@@ -43,7 +43,7 @@ class RetrieveDatasetCallback(Callback):
     def on_job_end(
         self, config: DictConfig, job_return: JobReturn, **kwargs: None
     ) -> None:
-        """Save the current simulation config"""
+        """Save the current simulation config."""
         self.configs.append(
             OmegaConf.to_container(config.simulation)
             | {"filename": os.path.abspath(job_return.return_value)}
@@ -76,6 +76,7 @@ class RetrieveDatasetCallback(Callback):
         return out
 
     def on_multirun_start(self, config: DictConfig, **kwargs: None) -> None:
+        """Create the dataset directory."""
         os.makedirs(self.dataset_dir, exist_ok=True)
 
     def on_multirun_end(self, config: DictConfig, **kwargs: None) -> None:

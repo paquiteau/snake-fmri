@@ -106,7 +106,7 @@ class RoiDefinerHandler(AbstractHandler):
         roi definition
     """
 
-    def __init__(self, roi_data: list[dict] | dict = None, rng=None):
+    def __init__(self, roi_data: list[dict] | dict = None, rng: RngType = None):
         super().__init__()
         if roi_data is None:
             roi_data = files("simfmri.utils.phantom").joinpath("big_phantom_roi.json")

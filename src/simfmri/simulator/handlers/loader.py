@@ -15,7 +15,7 @@ class LoadDataHandler(AbstractHandler):
         Filepath to load the data
     """
 
-    def __init__(self, sim_file: str, dtype="float32"):
+    def __init__(self, sim_file: str, dtype: str = "float32"):
         super().__init__()
         self.sim_file = sim_file
         self.dtype = dtype

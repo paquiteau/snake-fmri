@@ -1,29 +1,23 @@
 """A dataset sweeper for simfmri_runner."""
+import itertools
+import logging
 import os
 from pathlib import Path
-import logging
-import itertools
-from typing import Any, List, Optional, Sequence, Iterable
+from typing import Iterable, List, Optional, Sequence
 
 import pandas as pd
-
-
-from hydra.types import HydraContext
 from hydra.core.override_parser.overrides_parser import OverridesParser
 from hydra.core.plugins import Plugins
 from hydra.plugins.launcher import Launcher
 from hydra.plugins.sweeper import Sweeper
-from hydra.types import TaskFunction
+from hydra.types import HydraContext, TaskFunction
 from omegaconf import DictConfig, OmegaConf
-
 
 log = logging.getLogger(__name__)
 
 
 def chunks(lst: Sequence, n: Optional[int]) -> Iterable[Sequence]:
-    """
-    Split input to chunks of up to n items each
-    """
+    """Split input to chunks of up to n items each."""
     if n is None or n == -1:
         n = len(lst)
     for i in range(0, len(lst), n):
@@ -60,6 +54,7 @@ class DatasetSweeper(Sweeper):
         task_function: TaskFunction,
         config: DictConfig,
     ) -> None:
+        """Set the sweeper."""
         self.config = config
         self.launcher = Plugins.instance().instantiate_launcher(
             hydra_context=hydra_context, task_function=task_function, config=config
@@ -75,7 +70,8 @@ class DatasetSweeper(Sweeper):
         log.info(hydra_context)
         log.info(self.launcher)
 
-    def sweep(self, arguments: List[str]) -> Any:
+    def sweep(self, arguments: List[str]) -> List:
+        """Sweep over the dataset."""
         assert self.config is not None
         assert self.launcher is not None
         log.info(f"DatasetSweeper(dataset={self.dataset_path}) sweeping")
@@ -92,13 +88,16 @@ class DatasetSweeper(Sweeper):
         # command line provided overrides
         for override in parsed:
             if override.is_sweep_override():
-                # Sweepers must manipulate only overrides that return true to is_sweep_override()
-                # This syntax is shared across all sweepers, so it may limiting.
-                # Sweeper must respect this though: failing to do so will cause all sorts of hard to debug issues.
-                # If you would like to propose an extension to the grammar (enabling new types of sweep overrides)
-                # Please file an issue and describe the use case and the proposed syntax.
-                # Be aware that syntax extensions are potentially breaking compatibility for existing users and the
-                # use case will be scrutinized heavily before the syntax is changed.
+                # Sweepers must manipulate only overrides that return true to
+                # is_sweep_override() This syntax is shared across all sweepers,
+                # so it may limiting. Sweeper must respect this though: failing
+                # to do so will cause all sorts of hard to debug issues. If you
+                # would like to propose an extension to the grammar (enabling
+                # new types of sweep overrides) Please file an issue and
+                # describe the use case and the proposed syntax. Be aware that
+                # syntax extensions are potentially breaking compatibility for
+                # existing users and the use case will be scrutinized heavily
+                # before the syntax is changed.
                 sweep_choices = override.sweep_string_iterator()
                 key = override.get_key_element()
                 sweep = [f"{key}={val}" for val in sweep_choices]
@@ -114,11 +113,11 @@ class DatasetSweeper(Sweeper):
         lists.append(samples_chunks)
         batches = list(itertools.product(*lists))
         print(batches)
-        # some sweepers will launch multiple batches.
-        # for such sweepers, it is important that they pass the proper initial_job_idx when launching
-        # each batch. see example below.
-        # This is required to ensure that working that the job gets a unique job id
-        # (which in turn can be used for other things, like the working directory)
+        # some sweepers will launch multiple batches. for such sweepers, it is
+        # important that they pass the proper initial_job_idx when launching
+        # each batch. see example below. This is required to ensure that working
+        # that the job gets a unique job id (which in turn can be used for other
+        # things, like the working directory)
         chunked_batches = list(chunks(batches, self.max_batch_size))
 
         returns = []
