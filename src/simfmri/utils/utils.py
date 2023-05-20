@@ -1,8 +1,9 @@
 # /usr/bin/env python3
 """General utility tools."""
-
+import logging
 import numpy as np
-import warnings
+
+sim_logger = logging.getLogger("simulation")
 
 
 def validate_rng(rng: int | np.random.Generator = None) -> np.random.Generator:
@@ -25,7 +26,6 @@ def cplx_type(dtype: str | np.dtype) -> np.dtype:
     >>> cplx_type(np.float32)
     np.complex64
     """
-
     d = np.dtype(dtype)
     if d.type is np.float64:
         return np.complex128
@@ -34,5 +34,7 @@ def cplx_type(dtype: str | np.dtype) -> np.dtype:
     elif d.type is np.float32:
         return np.complex64
     else:
-        warnings.warn("not supported dtype, use complex64")
+        sim_logger.warning(
+            "not supported dtype, use matching complex64", stack_info=True
+        )
         return np.complex64
