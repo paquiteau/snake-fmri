@@ -208,9 +208,7 @@ class KspaceTrajectory:
         n_points_shots = np.prod(shape) // shape[accel_axis]
         n_shots = len(line_locs)
         if direction == "center-out":
-            line_locs = flip2center(
-                sorted(line_locs), np.argmin(line_locs - shape[accel_axis] // 2)
-            )
+            line_locs = flip2center(sorted(line_locs), shape[accel_axis] // 2)
         elif direction == "random":
             line_locs = rng.permutation(line_locs)
         else:
