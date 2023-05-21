@@ -74,6 +74,11 @@ class KspaceTrajectory:
         return self._shots
 
     @property
+    def n_shots(self) -> int:
+        """Return the number of shots."""
+        return self._shots.shape[0]
+
+    @property
     def sampling_times(self) -> np.ndarray:
         """Return the array of sampling times."""
         return self._sampling_times

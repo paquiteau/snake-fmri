@@ -191,7 +191,7 @@ class AbstractHandler(ABC):
         return new_sim
 
     @property
-    def log(self) -> None:
+    def log(self) -> logging.Logger:
         """Log the current action."""
         return logging.getLogger(self.__class__.__name__)
 

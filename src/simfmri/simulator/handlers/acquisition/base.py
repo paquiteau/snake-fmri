@@ -113,7 +113,10 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             raise ValueError("TR should be smaller than sim_time.")
         if self.TR < sim.sim_tr:
             raise ValueError("TR should be larger than or equal to sim_tr.")
+        upsampling = self.TR / sim.sim_tr
 
+        if int(self.TR * 1000) % int(sim.sim_tr * 1000):
+            self.log.warning("TR is not a multiple of sim_tr.")
         if self.smaps and sim.n_coils > 1:
             sim.smaps = get_smaps(sim.shape, sim.n_coils)
 
@@ -130,9 +133,21 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         volume_kspace = np.squeeze(
             np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
         )
+        self.log.debug("trajectory has %s shots", len(trajectory._shots))
+        self.log.debug("sim has %s frames", sim.n_frames)
+        self.log.debug("expected number of frames %s", sim.sim_time / self.TR)
+        self.log.debug(
+            f"portion of kspace  updated at each sim frame: {sim.sim_tr / self.TR} "
+            f"({trajectory.n_shots * sim.sim_tr/self.TR}/{trajectory.n_shots})"
+        )
+
+        if not np.isclose(int(trajectory.n_shots % upsampling), 0):
+            self.log.warning(
+                f"Potential uneven repartition of shots ({trajectory.n_shots / upsampling})"
+            )
+
         while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
             sim_frame += 1
-            current_time_frame += sim.sim_tr
             shot_selected = trajectory.extract_trajectory(
                 current_time_frame, current_time_frame + sim.sim_tr
             )
@@ -146,6 +161,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             else:
                 volume_kspace += shots_kspace_data
             current_time += sim.sim_tr
+            current_time_frame += sim.sim_tr
             if current_time_frame >= self.TR:
                 # a full kspace has been acquired
                 kspace_data.append(volume_kspace.copy())
@@ -162,7 +178,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                         **self._traj_params,
                     )
 
-        self.log.info(f"Acquired {len(kspace_data)} kspace volumes.")
+        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={self.TR} s.")
         sim.kspace_data = np.array(kspace_data)
         sim.kspace_mask = np.array(kspace_mask)
         sim.extra_infos["TR"] = self.TR

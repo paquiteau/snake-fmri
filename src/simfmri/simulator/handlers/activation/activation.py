@@ -195,4 +195,5 @@ class ActivationHandler(AbstractHandler):
         else:
             if isinstance(sim.extra_infos["events"], pd.DataFrame):
                 sim._meta.extra_infos["events"].concat(self._event_condition)
+        self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
