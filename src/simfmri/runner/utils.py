@@ -126,6 +126,7 @@ def save_data(
             "roi",
             "estimation",
             "contrast",
+            "extra_infos",
         ],
         "results": ["data_test", "estimation", "contrast"],
         "mini": ["data_test", "data_ref", "data_acq"],
