@@ -1,19 +1,52 @@
 # fMRI data Simulator  and validator
 
-This package _will_ provides:
- - An easy to use fMRI data simulator, using phantoms and 
- - A benchmark of fMRI data reconstructors, mostly all implemented in [pysap-fmri](https://github.com/paquiteau/pysap-fmri). 
+This package provides:
+ - An easy to use fMRI data simulator, using phantoms and explicit forward modelling steps (Brain activations, noise, motion, etc.)
+ 
+ - A set of tool to perform a benchmark of fMRI data reconstructors, mostly all implemented in [pysap-fmri](https://github.com/paquiteau/pysap-fmri). 
  
  
  
-## TODO fMRI Simulator
+ 
+
+# Running simulation and benchmarks 
+
+simfmri comes with helper tools to configure and run simulation, and as such can be use to perform benchmark of fMRI reconstruction method.  It was developed for this purpose. 
 
 
+## Available commands 
 
-## TODO Benchmark
+3 CLI interfaces are able to use the configuration folder to perform differents task: 
+ - `simfmri-main` to do a full simulation + reconstruction + validation 
+ - `simfmri-data` to generate a dataset of simulation
+ - `simfmri-rec` to evaluate reconstructions methods (and do the statistics) over an existing dataset. 
+ 
+ Typically you would create a dataset with `simfmri-data` and then run `simfmri-rec` on it.
+ 
 
-The different reconstruction methods are validated via downstream test of activation detection using a GLM an t-testing. The result are analyzed via Received operator characteristic.
+## Configurations Files
+The configuration  are located in `simfmri/runner/conf` and articulates over 3 main componenents: 
+- the simulation
+- the reconstruction
+- the validation via statistical analysis
+
+### Simulation 
+located in `simfmri/runner/conf/simulation`
+### Reconstruction
+located in `simfmri/runner/conf/reconstruction`
+
+### Validation
+
+
+# Related packages 
+## Dependencies
+- https://github.com/mind-inria/mri-nufft : A python package to perform NUFFT in a MRI context.
+- https://github.com/paquiteau/pysap-fmri : A python package to perform fMRI reconstruction.
+- https://github.com/nilearn/nilearn : A python package to perform fMRI analysis.
+- https:
+
+## Other simulation software
+ - neuroRsim/fmrisim 
+ - POSSUM (from FSL)
  
- 
- 
- 
+
