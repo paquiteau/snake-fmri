@@ -27,7 +27,7 @@ handlers:
   acquisition:
     _target_: simfmri.simulator.VDSAcquisitionHandler
     base_TR: 2
-    acs: 24
+    acs: 22
     accel: 4
     accel_axis: 1
     constant: false
