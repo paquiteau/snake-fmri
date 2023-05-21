@@ -3,15 +3,22 @@
 Reconstructor implement a `reconstruct` method which takes a simulation object as input
 and returns a reconstructed fMRI array.
 """
+import logging
+
 import numpy as np
+from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 
 from simfmri.simulator import SimulationData
 
-from fmri.operators.fourier import SpaceFourierBase, CartesianSpaceFourier
+logger = logging.getLogger(__name__)
 
 
 class BenchmarkReconstructor:
     """Represents the interface required to be benchmark-able."""
+
+    def setup(self, sim: SimulationData) -> None:
+        """Set up the reconstructor."""
+        logger.info(f"Setup reconstructor {self.__class__.__name__}")
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct data."""
@@ -141,10 +148,10 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct using LowRank+Sparse Method."""
+        from fmri.operators.svt import FlattenSVT
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from modopt.opt.linear import Identity
         from modopt.opt.proximity import SparseThreshold
-        from fmri.operators.svt import FlattenSVT
 
         if self._max_iter_frame is not None:
             max_iter = self._max_iter_frame * sim.n_frames
