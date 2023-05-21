@@ -63,9 +63,9 @@ doc = ["sphinx", "pydata-sphinx-theme", "sphinx-gallery", "matplotlib"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-simfmri-main ="simfmri.runner.main:main_app"
-simfmri-data ="simfmrmi.runner.generate_dataset:generate_data"
-simfmri-rec="simfmri.runner.eval_recon:eval_recon"
+simfmri-main ="simfmri.runner.cli.main:main_app"
+simfmri-data ="simfmrmi.runner.cli.generate_dataset:generate_data"
+simfmri-rec="simfmri.runner.cli.eval_recon:eval_recon"
 
 
 [build-system]

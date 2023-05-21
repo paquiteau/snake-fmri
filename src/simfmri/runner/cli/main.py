@@ -32,6 +32,7 @@ def main_app(cfg: DictConfig) -> None:
         sim = simulation_factory.simulate()
 
     with PerfLogger(log, name="Reconstruction"):
+        reconstructor.setup(sim)
         data_test = reconstructor.reconstruct(sim)
 
     if len(sim.shape) == 2:
