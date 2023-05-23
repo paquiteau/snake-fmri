@@ -19,3 +19,5 @@ hydra:
       _target_: hydra_callbacks.MultiRunGatherer
     latest_link:
       _target_: hydra_callbacks.LatestRunLink
+    perf:
+      _target_: hydra_callbacks.ResourceMonitor
