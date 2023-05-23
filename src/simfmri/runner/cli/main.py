@@ -13,7 +13,7 @@ from simfmri.runner.utils import dump_confusion, product_dict, save_data
 log = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_path="conf", config_name="config")
+@hydra.main(version_base=None, config_path="../conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
     if cfg.dry_mode:
