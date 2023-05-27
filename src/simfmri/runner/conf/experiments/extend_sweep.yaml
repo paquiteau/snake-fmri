@@ -6,9 +6,8 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      simulation.handlers.noise.snr:  30, 100, 1000
-      simulation.handlers.acquisition.accel: 1, 2, 4, 8, 16
-      +n_runs: range(3)
+      simulation.handlers.noise.snr:  10, 30, 100, 1000
+      simulation.handlers.acquisition.accel: 1, 2, 4, 8
 
   sweep:
     dir: multirun/extend_sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}

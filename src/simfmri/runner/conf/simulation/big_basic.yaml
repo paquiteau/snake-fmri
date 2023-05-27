@@ -3,7 +3,7 @@
 _target_: simfmri.runner.factory.SimulationDataFactory
 checkpoints: false
 sim_params:
-  sim_tr: 0.2
+  sim_tr: 0.1
   sim_time: 300
   shape: [256, 256]
   n_coils: 1
