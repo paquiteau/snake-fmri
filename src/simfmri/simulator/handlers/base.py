@@ -1,6 +1,6 @@
 """Base Handler Interface."""
 from __future__ import annotations
-
+import time
 import copy
 import logging
 from abc import ABC, abstractmethod
@@ -178,16 +178,19 @@ class AbstractHandler(ABC):
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
-        self.log.debug("start handling")
         if self._prev is not None:
             sim = self._prev.handle(sim)
-        if self._callbacks is not None:
+        if self._callbacks:
             old_sim = copy.deepcopy(sim)
-            new_sim = self._handle(sim)
+
+        self.log.debug("start handling")
+        tic = time.perf_counter()
+        new_sim = self._handle(sim)
+        toc = time.perf_counter()
+        self.log.debug(f"end handling: {toc-tic:.2f}s")
+
+        if self._callbacks:
             self._run_callbacks(old_sim, new_sim)
-        else:
-            new_sim = self._handle(sim)
-        self.log.debug("end handling")
         return new_sim
 
     @property
