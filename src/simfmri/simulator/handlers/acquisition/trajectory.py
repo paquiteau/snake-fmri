@@ -227,13 +227,13 @@ class KspaceTrajectory:
             dim=len(shape),
         )
         if len(shape) == 2:
-            one_shot = np.arange(shape[1 - accel_axis])
+            one_shot = np.arange(shape[accel_axis - 1])
         elif len(shape) == 3:
             one_shot1 = np.repeat(
-                np.arange(shape[1 - accel_axis]), shape[2 - accel_axis]
+                np.arange(shape[accel_axis - 1]), shape[accel_axis - 2]
             )
             one_shot2 = np.repeat(
-                np.arange(shape[2 - accel_axis])[None, :], shape[1 - accel_axis], axis=0
+                np.arange(shape[accel_axis - 2])[None, :], shape[accel_axis - 1], axis=0
             ).ravel("F")
 
         traj.shots = np.zeros((n_shots, n_points_shots, len(shape)), dtype=np.int32)
