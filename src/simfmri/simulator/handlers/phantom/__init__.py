@@ -6,6 +6,7 @@ from .phantom import (
     BigPhantomGeneratorHandler,
     RoiDefinerHandler,
     TextureAdderHandler,
+    BrainwebPhantomHandler,
 )
 
 __all__ = [
@@ -14,4 +15,5 @@ __all__ = [
     "RoiDefinerHandler",
     "TextureAdderHandler",
     "SlicerHandler",
+    "BrainwebPhantomHandler",
 ]

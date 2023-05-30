@@ -18,6 +18,7 @@ from .phantom import (
     SlicerHandler,
     BigPhantomGeneratorHandler,
     RoiDefinerHandler,
+    BrainwebPhantomHandler,
     TextureAdderHandler,
 )
 
@@ -26,6 +27,7 @@ __all__ = [
     "AcquisitionHandler",
     "ActivationHandler",
     "BigPhantomGeneratorHandler",
+    "BrainwebPhantomHandler",
     "GaussianNoiseHandler",
     "KspaceNoiseHandler",
     "LoadDataHandler",
@@ -36,5 +38,5 @@ __all__ = [
     "SheppLoganGeneratorHandler",
     "SlicerHandler",
     "TextureAdderHandler",
-    "VDSActivationHandler",
+    "VDSAcquisitionHandler",
 ]

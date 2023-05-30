@@ -1,9 +1,5 @@
 """Interface to BrainWeb data set."""
 
-
-from brainweb_dl import BIG_RES
-
-
 import numpy as np
 from scipy.spatial.transform import Rotation
 
