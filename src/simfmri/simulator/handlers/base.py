@@ -193,7 +193,7 @@ class AbstractHandler(ABC):
     @property
     def log(self) -> logging.Logger:
         """Log the current action."""
-        return logging.getLogger(self.__class__.__name__)
+        return logging.getLogger(f"simulation.{self.__class__.__name__}")
 
     @abstractmethod
     def _handle(self, sim: SimulationData) -> SimulationData:

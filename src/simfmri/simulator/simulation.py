@@ -14,9 +14,6 @@ import numpy as np
 from simfmri.utils import Shape2d3d, cplx_type
 
 
-sim_log = logging.getLogger("simulation")
-
-
 @dataclasses.dataclass
 class SimulationParams:
     """Simulation metadata."""
@@ -31,7 +28,7 @@ class SimulationParams:
     """Number of coil of the simulation."""
     rng: int = 19980408
     """Random number generator seed."""
-    extra_infos: dict = dataclasses.field(default=None, repr=False)
+    extra_infos: dict = dataclasses.field(default_factory=dict, repr=False)
     """Extra information, to add more information to the simulation"""
 
 
