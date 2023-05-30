@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
-from typing import Literal
+import shutil
+import time
+from pathlib import Path
+from typing import Any, Literal
 
 import numpy as np
 from fmri.operators.fft import FFT
+from joblib import Parallel, delayed
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
@@ -127,12 +131,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         trajectory = KspaceTrajectory.vds(
             shape=sim.shape, TR=self.TR, **self._traj_params
         )
-        kspace_data = []
-        kspace_mask = []
         sim_frame = -1
-        volume_kspace = np.squeeze(
-            np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
-        )
+        kspace_frame = 0
         self.log.debug("trajectory has %s shots", len(trajectory._shots))
         self.log.debug("sim has %s frames", sim.n_frames)
         self.log.debug("expected number of frames %s", sim.sim_time / self.TR)
@@ -147,30 +147,27 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                 f"({trajectory.n_shots / upsampling})"
             )
 
+        plans = []
+        # Plan the kspace trajectories
+        tic = time.perf_counter()
         while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
             sim_frame += 1
             shot_selected = trajectory.extract_trajectory(
                 current_time_frame, current_time_frame + sim.sim_tr
             )
-            shots_mask = shot_selected.get_binary_mask(sim.shape)
-
-            FFT_op = FFT(sim.shape, shots_mask, smaps=sim.smaps, n_coils=sim.n_coils)
-
-            shots_kspace_data = FFT_op.op(sim.data_acq[sim_frame])
-            if sim.n_coils > 1:
-                pass
-            else:
-                volume_kspace += shots_kspace_data
+            plans.append(
+                {
+                    "shot_selected": shot_selected,
+                    "sim_frame": sim_frame,
+                    "kspace_frame": kspace_frame,
+                }
+            )
             current_time += sim.sim_tr
             current_time_frame += sim.sim_tr
             if current_time_frame >= self.TR:
                 # a full kspace has been acquired
-                kspace_data.append(volume_kspace.copy())
-                kspace_mask.append(trajectory.get_binary_mask(sim.shape))
+                kspace_frame += 1
                 current_time_frame = 0
-                volume_kspace = np.squeeze(
-                    np.zeros((sim.n_coils, *sim.shape), dtype=np.complex64)
-                )
                 if not self.constant:
                     # new frame, new sampling
                     trajectory = KspaceTrajectory.vds(
@@ -178,7 +175,67 @@ class VDSAcquisitionHandler(AcquisitionHandler):
                         TR=self.TR,
                         **self._traj_params,
                     )
+        toc = time.perf_counter()
 
+        self.log.debug("Planning done, elapsed time: %s", toc - tic)
+
+        def _execute_plan(
+            plan: dict[str, Any],
+            data_sim: np.ndarray,
+            kspace_data: np.ndarray,
+            kspace_mask: np.ndarray,
+            smaps: np.ndarray,
+            n_coils: int,
+        ) -> None:
+            shot_selected: KspaceTrajectory = plan["shot_selected"]
+            sim_frame: int = plan["sim_frame"]
+            kspace_frame: int = plan["kspace_frame"]
+            mask = shot_selected.get_binary_mask(data_sim.shape[1:])
+            kspace_mask[kspace_frame, ...] |= mask
+            kspace_data[kspace_frame, ...] += FFT(
+                data_sim.shape[1:],
+                mask=mask,
+                smaps=smaps,
+                n_coils=n_coils,
+            ).op(data_sim[sim_frame])
+
+        # Execute the plans using joblib
+        data_sim = sim.data_acq
+        smaps = sim.smaps
+        n_coils = sim.n_coils
+
+        path = Path("/tmp/vdsjoblib/")
+        path.mkdir(parents=True, exist_ok=True)
+
+        kspace_data = np.squeeze(
+            np.memmap(
+                filename=path / "kspace_data",
+                shape=(int(sim.sim_time / self.TR), n_coils, *sim.shape),
+                dtype=np.complex64,
+                mode="w+",
+            )
+        )
+
+        kspace_mask = np.squeeze(
+            np.memmap(
+                filename=path / "kspace_mask",
+                shape=(int(sim.sim_time / self.TR), n_coils, *sim.shape),
+                dtype=np.bool,
+                mode="w+",
+            )
+        )
+
+        self.log.debug("Executing plans")
+        Parallel(n_jobs=-1, verbose=0)(
+            delayed(_execute_plan)(
+                plan, data_sim, kspace_data, kspace_mask, smaps, n_coils
+            )
+            for plan in plans
+        )
+        try:
+            shutil.rmtree(path)
+        except:  # noqa
+            self.log.warning("Could not delete temporary folder")
         self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={self.TR} s.")
         sim.kspace_data = np.array(kspace_data)
         sim.kspace_mask = np.array(kspace_mask)
