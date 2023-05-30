@@ -28,7 +28,7 @@ class SimulationParams:
     """Number of coil of the simulation."""
     rng: int = 19980408
     """Random number generator seed."""
-    extra_infos: dict = dataclasses.field(default_factory=dict, repr=False)
+    extra_infos: dict = dataclasses.field(default_factory=lambda: dict(), repr=False)
     """Extra information, to add more information to the simulation"""
 
 
@@ -101,6 +101,8 @@ class SimulationData:
             raise ValueError("Either sim_time or n_frames must be defined")
         if sim_time is not None and n_frames is None:
             n_frames = int(sim_time / sim_tr)
+        if extra_infos is None:
+            extra_infos = dict()
         self._meta = SimulationParams(
             shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
         )
