@@ -1,7 +1,9 @@
 """Phantom Generation Handlers."""
 from importlib.resources import files
-
+import os
 import numpy as np
+
+from brainweb_dl import get_mri
 
 from simfmri.simulator.simulation import SimulationData
 from simfmri.utils import validate_rng
@@ -121,6 +123,52 @@ class RoiDefinerHandler(AbstractHandler):
             weighting="label",
         )
         sim.roi = sim.roi > 0
+        return sim
+
+
+class BrainwebPhantomHandler(AbstractHandler):
+    """Handler to load brainweb phantom.
+
+    Parameters
+    ----------
+    subject_id
+        subject id to load.
+    brainweb_folder
+        folder where the brainweb data are stored.
+    roi
+        region of interest to extract.
+    """
+
+    def __init__(
+        self,
+        subject_id: int,
+        brainweb_folder: os.PathLike = "~/.cache/brainweb",
+        roi: int = 1,
+    ):
+        super().__init__()
+        self.subject_id = subject_id
+        self.brainweb_folder = brainweb_folder
+        self.roi = roi
+
+    def _handle(self, sim: SimulationData) -> SimulationData:
+        from ._brainweb import (
+            get_indices_inside_ellipsoid,
+            BRAINWEB_OCCIPTAL_ROI,
+        )
+
+        sim.static_vol = get_mri(
+            self.subject_id,
+            brainweb_folder=self.brainweb_folder,
+            contrast="T2*",
+            rng=sim.rng or self.rng,
+        )
+        sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
+        sim.roi = get_mri(
+            self.subject_id, brainweb_folder=self.brainweb_folder, contrast="crisp"
+        )
+        ellipsoid = get_indices_inside_ellipsoid(sim.roi.shape, **BRAINWEB_OCCIPTAL_ROI)
+        # 2 is the label for the gray matter.
+        sim.roi = sim.roi == 2 & ellipsoid
         return sim
 
 
