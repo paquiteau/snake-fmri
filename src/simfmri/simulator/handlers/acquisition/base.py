@@ -9,10 +9,10 @@ from fmri.operators.fft import FFT
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
-from ._coils import get_smaps
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
+from ._coils import get_smaps
 from .trajectory import KspaceTrajectory, accelerate_TR
 
 
@@ -143,7 +143,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
 
         if not np.isclose(int(trajectory.n_shots % upsampling), 0):
             self.log.warning(
-                f"Potential uneven repartition of shots ({trajectory.n_shots / upsampling})"
+                "Potential uneven repartition of shots"
+                f"({trajectory.n_shots / upsampling})"
             )
 
         while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
