@@ -156,8 +156,7 @@ class KspaceTrajectory:
             raise ValueError("Shape should be of length %d" % len(self._shots[0]))
 
         mask = np.zeros(shape, dtype=bool)
-        for shot in self._shots:
-            mask[shot] = 1
+        mask[self._shots.reshape(-1, len(shape))] = 1
         return mask
 
     @classmethod
