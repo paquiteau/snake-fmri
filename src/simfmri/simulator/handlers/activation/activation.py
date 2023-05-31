@@ -186,14 +186,10 @@ class ActivationHandler(AbstractHandler):
         sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
         # update the experimental paradigm
         #
-        if sim.extra_infos is None:
-            sim._meta.extra_infos = {
-                "events": self._event_condition,
-                "regressor": regressor,
-            }
-            # changed here
+        if isinstance(sim.extra_infos.get("events", None), pd.DataFrame):
+            sim._meta.extra_infos["events"].concat(self._event_condition)
         else:
-            if isinstance(sim.extra_infos["events"], pd.DataFrame):
-                sim._meta.extra_infos["events"].concat(self._event_condition)
+            sim._meta.extra_infos["events"] = self._event_condition
+            sim._meta.extra_infos["regressor"] = regressor
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
