@@ -169,7 +169,7 @@ class AcquisitionHandler(AbstractHandler):
 
             self.log.debug("Executing plans")
             Parallel(n_jobs=-1, verbose=0)(
-                delayed(self._execute_plan)(
+                delayed(self.__execute_plan)(
                     plan, data_sim, kspace_data, kspace_mask, smaps, n_coils
                 )
                 for plan in plans
