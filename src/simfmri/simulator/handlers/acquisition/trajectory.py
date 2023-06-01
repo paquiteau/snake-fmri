@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from typing import Literal
-
 import numpy as np
-
+import logging
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType, Shape2d3d
 
@@ -13,17 +12,7 @@ from .cartesian_sampling import (
     get_kspace_slice_loc,
 )
 
-
-def accelerate_TR(TR: float, base_TR: float, accel: int) -> float:
-    """Compute the TR of an accelerated acquisition."""
-    if TR is None and base_TR is None:
-        raise ValueError("Either TR or base_TR should be provided.")
-    if TR is not None and base_TR is not None:
-        raise ValueError("TR and base_TR are exclusive.")
-    if TR is None:
-        TR = base_TR / accel
-
-    return TR
+logger = logging.getLogger("simulation.acquisition.trajectory")
 
 
 class KspaceTrajectory:
@@ -156,8 +145,28 @@ class KspaceTrajectory:
             raise ValueError("Shape should be of length %d" % len(self._shots[0]))
 
         mask = np.zeros(shape, dtype=bool)
-        mask[self._shots.reshape(-1, len(shape))] = 1
+        mask[tuple(self._shots.reshape(-1, len(shape)).T)] = 1
         return mask
+
+    @staticmethod
+    def validate_TR(
+        TR: float, base_TR: float, accel: int, n_shot: int, shot_time: float
+    ) -> float:
+        """Compute the TR of an accelerated acquisition."""
+        if TR is None and base_TR is None and shot_time is None:
+            raise ValueError("Either shot_time, TR or base_TR should be provided.")
+        if (
+            (TR is not None and base_TR is not None)
+            or (TR is not None and shot_time is not None)
+            or (base_TR is not None and shot_time is not None)
+        ):
+            raise ValueError("TR and base_TR, and shot_time are exclusive.")
+        if TR is None and base_TR is not None:
+            TR = base_TR / accel
+        elif TR is None and base_TR is None:
+            TR = n_shot * shot_time
+
+        return TR
 
     @classmethod
     def vds(
@@ -169,6 +178,7 @@ class KspaceTrajectory:
         direction: Literal["center-out", "random"],
         TR: float = None,
         base_TR: float = None,
+        shot_time: float = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
     ) -> KspaceTrajectory:
@@ -197,13 +207,10 @@ class KspaceTrajectory:
         KspaceTrajectory
             Variable density sampling trajectory.
         """
-        TR = accelerate_TR(TR, base_TR, accel)
-
         rng = validate_rng(rng)
-
         if accel_axis < 0:
             accel_axis = len(shape) + accel_axis
-        if not (0 < accel_axis < len(shape)):
+        if not (0 <= accel_axis < len(shape)):
             raise ValueError(
                 "accel_axis should be lower than the number of spatial dimension."
             )
@@ -217,6 +224,10 @@ class KspaceTrajectory:
             line_locs = rng.permutation(line_locs)
         else:
             raise ValueError(f"Unknown direction '{direction}'.")
+        #
+
+        TR = cls.validate_TR(TR, base_TR, accel, n_shots, shot_time)
+        logger.debug("Effective TR: %f", TR)
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
