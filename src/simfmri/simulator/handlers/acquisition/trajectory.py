@@ -264,23 +264,6 @@ class KspaceTrajectory:
         return traj
 
     @classmethod
-    def vds_mask(
-        cls,
-        shape: Shape2d3d,
-        acs: float | int,
-        accel: int,
-        accel_axis: int,
-        direction: Literal["center-out", "random"],
-        TR: float = None,
-        base_TR: float = None,
-        pdf: Literal["gaussian", "uniform"] = "gaussian",
-        rng: RngType = None,
-    ) -> np.ndarray:
-        """Get the variable density mask."""
-        traj = cls.vds(shape, acs, accel, accel_axis, direction, TR, base_TR, pdf, rng)
-        return traj.get_binary_mask(shape)
-
-    @classmethod
     def grappa(
         cls, n_shots: int, n_points: int, TR: float, dim: int = 3
     ) -> KspaceTrajectory:
