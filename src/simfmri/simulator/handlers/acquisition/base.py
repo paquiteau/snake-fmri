@@ -115,8 +115,8 @@ class AcquisitionHandler(AbstractHandler):
         self._debug(sim, trajectory, TR)
         plans = []
         # 1. Plan the kspace trajectories
-        with PerfLogger(self.log, level=self.log.DEBUG, name="Planning"):
             while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
+        with PerfLogger(self.log, level=10, name="Planning"):  # 10 is DEBUG
                 sim_frame += 1
                 shot_selected = trajectory.extract_trajectory(
                     current_time_frame, current_time_frame + sim.sim_tr
@@ -142,7 +142,7 @@ class AcquisitionHandler(AbstractHandler):
                             **self._traj_params,
                         )
         # 2. Execute the plans using joblib
-        with PerfLogger(self.log, level=self.log.DEBUG, name="Execution"):
+        with PerfLogger(self.log, level=10, name="Execution"):
             data_sim = sim.data_acq
             smaps = sim.smaps
             n_coils = sim.n_coils
