@@ -211,13 +211,23 @@ class SimulationData:
 
     @property
     def sim_tr(self) -> float:
-        """Get TR."""
+        """Get TR in seconds."""
         return self._meta.sim_tr
+
+    @property
+    def sim_tr_ms(self) -> int:
+        """Get TR in milliseconds."""
+        return int(self._meta.sim_tr * 1000)
 
     @property
     def sim_time(self) -> float:
         """Get the total simulation time."""
         return self.n_frames * self.sim_tr
+
+    @property
+    def sim_time_ms(self) -> int:
+        """Get the total simulation time in milliseconds."""
+        return int(self.n_frames * self.sim_tr * 1000)
 
     @property
     def n_coils(self) -> int:

@@ -47,14 +47,19 @@ class KspaceTrajectory:
     """
 
     def __init__(
-        self, n_shots: int, n_points: int, is_cartesian: bool, TR: float, dim: int = 3
+        self,
+        n_shots: int,
+        n_points: int,
+        is_cartesian: bool,
+        TR_ms: int,
+        dim: int = 3,
     ):
         self.is_cartesian = is_cartesian
-        self.TR = TR
+        self.TR_ms = TR_ms
         self.n_points = n_points
 
         # sampling time should remain sorted.
-        self._sampling_times = np.linspace(0, TR, n_shots, endpoint=False)
+        self._sampling_times = np.linspace(0, TR_ms, n_shots, endpoint=False)
         self._shots = np.zeros((n_shots, n_points, dim), dtype=np.float32)
 
     @property
@@ -77,7 +82,7 @@ class KspaceTrajectory:
         if (
             np.any(value[:-1] > value[1:])
             or np.any(value < 0)
-            or np.any(value > self.TR)
+            or np.any(value > self.TR_ms)
         ):
             raise ValueError("Sampling times should be sorted and in [0,TR].")
         self._sampling_times = value
@@ -111,7 +116,7 @@ class KspaceTrajectory:
         end_shot = np.searchsorted(self._sampling_times, end, side="left")
 
         new_traj = KspaceTrajectory(
-            end_shot - begin_shot, self.n_points, self.is_cartesian, self.TR
+            end_shot - begin_shot, self.n_points, self.is_cartesian, self.TR_ms
         )
         new_traj._sampling_times = self._sampling_times[begin_shot:end_shot]
         new_traj._shots = self._shots[begin_shot:end_shot]
@@ -150,23 +155,23 @@ class KspaceTrajectory:
 
     @staticmethod
     def validate_TR(
-        TR: float, base_TR: float, accel: int, n_shot: int, shot_time: float
+        TR_ms: int, base_TR_ms: int, accel: int, n_shot: int, shot_time_ms: int
     ) -> float:
         """Compute the TR of an accelerated acquisition."""
-        if TR is None and base_TR is None and shot_time is None:
+        if TR_ms is None and base_TR_ms is None and shot_time_ms is None:
             raise ValueError("Either shot_time, TR or base_TR should be provided.")
         if (
-            (TR is not None and base_TR is not None)
-            or (TR is not None and shot_time is not None)
-            or (base_TR is not None and shot_time is not None)
+            (TR_ms is not None and base_TR_ms is not None)
+            or (TR_ms is not None and shot_time_ms is not None)
+            or (base_TR_ms is not None and shot_time_ms is not None)
         ):
             raise ValueError("TR and base_TR, and shot_time are exclusive.")
-        if TR is None and base_TR is not None:
-            TR = base_TR / accel
-        elif TR is None and base_TR is None:
-            TR = n_shot * shot_time
+        if TR_ms is None and base_TR_ms is not None:
+            TR_ms = base_TR_ms / accel
+        elif TR_ms is None and base_TR_ms is None:
+            TR_ms = n_shot * shot_time_ms
 
-        return TR
+        return TR_ms
 
     @classmethod
     def vds(
@@ -176,9 +181,9 @@ class KspaceTrajectory:
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        TR: float = None,
-        base_TR: float = None,
-        shot_time: float = None,
+        TR_ms: int = None,
+        base_TR_ms: int = None,
+        shot_time_ms: int = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
     ) -> KspaceTrajectory:
@@ -226,14 +231,14 @@ class KspaceTrajectory:
             raise ValueError(f"Unknown direction '{direction}'.")
         #
 
-        TR = cls.validate_TR(TR, base_TR, accel, n_shots, shot_time)
-        logger.debug("Effective TR: %f", TR)
+        TR_ms = cls.validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
+        logger.debug("Effective TR (ms): %i", TR_ms)
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
             n_points_shots,
             is_cartesian=True,
-            TR=TR,
+            TR_ms=TR_ms,
             dim=len(shape),
         )
         if len(shape) == 2:
