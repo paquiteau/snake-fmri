@@ -3,15 +3,13 @@
 from __future__ import annotations
 
 import shutil
-import time
 from pathlib import Path
-from typing import Any, Literal, Callable
+from typing import Any, Callable, Literal
 
 import numpy as np
 from fmri.operators.fft import FFT
-from joblib import Parallel, delayed
 from hydra_callbacks import PerfLogger
-
+from joblib import Parallel, delayed
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
@@ -19,7 +17,7 @@ from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
 from ._coils import get_smaps
-from .trajectory import KspaceTrajectory, accelerate_TR
+from .trajectory import KspaceTrajectory
 
 
 class AcquisitionHandler(AbstractHandler):
@@ -84,7 +82,6 @@ class AcquisitionHandler(AbstractHandler):
         self, sim: SimulationData, trajectory_factory: Callable
     ) -> np.ndarray:
         """Acquire the data by splitting the kspace shot over the simulation frames.
-
 
         This procedure is done in two steps:
         1. Plan the kspace trajectories
