@@ -232,7 +232,6 @@ class KspaceTrajectory:
         #
 
         TR_ms = cls.validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
-        logger.debug("Effective TR (ms): %i", TR_ms)
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,

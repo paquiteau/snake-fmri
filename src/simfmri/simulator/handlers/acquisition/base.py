@@ -109,14 +109,15 @@ class AcquisitionHandler(AbstractHandler):
             shot_time_ms=self._traj_params["shot_time_ms"],
             n_shot=trajectory.n_shots,
         )
-        self._debug(sim, trajectory, TR_ms)
+        n_kspace_frame = sim.sim_time_ms // TR_ms
+        self._debug(sim, trajectory, TR_ms, self._traj_params["shot_time_ms"])
         plans = []
         # 1. Plan the kspace trajectories
         with PerfLogger(self.log, level=10, name="Planning"):  # 10 is DEBUG
-            while current_time < sim.sim_time_ms and sim_frame < sim.n_frames - 1:
+            while current_time < n_kspace_frame * TR_ms:
                 sim_frame += 1
                 shot_selected = trajectory.extract_trajectory(
-                    current_time_frame, current_time_frame + sim.sim_tr
+                    current_time_frame, current_time_frame + sim.sim_tr_ms
                 )
                 plans.append(
                     {
@@ -176,39 +177,38 @@ class AcquisitionHandler(AbstractHandler):
             except:  # noqa
                 self.log.warning("Could not delete temporary folder")
 
-        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={TR_ms} s.")
+        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={TR_ms}ms.")
         sim.kspace_data = np.array(kspace_data)
         sim.kspace_mask = np.array(kspace_mask)
-        sim.extra_infos["TR"] = TR_ms
+        sim.extra_infos["TR_ms"] = TR_ms
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_params"] = self._traj_params
         return sim
 
     def _debug(
-        self, sim: SimulationData, trajectory: KspaceTrajectory, TR_ms: int
+        self,
+        sim: SimulationData,
+        trajectory: KspaceTrajectory,
+        TR_ms: int,
+        shot_time_ms: int,
     ) -> None:
-        if TR_ms > sim.sim_time_ms:
-            raise ValueError("TR should be smaller than sim_time.")
-        if TR_ms < sim.sim_tr:
-            raise ValueError("TR should be larger than or equal to sim_tr.")
-        upsampling = TR_ms / sim.sim_tr_ms
-
-        if TR_ms % sim.sim_tr_ms:
-            self.log.warning("TR is not a multiple of sim_tr.")
-
-        self.log.debug("trajectory has %s shots", len(trajectory._shots))
-        self.log.debug("sim has %s frames", sim.n_frames)
-        self.log.debug("expected number of frames %s", sim.sim_time_ms / TR_ms)
+        """Print debug information about the trajectory."""
+        if sim.sim_tr_ms % shot_time_ms != 0:
+            self.log.warning(
+                f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
+            )
+        if TR_ms % sim.sim_tr_ms != 0:
+            self.log.warning(
+                f"TR {sim.sim_tr_ms}ms does not divide shot time {TR_ms}ms."
+            )
         self.log.debug(
-            f"portion of kspace  updated at each sim frame: {sim.sim_tr_ms / TR_ms} "
+            f"trajectory has {len(trajectory._shots)} shots, TR={TR_ms}ms\n"
+            f"sim: {sim.n_frames} frames, @{sim.sim_tr_ms}ms, total {sim.sim_time_ms}\n"
+            f"expected number of frames {sim.sim_time_ms // TR_ms}\n"
+            f"portion of kspace updated at each sim frame:"
+            f"{sim.sim_tr_ms / TR_ms}"
             f"({trajectory.n_shots * sim.sim_tr_ms/TR_ms}/{trajectory.n_shots})"
         )
-
-        if not np.isclose(int(trajectory.n_shots % upsampling), 0):
-            self.log.warning(
-                "Potential uneven repartition of shots"
-                f"({trajectory.n_shots / upsampling})"
-            )
 
 
 class VDSAcquisitionHandler(AcquisitionHandler):
