@@ -55,11 +55,10 @@ class KspaceTrajectory:
         dim: int = 3,
     ):
         self.is_cartesian = is_cartesian
-        self.TR_ms = TR_ms
+        self.shot_duration = TR_ms
         self.n_points = n_points
 
         # sampling time should remain sorted.
-        self._sampling_times = np.linspace(0, TR_ms, n_shots, endpoint=False)
         self._shots = np.zeros((n_shots, n_points, dim), dtype=np.float32)
 
     @property
@@ -75,17 +74,7 @@ class KspaceTrajectory:
     @property
     def sampling_times(self) -> np.ndarray:
         """Return the array of sampling times."""
-        return self._sampling_times
-
-    @sampling_times.setter
-    def sampling_times(self, value: np.ndarray) -> None:
-        if (
-            np.any(value[:-1] > value[1:])
-            or np.any(value < 0)
-            or np.any(value > self.TR_ms)
-        ):
-            raise ValueError("Sampling times should be sorted and in [0,TR].")
-        self._sampling_times = value
+        return np.arange(len(self._shots)) * self.shot_duration
 
     @shots.setter
     def shots(self, value: np.ndarray) -> None:
@@ -96,14 +85,14 @@ class KspaceTrajectory:
         else:
             self._shots = value
 
-    def extract_trajectory(self, begin: float, end: float) -> KspaceTrajectory:
+    def extract_trajectory(self, begin_shot: int, end_shot: int) -> KspaceTrajectory:
         """Return a new trajectory, extracted from the current one.
 
         Parameters
         ----------
-        begin
+        begin_shot
             Beginning of the interval to extract.
-        end
+        end_shot
             End of the interval to extract.
 
         Returns
@@ -112,13 +101,10 @@ class KspaceTrajectory:
             New trajectory, extracted from the current one.
         """
         # Find the shots that are in the interval
-        begin_shot = np.searchsorted(self._sampling_times, begin, side="right")
-        end_shot = np.searchsorted(self._sampling_times, end, side="left")
 
         new_traj = KspaceTrajectory(
-            end_shot - begin_shot, self.n_points, self.is_cartesian, self.TR_ms
+            end_shot - begin_shot, self.n_points, self.is_cartesian, self.shot_duration
         )
-        new_traj._sampling_times = self._sampling_times[begin_shot:end_shot]
         new_traj._shots = self._shots[begin_shot:end_shot]
 
         return new_traj
@@ -145,7 +131,9 @@ class KspaceTrajectory:
             If the shape has not the same number of dimension as the trajectory.
         """
         if not self.is_cartesian:
-            raise NotImplementedError("Non cartesian sampling not implemented.")
+            raise NotImplementedError(
+                "No Mask can be determined for non cartesian trajectories."
+            )
         if len(shape) != self._shots.shape[-1]:
             raise ValueError("Shape should be of length %d" % len(self._shots[0]))
 
@@ -167,7 +155,10 @@ class KspaceTrajectory:
         ):
             raise ValueError("TR and base_TR, and shot_time are exclusive.")
         if TR_ms is None and base_TR_ms is not None:
-            TR_ms = base_TR_ms / accel
+            if accel != 0:
+                TR_ms = base_TR_ms / accel
+            else:
+                TR_ms = base_TR_ms
         elif TR_ms is None and base_TR_ms is None:
             TR_ms = n_shot * shot_time_ms
 
@@ -227,9 +218,10 @@ class KspaceTrajectory:
             line_locs = flip2center(sorted(line_locs), shape[accel_axis] // 2)
         elif direction == "random":
             line_locs = rng.permutation(line_locs)
+        elif direction is None:
+            pass
         else:
             raise ValueError(f"Unknown direction '{direction}'.")
-        #
 
         TR_ms = cls.validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
         # Create the trajectory

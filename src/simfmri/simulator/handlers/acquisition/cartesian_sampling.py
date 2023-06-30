@@ -31,17 +31,20 @@ def get_kspace_slice_loc(
     -------
     np.ndarray: array of size dim_size/accel.
     """
+    if accel == 0:
+        return np.arange(dim_size)
+
     indexes = list(range(dim_size))
-    if isinstance(center_prop, int):
-        center_prop = center_prop / dim_size
 
-    center_start = int(dim_size * (0.5 - center_prop / 2))
-    center_stop = int(dim_size * (0.5 + center_prop / 2))
+    if not isinstance(center_prop, int):
+        center_prop = center_prop * dim_size
 
+    center_start = (dim_size - center_prop) // 2
+    center_stop = (dim_size + center_prop) // 2
     center_indexes = indexes[center_start:center_stop]
     borders = np.asarray([*indexes[:center_start], *indexes[center_stop:]])
 
-    n_samples_borders = int((dim_size - len(center_indexes)) / accel)
+    n_samples_borders = (dim_size - len(center_indexes)) // accel
     if n_samples_borders < 1:
         raise ValueError(
             "acceleration factor, center_prop and dimension not compatible."
