@@ -23,7 +23,7 @@ def get_smaps(
         return datatype for the sensitivity maps.
     """
     if antenna == "birdcage":
-        return _birdcage_maps(shape, nzz=n_coils, dtype=dtype)
+        return _birdcage_maps((n_coils, *shape), nzz=n_coils, dtype=dtype)
     else:
         raise NotImplementedError
 
@@ -51,7 +51,13 @@ def _birdcage_maps(
     ----------
     https://sigpy.readthedocs.io/en/latest/_modules/sigpy/mri/sim.html
     """
-    nc, nz, ny, nx = shape
+    if len(shape) == 4:
+        nc, nz, ny, nx = shape
+    elif len(shape) == 3:
+        nc, ny, nx = shape
+        nz = 1
+    else:
+        raise ValueError("shape must be [nc, nx, ny, nz] or [nc, nx, ny]")
     c, z, y, x = np.mgrid[:nc, :nz, :ny, :nx]
 
     coilx = r * np.cos(c * (2 * np.pi / nzz), dtype=np.float32)
@@ -68,5 +74,5 @@ def _birdcage_maps(
 
     rss = sum(abs(out) ** 2, 0) ** 0.5
     out /= rss
-
+    out = np.squeeze(out)
     return out.astype(dtype)

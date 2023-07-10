@@ -2,20 +2,17 @@
 
 from __future__ import annotations
 
-import shutil
-from pathlib import Path
 from typing import Any, Callable, Literal
 
-
 import numpy as np
-from fmri.operators.fft import FFT
+
 from hydra_callbacks import PerfLogger
-from joblib import Parallel, delayed
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
+from mri.operators.fourier.cartesian import FFT
 
 from ._coils import get_smaps
 from .trajectory import KspaceTrajectory
@@ -78,12 +75,13 @@ class AcquisitionHandler(AbstractHandler):
         kspace_frame: int = plan["kspace_frame"]
         mask = shot_selected.get_binary_mask(data_sim.shape[1:])
         kspace_mask[kspace_frame, ...] |= mask
-        kspace_data[kspace_frame, ...] += FFT(
-            data_sim.shape[1:],
-            mask=mask,
-            smaps=smaps,
-            n_coils=n_coils,
-        ).op(data_sim[sim_frame])
+
+        fft_op = FFT(data_sim.shape[1:], mask=mask, n_coils=n_coils)
+
+        if smaps is not None:
+            kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame] * smaps)
+        else:
+            kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame])
         return kspace_data, kspace_mask
 
     def _acquire_variable(
@@ -174,7 +172,7 @@ class AcquisitionHandler(AbstractHandler):
             kspace_shape = (n_kspace_frame, n_coils, *sim.shape)
 
             kspace_data = np.squeeze(np.zeros(kspace_shape, dtype=np.complex64))
-            kspace_mask = np.squeeze(np.zeros(kspace_shape, dtype=np.bool))
+            kspace_mask = np.zeros((kspace_frame, *sim.shape), dtype=np.bool)
             for p in plans:
                 kspace_data, kspace_mask = self.__execute_plan(
                     p, data_sim, kspace_data, kspace_mask, smaps, n_coils
