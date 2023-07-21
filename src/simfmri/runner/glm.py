@@ -2,132 +2,128 @@
 import logging
 from typing import Literal
 
-import nibabel as nib
 import numpy as np
-import pandas as pd
-from nilearn.glm import threshold_stats_img
-from nilearn.glm.first_level import FirstLevelModel, make_first_level_design_matrix
+
+from nilearn.glm.first_level import make_first_level_design_matrix, run_glm
+from nilearn.glm import compute_contrast, expression_to_contrast_vector
+from nilearn.glm.thresholding import fdr_threshold
+from scipy.stats import norm
 
 from simfmri.simulator import SimulationData
 
 logger = logging.getLogger(__name__)
 
 
-def compute_test(
+def get_contrast_zscore(
+    image: np.ndarray,
     sim: SimulationData,
-    data_test: np.ndarray,
     contrast_name: str,
-    stat_type: Literal["t", "F"] = "t",
-    alpha: float | list[float] = 0.05,
-    height_control: str = "fpr",
-) -> np.ndarray:
-    """
-    Compute a T-Test on data_test based on the event of sim.extra_infos.
+    alpha: float | list[float] = 0.001,
+    height_control: Literal["fpr", "fdr"] = "fpr",
+    **kwargs: None,
+) -> tuple[np.ndarray, dict]:
+    """Compute z-score of contrast_name.
+
+    For now only a single contrast is supported.
 
     Parameters
     ----------
-    sim
-        Simulation object
-    data_test
-        estimation of the data reconstructed from the simulation.
-        Time dimension is the last one, following nilearn convention.
-    contrast_name
-        name or list of name of the contrast to test for.
-    stat_type
-        "t" for t-test, "F" for F-test, default="t",
-    alpha
-        Threshold for the test
-    height_control
-        Statistical correction to use (e.g. fpr or fdr)
+    image : np.ndarray
+        4D image data.
+    sim : SimulationData
+        Simulation data object.
+    contrast_name : str
+        Contrast name.
+    alpha : float or list of float, optional
+        Alpha level(s) for thresholding, by default 0.001.
+    height_control : str, optional
+        Height control method, by default "fpr".
+    **kwargs : dict
+        Additional arguments passed to `nilearn.glm.compute_contrast`.
 
     Returns
     -------
-    numpy.ndarray
-        a map of voxel detected as activating.
+    z_image : np.ndarray
+        Z-score image.
+    thresh_dict : dict
+        Dictionary of thresholded images for each alpha level.
 
-    See Also
-    --------
-    nilearn.glm.first_level.FirstLevelModel
-        Backend for the glm computation.
     """
-    # instantiate model
-    TR = getattr(sim, "TR", None) or sim.extra_infos.get("TR", None) or sim.sim_tr
-    logger.debug(f"Using a TR of: {TR}")
     design_matrix = make_first_level_design_matrix(
-        # the time dimension is the last one, following nilearn convention.
-        frame_times=np.arange(data_test.shape[-1]) * TR,
+        frame_times=np.arange(len(image)) * sim.extra_infos["TR_ms"] / 1000,
         events=sim.extra_infos["events"],
         drift_model=sim.extra_infos.get("drift_model", None),
     )
-    first_level_model = FirstLevelModel(t_r=TR, hrf_model="glover", mask_img=False)
+    # Create a mask from reference data (not ideal, but best)
+    mask = sim.data_ref[0] > 0
+    image_ = abs(image)[:, mask]
 
-    # fit the model with all confounds
-    if isinstance(data_test, np.ndarray):
-        data_test = nib.Nifti1Image(abs(data_test), affine=np.eye(4))
-    first_level_model.fit(data_test, design_matrices=design_matrix)
-
-    # extract classification.
-    contrast = first_level_model.compute_contrast(
-        contrast_name, stat_type=stat_type, output_type="z_score"
+    labels, results = run_glm(image_, design_matrix.values)
+    # Translate formulas to vectors
+    con_val = expression_to_contrast_vector(
+        contrast_name, design_matrix.columns.tolist()
     )
 
-    threshold_map, threshold = threshold_stats_img(
-        contrast,
-        alpha=alpha,
-        height_control=height_control,
-    )
+    contrast = compute_contrast(labels, results, con_val, contrast_type="t")
 
-    return threshold_map.get_fdata(), design_matrix, contrast.get_fdata()
+    z_image = np.zeros(mask.shape)
+    z_image[mask] = contrast.z_score()
+
+    if not isinstance(alpha, list):
+        alphas = [alpha]
+    else:
+        alphas = alpha
+
+    thresh_dict = {}
+    for a in alphas:
+        if height_control == "fpr":
+            z_thresh = norm.isf(a)
+        elif height_control == "fdr":
+            z_thresh = fdr_threshold(z_image, a)
+
+        above_thresh = z_image > z_thresh
+        thresh_dict[a] = above_thresh
+
+    return z_image, thresh_dict
 
 
-def compute_confusion(estimation: np.ndarray, ground_truth: np.ndarray) -> dict:
-    """Compute confusion statistics.
+def get_confusion_map(
+    above_thresh: np.ndarray, ground_truth: np.ndarray
+) -> dict[str, np.ndarray]:
+    """Get confusion map."""
+    return {
+        "TP": above_thresh & ground_truth,
+        "FP": above_thresh & ~ground_truth,
+        "FN": ~above_thresh & ground_truth,
+        "TN": ~above_thresh & ~ground_truth,
+    }
+
+
+def get_all_confusion(
+    data: np.ndarray, sim: SimulationData, **stat_conf: None
+) -> dict[float, np.ndarray]:
+    """Get confusion matrix for all alpha levels.
 
     Parameters
     ----------
-    estimation
-        estimation of the classification
-    ground_truth
-        ground truth map for the classification
+    data : np.ndarray
+        4D image data.
+    sim : SimulationData
+        Simulation data object.
+    **stat_conf : dict
+        Additional arguments passed to `get_contrast_zscore`.
+
+    Returns
+    -------
+    conf_mats : dict
+        Dictionary of confusion matrices for each alpha level.
     """
-    f_neg = np.sum((estimation == 0) & (ground_truth > 0))
-    t_neg = np.sum((estimation == 0) & (ground_truth == 0))
-    f_pos = np.sum((estimation > 0) & (ground_truth == 0))
-    t_pos = np.sum((estimation > 0) & (ground_truth > 0))
-
-    # casting to remove any numpy dtype sugar.
-    confusion = {
-        "f_neg": int(f_neg),
-        "t_neg": int(t_neg),
-        "f_pos": int(f_pos),
-        "t_pos": int(t_pos),
-    }
-    return confusion
-
-
-def compute_confusion_stats(
-    f_neg: int, t_neg: int, f_pos: int, t_pos: int
-) -> dict[str, float]:
-    """Compute the confusion statistics."""
-    stats = dict()
-    stats["TPR"] = t_pos / ((t_pos + f_neg) or 1)  # sensitivity
-    stats["TNR"] = t_neg / ((t_neg + f_pos) or 1)  # specificity
-    stats["PPV"] = t_pos / ((f_pos + t_pos) or 1)  # precision
-    stats["FPR"] = f_pos / ((f_pos + t_neg) or 1)  # false positive rate
-    stats["FNR"] = f_neg / ((t_pos + f_neg) or 1)  # false negative rate
-    stats["FDR"] = f_pos / ((f_pos + t_pos) or 1)  # false discovery rate
-
-    return stats
-
-
-def append_stats_df(df: pd.DataFrame) -> pd.DataFrame:
-    """Compute the confusion stastistic over the row of a dataframe."""
-    stats = []
-    for _idx, row in df.iterrows():
-        stats.append(
-            compute_confusion_stats(
-                row["f_neg"], row["t_neg"], row["f_pos"], row["t_pos"]
-            )
-        )
-
-    return pd.concat([df, pd.DataFrame(stats)], axis=1)
+    z_image, thresh_dict = get_contrast_zscore(data, sim, **stat_conf)
+    conf_mats = {}
+    for alpha, z_thresh in thresh_dict.items():
+        conf_map = get_confusion_map(z_thresh, sim.roi)
+        conf_map = {k: np.sum(v) for k, v in conf_map.items()}
+        # Convert to 2x2 matrix [[TP, FP], [FN, TN]]
+        conf_mat = np.array(list(conf_map.values())).reshape(2, 2)
+        conf_mats[alpha] = conf_mat
+    return conf_mats
