@@ -2,6 +2,14 @@
 import logging
 from typing import Literal
 
+from sklearn.metrics import (
+    auc,
+    accuracy_score,
+    jaccard_score,
+    precision_score,
+    recall_score,
+    f1_score,
+)
 import numpy as np
 
 from nilearn.glm.first_level import make_first_level_design_matrix, run_glm
@@ -18,8 +26,6 @@ def get_contrast_zscore(
     image: np.ndarray,
     sim: SimulationData,
     contrast_name: str,
-    alpha: float | list[float] = 0.001,
-    height_control: Literal["fpr", "fdr"] = "fpr",
     **kwargs: None,
 ) -> tuple[np.ndarray, dict]:
     """Compute z-score of contrast_name.
@@ -69,12 +75,20 @@ def get_contrast_zscore(
     z_image = np.zeros(mask.shape)
     z_image[mask] = contrast.z_score()
 
+    return z_image
+
+
+def get_thresh_map(
+    z_image: np.ndarray,
+    alpha: float | list[float],
+    height_control: Literal["fpr", "fdr"] = "fpr",
+) -> dict[float, np.ndarray]:
+    """Get thresholded map."""
+    thresh_dict = {}
     if not isinstance(alpha, list):
         alphas = [alpha]
     else:
         alphas = alpha
-
-    thresh_dict = {}
     for a in alphas:
         if height_control == "fpr":
             z_thresh = norm.isf(a)
@@ -83,8 +97,7 @@ def get_contrast_zscore(
 
         above_thresh = z_image > z_thresh
         thresh_dict[a] = above_thresh
-
-    return z_image, thresh_dict
+    return thresh_dict
 
 
 def get_confusion_map(
@@ -101,7 +114,7 @@ def get_confusion_map(
 
 def get_all_confusion(
     data: np.ndarray, sim: SimulationData, **stat_conf: None
-) -> dict[float, np.ndarray]:
+) -> tuple(dict[float, np.ndarray], np.ndarray):
     """Get confusion matrix for all alpha levels.
 
     Parameters
@@ -118,7 +131,10 @@ def get_all_confusion(
     conf_mats : dict
         Dictionary of confusion matrices for each alpha level.
     """
-    z_image, thresh_dict = get_contrast_zscore(data, sim, **stat_conf)
+    z_image = get_contrast_zscore(data, sim, contrast_name=stat_conf["contrast_name"])
+    thresh_dict = get_thresh_map(
+        z_image, alpha=stat_conf["alpha"], height_control=stat_conf["height_control"]
+    )
     conf_mats = {}
     for alpha, z_thresh in thresh_dict.items():
         conf_map = get_confusion_map(z_thresh, sim.roi)
@@ -126,4 +142,53 @@ def get_all_confusion(
         # Convert to 2x2 matrix [[TP, FP], [FN, TN]]
         conf_mat = np.array(list(conf_map.values())).reshape(2, 2)
         conf_mats[alpha] = conf_mat
-    return conf_mats
+    return conf_mats, z_image
+
+
+def get_auc(conf_mats: dict[float, np.ndarray]) -> float:
+    """Get area under curve for a ROC.
+
+    Parameters
+    ----------
+    conf_mats : dict
+        Dictionary of confusion matrices for each alpha level.
+
+    Returns
+    -------
+    auc : float
+        Area under curve.
+    """
+    # TPR =  TP / TP + FN
+    tprs = [v[0, 0] / (v[0, 0] + v[1, 0]) for k, v in conf_mats.items()]
+    # FPR = FP / FP + TN
+    fprs = [v[0, 1] / (v[0, 1] + v[1, 1]) for k, v in conf_mats.items()]
+    # Add 0,0 to start
+    tprs.insert(0, 0)
+    fprs.insert(0, 0)
+    return auc(np.array(fprs), np.array(tprs))
+
+
+def get_scores(thresh_map: np.ndarray, ground_truth: np.ndarray) -> dict[str, float]:
+    """Get sklearn metrics scores.
+
+    Parameters
+    ----------
+    thresh_map : np.ndarray
+        Thresholded map.
+    ground_truth : np.ndarray
+        Ground truth map.
+
+    Returns
+    -------
+    scores : dict
+        Dictionary of scores (accuracy, precision, recall, f1, jaccard)
+
+    """
+
+    return {
+        "accuracy": accuracy_score(ground_truth, thresh_map),
+        "precision": precision_score(ground_truth, thresh_map),
+        "recall": recall_score(ground_truth, thresh_map),
+        "f1": f1_score(ground_truth, thresh_map),
+        "jaccard": jaccard_score(ground_truth, thresh_map),
+    }
