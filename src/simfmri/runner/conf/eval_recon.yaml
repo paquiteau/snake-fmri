@@ -21,5 +21,5 @@ hydra:
       _target_: hydra_callbacks.LatestRunLink
   sweeper:
     max_batch_size: 10
-    samples_per_job: 2
+    samples_per_job: 1
     dataset_path: "/home/pac/gits/nsp/simfmri_runner/datasets/dataset.csv"
