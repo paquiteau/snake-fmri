@@ -37,7 +37,7 @@ def get_kspace_slice_loc(
     indexes = list(range(dim_size))
 
     if not isinstance(center_prop, int):
-        center_prop = center_prop * dim_size
+        center_prop = int(center_prop * dim_size)
 
     center_start = (dim_size - center_prop) // 2
     center_stop = (dim_size + center_prop) // 2
