@@ -17,6 +17,7 @@ hydra:
   callbacks:
     gather_files:
       _target_: hydra_callbacks.MultiRunGatherer
+      result_file: "results.json"
     latest_link:
       _target_: hydra_callbacks.LatestRunLink
     perf:
