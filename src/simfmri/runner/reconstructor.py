@@ -4,6 +4,7 @@ Reconstructor implement a `reconstruct` method which takes a simulation object a
 and returns a reconstructed fMRI array.
 """
 from __future__ import annotations
+from typing import Literal
 import logging
 
 import numpy as np
@@ -78,11 +79,9 @@ class SequentialReconstructor(BenchmarkReconstructor):
         max_iter_per_frame: int = 15,
         optimizer: str = "pogm",
         wavelet: str = "sym8",
-        threshold: float = 2e-7,
     ):
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
-        self.threshold = threshold
         self.wavelet = wavelet
 
     def __str__(self):
@@ -105,7 +104,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
             n_coils=len(sim.smaps),
             smaps=sim.smaps,
         )
-        space_linear_op = WaveletN("sym8", nb_scale=3, padding="periodization")
+        space_linear_op = WaveletN(self.wavelet, nb_scale=3, padding="periodization")
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
         space_prox_op = AutoWeightedSparseThreshold(
             space_linear_op.coeffs_shape,
@@ -116,7 +115,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
             fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
         )
         seq_rec = seq_reconstructor2.reconstruct(
-            sim.kspace_data, max_iter_per_frame=100, warm_x=True
+            sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame, warm_x=True
         )
         return seq_rec
 
@@ -137,13 +136,14 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
     def __init__(
         self,
         lambda_l: float = 0.1,
-        lambda_s: float = 1,
+        lambda_s: float | Literal["sure"] = 1,
         algorithm: str = "otazo",
         max_iter: int = 20,
     ):
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
+        self.algorithm = algorithm
 
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
@@ -152,13 +152,14 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         """Reconstruct using LowRank+Sparse Method."""
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from fmri.operators.time_op import TimeFourier
-        from fmri.operators.fourier import CartesianSpaceFourierGlobal
+        from fmri.operators.utils import sure_est, sigma_mad
+        from fmri.operators.fourier import CartesianSpaceFourier
         from fmri.operators.svt import FlattenSVT
         from fmri.operators.utils import InTransformSparseThreshold
 
         # FIXME: Detect the correct operator and use it.
         # The global operator is faster than the frame based operator
-        fourier_op_global = CartesianSpaceFourierGlobal(
+        fourier_op = CartesianSpaceFourier(
             shape=sim.kspace_mask.shape[1:],
             mask=sim.kspace_mask,
             n_frames=len(sim.kspace_data),
@@ -169,18 +170,34 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         space_prox_op = FlattenSVT(
             self.lambda_l, initial_rank=10, thresh_type="soft-rel"
         )
+
+        if self.lambda_s == "sure":
+            adj_data = fourier_op.adj_op(sim.kspace_data)
+            sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
+            tf = time_linear_op.op(adj_data).reshape(len(adj_data), -1)
+            for i in range(len(sure_thresh)):
+                sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(
+                    tf[:, i], centered=False
+                )
+
+            self.lambda_s = np.median(sure_thresh)
+            logger.info("SURE threshold: ", self.lambda_time)
+
         time_prox_op = InTransformSparseThreshold(
             time_linear_op, self.lambda_s, thresh_type="soft"
         )
 
         reconstructor = LowRankPlusSparseReconstructor(
-            fourier_op_global,
+            fourier_op,
             space_prox_op=space_prox_op,
             time_prox_op=time_prox_op,
             cost="auto",
         )
         M, L, S, costs = reconstructor.reconstruct(
-            sim.kspace_data, grad_step=None, max_iter=10, optimizer="pogm"
+            sim.kspace_data,
+            grad_step=0.5,
+            max_iter=self.max_iter,
+            optimizer=self.algorithm,
         )
         return M
 
