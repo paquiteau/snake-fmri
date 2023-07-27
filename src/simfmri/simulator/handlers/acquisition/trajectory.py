@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 from typing import Literal
-
 import numpy as np
-
+import logging
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType, Shape2d3d
 
@@ -13,17 +12,7 @@ from .cartesian_sampling import (
     get_kspace_slice_loc,
 )
 
-
-def accelerate_TR(TR: float, base_TR: float, accel: int) -> float:
-    """Compute the TR of an accelerated acquisition."""
-    if TR is None and base_TR is None:
-        raise ValueError("Either TR or base_TR should be provided.")
-    if TR is not None and base_TR is not None:
-        raise ValueError("TR and base_TR are exclusive.")
-    if TR is None:
-        TR = base_TR / accel
-
-    return TR
+logger = logging.getLogger("simulation.acquisition.trajectory")
 
 
 class KspaceTrajectory:
@@ -58,14 +47,18 @@ class KspaceTrajectory:
     """
 
     def __init__(
-        self, n_shots: int, n_points: int, is_cartesian: bool, TR: float, dim: int = 3
+        self,
+        n_shots: int,
+        n_points: int,
+        is_cartesian: bool,
+        TR_ms: int,
+        dim: int = 3,
     ):
         self.is_cartesian = is_cartesian
-        self.TR = TR
+        self.shot_duration = TR_ms
         self.n_points = n_points
 
         # sampling time should remain sorted.
-        self._sampling_times = np.linspace(0, TR, n_shots, endpoint=False)
         self._shots = np.zeros((n_shots, n_points, dim), dtype=np.float32)
 
     @property
@@ -81,17 +74,7 @@ class KspaceTrajectory:
     @property
     def sampling_times(self) -> np.ndarray:
         """Return the array of sampling times."""
-        return self._sampling_times
-
-    @sampling_times.setter
-    def sampling_times(self, value: np.ndarray) -> None:
-        if (
-            np.any(value[:-1] > value[1:])
-            or np.any(value < 0)
-            or np.any(value > self.TR)
-        ):
-            raise ValueError("Sampling times should be sorted and in [0,TR].")
-        self._sampling_times = value
+        return np.arange(len(self._shots)) * self.shot_duration
 
     @shots.setter
     def shots(self, value: np.ndarray) -> None:
@@ -102,14 +85,14 @@ class KspaceTrajectory:
         else:
             self._shots = value
 
-    def extract_trajectory(self, begin: float, end: float) -> KspaceTrajectory:
+    def extract_trajectory(self, begin_shot: int, end_shot: int) -> KspaceTrajectory:
         """Return a new trajectory, extracted from the current one.
 
         Parameters
         ----------
-        begin
+        begin_shot
             Beginning of the interval to extract.
-        end
+        end_shot
             End of the interval to extract.
 
         Returns
@@ -118,13 +101,10 @@ class KspaceTrajectory:
             New trajectory, extracted from the current one.
         """
         # Find the shots that are in the interval
-        begin_shot = np.searchsorted(self._sampling_times, begin, side="right")
-        end_shot = np.searchsorted(self._sampling_times, end, side="left")
 
         new_traj = KspaceTrajectory(
-            end_shot - begin_shot, self.n_points, self.is_cartesian, self.TR
+            end_shot - begin_shot, self.n_points, self.is_cartesian, self.shot_duration
         )
-        new_traj._sampling_times = self._sampling_times[begin_shot:end_shot]
         new_traj._shots = self._shots[begin_shot:end_shot]
 
         return new_traj
@@ -151,13 +131,38 @@ class KspaceTrajectory:
             If the shape has not the same number of dimension as the trajectory.
         """
         if not self.is_cartesian:
-            raise NotImplementedError("Non cartesian sampling not implemented.")
+            raise NotImplementedError(
+                "No Mask can be determined for non cartesian trajectories."
+            )
         if len(shape) != self._shots.shape[-1]:
             raise ValueError("Shape should be of length %d" % len(self._shots[0]))
 
         mask = np.zeros(shape, dtype=bool)
-        mask[self._shots.reshape(-1, len(shape))] = 1
+        mask[tuple(self._shots.reshape(-1, len(shape)).T)] = 1
         return mask
+
+    @staticmethod
+    def validate_TR(
+        TR_ms: int, base_TR_ms: int, accel: int, n_shot: int, shot_time_ms: int
+    ) -> float:
+        """Compute the TR of an accelerated acquisition."""
+        if TR_ms is None and base_TR_ms is None and shot_time_ms is None:
+            raise ValueError("Either shot_time, TR or base_TR should be provided.")
+        if (
+            (TR_ms is not None and base_TR_ms is not None)
+            or (TR_ms is not None and shot_time_ms is not None)
+            or (base_TR_ms is not None and shot_time_ms is not None)
+        ):
+            raise ValueError("TR and base_TR, and shot_time are exclusive.")
+        if TR_ms is None and base_TR_ms is not None:
+            if accel != 0:
+                TR_ms = base_TR_ms / accel
+            else:
+                TR_ms = base_TR_ms
+        elif TR_ms is None and base_TR_ms is None:
+            TR_ms = n_shot * shot_time_ms
+
+        return TR_ms
 
     @classmethod
     def vds(
@@ -167,8 +172,9 @@ class KspaceTrajectory:
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        TR: float = None,
-        base_TR: float = None,
+        TR_ms: int = None,
+        base_TR_ms: int = None,
+        shot_time_ms: int = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
     ) -> KspaceTrajectory:
@@ -197,13 +203,10 @@ class KspaceTrajectory:
         KspaceTrajectory
             Variable density sampling trajectory.
         """
-        TR = accelerate_TR(TR, base_TR, accel)
-
         rng = validate_rng(rng)
-
         if accel_axis < 0:
             accel_axis = len(shape) + accel_axis
-        if not (0 < accel_axis < len(shape)):
+        if not (0 <= accel_axis < len(shape)):
             raise ValueError(
                 "accel_axis should be lower than the number of spatial dimension."
             )
@@ -215,14 +218,18 @@ class KspaceTrajectory:
             line_locs = flip2center(sorted(line_locs), shape[accel_axis] // 2)
         elif direction == "random":
             line_locs = rng.permutation(line_locs)
+        elif direction is None:
+            pass
         else:
             raise ValueError(f"Unknown direction '{direction}'.")
+
+        TR_ms = cls.validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
             n_points_shots,
             is_cartesian=True,
-            TR=TR,
+            TR_ms=TR_ms,
             dim=len(shape),
         )
         if len(shape) == 2:
@@ -246,23 +253,6 @@ class KspaceTrajectory:
             else:
                 raise ValueError("Only 2D and 3D trajectories are supported.")
         return traj
-
-    @classmethod
-    def vds_mask(
-        cls,
-        shape: Shape2d3d,
-        acs: float | int,
-        accel: int,
-        accel_axis: int,
-        direction: Literal["center-out", "random"],
-        TR: float = None,
-        base_TR: float = None,
-        pdf: Literal["gaussian", "uniform"] = "gaussian",
-        rng: RngType = None,
-    ) -> np.ndarray:
-        """Get the variable density mask."""
-        traj = cls.vds(shape, acs, accel, accel_axis, direction, TR, base_TR, pdf, rng)
-        return traj.get_binary_mask(shape)
 
     @classmethod
     def grappa(

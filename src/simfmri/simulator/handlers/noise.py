@@ -120,5 +120,7 @@ class KspaceNoiseHandler(NoiseHandler):
             sim.kspace_data.shape, dtype="float32"
         )
         kspace_noise *= noise_std
-
-        sim.kspace_data += kspace_noise * sim.kspace_mask
+        if sim.n_coils > 1:
+            sim.kspace_data += kspace_noise * sim.kspace_mask[:, None, ...]
+        else:
+            sim.kspace_data += kspace_noise * sim.kspace_mask

@@ -1,4 +1,5 @@
 _target_: simfmri.runner.reconstructor.LowRankPlusSparseReconstructor
-lr_thresh: 0.1
-sparse_thresh: 0.1
-max_iter_per_frame: 30
+
+lambda_l: 0.01
+lambda_s: sure
+algorithm: pogm

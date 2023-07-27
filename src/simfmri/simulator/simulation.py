@@ -4,8 +4,7 @@ Simulation data model.
 The Simulation class holds all the information and data relative to a simulation.
 """
 from __future__ import annotations
-
-import logging
+from typing import Literal
 import copy
 import pickle
 import dataclasses
@@ -211,13 +210,30 @@ class SimulationData:
 
     @property
     def sim_tr(self) -> float:
-        """Get TR."""
+        """Get TR in seconds."""
         return self._meta.sim_tr
+
+    @property
+    def sim_tr_ms(self) -> int:
+        """Get TR in milliseconds."""
+        return int(self._meta.sim_tr * 1000)
 
     @property
     def sim_time(self) -> float:
         """Get the total simulation time."""
         return self.n_frames * self.sim_tr
+
+    @property
+    def sim_time_ms(self) -> int:
+        """Get the total simulation time in milliseconds."""
+        return int(self.n_frames * self.sim_tr * 1000)
+
+    def get_sample_time(self, unit: Literal["s", "ms"] = "s") -> np.ndarray:
+        """Get the time vector of the simulation."""
+        if unit == "s":
+            return np.arange(0, self.n_frames) * self.sim_tr
+        elif unit == "ms":
+            return np.arange(0, self.n_frames) * self.sim_tr_ms
 
     @property
     def n_coils(self) -> int:
@@ -270,7 +286,14 @@ class SimulationData:
         ret = "SimulationData: \n"
         ret += f"{self._meta}\n"
 
-        for array_name in ["data_ref", "data_acq", "kspace_data", "kspace_mask", "roi"]:
+        for array_name in [
+            "data_ref",
+            "data_acq",
+            "kspace_data",
+            "kspace_mask",
+            "roi",
+            "smaps",
+        ]:
             array = getattr(self, array_name)
             if isinstance(array, np.ndarray):
                 ret += f"{array_name}: {array.dtype}({array.shape})\n"

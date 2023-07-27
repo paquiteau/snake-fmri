@@ -2,22 +2,20 @@
 
 from __future__ import annotations
 
-import shutil
-import time
-from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Callable, Literal
 
 import numpy as np
-from fmri.operators.fft import FFT
-from joblib import Parallel, delayed
+
+from hydra_callbacks import PerfLogger
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimulationData
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
+from mri.operators.fourier.cartesian import FFT
 
 from ._coils import get_smaps
-from .trajectory import KspaceTrajectory, accelerate_TR
+from .trajectory import KspaceTrajectory
 
 
 class AcquisitionHandler(AbstractHandler):
@@ -57,6 +55,194 @@ class AcquisitionHandler(AbstractHandler):
 
     # TODO: add other trajectories sampling and refactor.
 
+    def __init__(self, constant: bool, smaps: bool, n_jobs: int):
+        super().__init__()
+        self.constant = constant
+        self.smaps = smaps
+        self.n_jobs = 4
+
+    @staticmethod
+    def __execute_plan(
+        plan: dict[str, Any],
+        data_sim: np.ndarray,
+        kspace_data: np.ndarray,
+        kspace_mask: np.ndarray,
+        smaps: np.ndarray,
+        n_coils: int,
+    ) -> None:
+        shot_selected: KspaceTrajectory = plan["shot_selected"]
+        sim_frame: int = plan["sim_frame"]
+        kspace_frame: int = plan["kspace_frame"]
+        mask = shot_selected.get_binary_mask(data_sim.shape[1:])
+        kspace_mask[kspace_frame, ...] |= mask
+
+        fft_op = FFT(data_sim.shape[1:], mask=mask, n_coils=n_coils)
+
+        if smaps is not None:
+            kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame] * smaps)
+        else:
+            kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame])
+        return kspace_data, kspace_mask
+
+    def _acquire_variable(
+        self, sim: SimulationData, trajectory_factory: Callable
+    ) -> np.ndarray:
+        """Acquire the data by splitting the kspace shot over the simulation frames.
+
+        This procedure is done in two steps:
+        1. Plan the kspace trajectories
+        - find the shots each simulation frame will consume
+        - group the shots by kspace frame
+        2. Execute the plan
+        - Acquire each kspace frame in parallel.
+
+        Parameters
+        ----------
+        sim
+            The simulation data.
+        trajectory_factory
+            The factory to create the trajectory. This factory should return the
+            trajectory for a single volume; and will be called for each
+
+        """
+        if self.smaps and sim.n_coils > 1:
+            sim.smaps = get_smaps(sim.shape, sim.n_coils)
+
+        # Trajectory for a single volume.
+        trajectory = trajectory_factory(shape=sim.shape, **self._traj_params)
+
+        TR_ms = KspaceTrajectory.validate_TR(
+            TR_ms=self._traj_params["TR_ms"],
+            base_TR_ms=self._traj_params["base_TR_ms"],
+            accel=self._traj_params["accel"],
+            shot_time_ms=self._traj_params["shot_time_ms"],
+            n_shot=trajectory.n_shots,
+        )
+        TR_ms = self._debug(sim, trajectory, TR_ms, self._traj_params["shot_time_ms"])
+        n_kspace_frame = sim.sim_time_ms // TR_ms
+        n_shot_per_sim_frame = int(trajectory.n_shots * sim.sim_tr_ms / TR_ms)
+
+        plans = []
+        shot_in_frame, shot_total = 0, 0
+        sim_frame, kspace_frame = 0, 0
+
+        with PerfLogger(self.log, level=10, name="Planning"):  # 10 is DEBUG
+            while shot_total < trajectory.n_shots * n_kspace_frame:
+                if shot_in_frame + 2 * n_shot_per_sim_frame > trajectory.n_shots:
+                    # the next run (after this one) will not have enough shots
+                    # so we merge it with this one
+                    # This is equivalent to duplicate the current sim_frame and
+                    # use it for the remaining shots.
+                    update = trajectory.n_shots - shot_in_frame
+                else:
+                    update = n_shot_per_sim_frame
+                plans.append(
+                    {
+                        "shot_selected": trajectory.extract_trajectory(
+                            shot_in_frame,
+                            shot_in_frame + update,
+                        ),
+                        "sim_frame": sim_frame,
+                        "kspace_frame": kspace_frame,
+                    }
+                )
+                shot_in_frame += update
+                shot_total += update
+                sim_frame += 1
+                if shot_in_frame >= trajectory.n_shots:
+                    shot_in_frame = 0
+                    kspace_frame += 1
+                    if not self.constant:
+                        # new frame, new sampling
+                        trajectory = trajectory_factory(
+                            shape=sim.shape,
+                            **self._traj_params,
+                        )
+                assert shot_in_frame <= trajectory.n_shots
+                assert sim_frame <= sim.n_frames
+                assert kspace_frame <= n_kspace_frame
+
+        self.log.debug("stopped at frame %s/%s", sim_frame, sim.n_frames)
+
+        with PerfLogger(self.log, level=10, name="Execution"):
+            data_sim = sim.data_acq
+            smaps = sim.smaps
+            n_coils = sim.n_coils
+
+            kspace_shape = (n_kspace_frame, n_coils, *sim.shape)
+
+            kspace_data = np.squeeze(np.zeros(kspace_shape, dtype=np.complex64))
+            kspace_mask = np.zeros((kspace_frame, *sim.shape), dtype=np.bool)
+            for p in plans:
+                kspace_data, kspace_mask = self.__execute_plan(
+                    p, data_sim, kspace_data, kspace_mask, smaps, n_coils
+                )
+
+            # path = Path("/tmp/vds_joblib/")
+            # path.mkdir(parents=True, exist_ok=True)
+            # kspace_data = np.squeeze(
+            #     np.memmap(
+            #         filename=path / "kspace_data",
+            #         shape=(n_kspace_frame, n_coils, *sim.shape),
+            #         dtype=np.complex64,
+            #         mode="w+",
+            #     )
+            # )
+
+            # kspace_mask = np.squeeze(
+            #     np.memmap(
+            #         filename=path / "kspace_mask",
+            #         shape=(int(sim.sim_time_ms / TR_ms), n_coils, *sim.shape),
+            #         dtype=np.bool,
+            #         mode="w+",
+            #     )
+            # )
+            # self.log.debug("Executing plans")
+            # Parallel(n_jobs=self.n_jobs, verbose=0)(
+            #     delayed(self.__execute_plan)(
+            #         plan, data_sim, kspace_data, kspace_mask, smaps, n_coils
+            #     )
+            #     for plan in plans
+            # )
+            # try:
+            #     shutil.rmtree(path)
+            # except:  # noqa
+            #     self.log.warning("Could not delete temporary folder")
+
+        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={TR_ms}ms.")
+        sim.kspace_data = np.array(kspace_data)
+        sim.kspace_mask = np.array(kspace_mask)
+        sim.extra_infos["TR_ms"] = TR_ms
+        sim.extra_infos["traj_name"] = "vds"
+        sim.extra_infos["traj_params"] = self._traj_params
+        return sim
+
+    def _debug(
+        self,
+        sim: SimulationData,
+        trajectory: KspaceTrajectory,
+        TR_ms: int,
+        shot_time_ms: int,
+    ) -> None:
+        """Print debug information about the trajectory."""
+        if sim.sim_tr_ms % shot_time_ms != 0:
+            self.log.warning(
+                f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
+            )
+        if TR_ms % sim.sim_tr_ms != 0:
+            self.log.error(f"TR {sim.sim_tr_ms}ms does not divide shot time {TR_ms}ms.")
+            TR_ms = sim.sim_tr_ms * (TR_ms // sim.sim_tr_ms)
+            self.log.warning(f"Using TR={TR_ms}ms instead.")
+        self.log.debug(
+            f"trajectory has {len(trajectory._shots)} shots, TR={TR_ms}ms\n"
+            f"sim: {sim.n_frames} frames, @{sim.sim_tr_ms}ms, total {sim.sim_time_ms}\n"
+            f"expected number of frames {sim.sim_time_ms // TR_ms}\n"
+            f"portion of kspace updated at each sim frame:"
+            f"{sim.sim_tr_ms / TR_ms}"
+            f"({trajectory.n_shots * sim.sim_tr_ms/TR_ms}/{trajectory.n_shots})"
+        )
+        return TR_ms
+
 
 class VDSAcquisitionHandler(AcquisitionHandler):
     """
@@ -81,7 +267,12 @@ class VDSAcquisitionHandler(AcquisitionHandler):
     rng
         Random number generator or seed.
     constant
-        If true, the acceleration is constant along the axis. Otherwise, it is
+        If true, the acceleration is constant along the axis.
+        Otherwise, it is regenerated at each frame.
+    smaps
+        If true, apply sensitivity maps to the data.
+    n_jobs
+        Number of jobs to run in parallel for the frame acquisition.
 
     """
 
@@ -91,14 +282,16 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        TR: float = None,
-        base_TR: float = None,
+        TR_ms: int = None,
+        base_TR_ms: int = None,
+        shot_time_ms: int = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
         constant: bool = False,
         smaps: bool = True,
+        n_jobs: int = 4,
     ):
-        super().__init__()
+        super().__init__(constant, smaps, n_jobs)
         rng = validate_rng(rng)
         self._traj_params = {
             "acs": acs,
@@ -107,139 +300,17 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             "direction": direction,
             "pdf": pdf,
             "rng": rng,
+            "TR_ms": TR_ms,
+            "base_TR_ms": base_TR_ms,
+            "shot_time_ms": shot_time_ms,
         }
-        self.TR = accelerate_TR(TR, base_TR, accel)
-        self.constant = constant
-        self.smaps = smaps
+        KspaceTrajectory.validate_TR(
+            TR_ms,
+            base_TR_ms,
+            1,
+            1,
+            shot_time_ms,
+        )
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-        if self.TR > sim.sim_time:
-            raise ValueError("TR should be smaller than sim_time.")
-        if self.TR < sim.sim_tr:
-            raise ValueError("TR should be larger than or equal to sim_tr.")
-        upsampling = self.TR / sim.sim_tr
-
-        if int(self.TR * 1000) % int(sim.sim_tr * 1000):
-            self.log.warning("TR is not a multiple of sim_tr.")
-        if self.smaps and sim.n_coils > 1:
-            sim.smaps = get_smaps(sim.shape, sim.n_coils)
-
-        # initialization of the frame variables.
-        current_time = 0  # current time in the kspace
-        current_time_frame = 0  # current time in the frame
-
-        trajectory = KspaceTrajectory.vds(
-            shape=sim.shape, TR=self.TR, **self._traj_params
-        )
-        sim_frame = -1
-        kspace_frame = 0
-        self.log.debug("trajectory has %s shots", len(trajectory._shots))
-        self.log.debug("sim has %s frames", sim.n_frames)
-        self.log.debug("expected number of frames %s", sim.sim_time / self.TR)
-        self.log.debug(
-            f"portion of kspace  updated at each sim frame: {sim.sim_tr / self.TR} "
-            f"({trajectory.n_shots * sim.sim_tr/self.TR}/{trajectory.n_shots})"
-        )
-
-        if not np.isclose(int(trajectory.n_shots % upsampling), 0):
-            self.log.warning(
-                "Potential uneven repartition of shots"
-                f"({trajectory.n_shots / upsampling})"
-            )
-
-        plans = []
-        # Plan the kspace trajectories
-        tic = time.perf_counter()
-        while current_time < sim.sim_time and sim_frame < sim.n_frames - 1:
-            sim_frame += 1
-            shot_selected = trajectory.extract_trajectory(
-                current_time_frame, current_time_frame + sim.sim_tr
-            )
-            plans.append(
-                {
-                    "shot_selected": shot_selected,
-                    "sim_frame": sim_frame,
-                    "kspace_frame": kspace_frame,
-                }
-            )
-            current_time += sim.sim_tr
-            current_time_frame += sim.sim_tr
-            if current_time_frame >= self.TR:
-                # a full kspace has been acquired
-                kspace_frame += 1
-                current_time_frame = 0
-                if not self.constant:
-                    # new frame, new sampling
-                    trajectory = KspaceTrajectory.vds(
-                        shape=sim.shape,
-                        TR=self.TR,
-                        **self._traj_params,
-                    )
-        toc = time.perf_counter()
-
-        self.log.debug("Planning done, elapsed time: %s", toc - tic)
-
-        def _execute_plan(
-            plan: dict[str, Any],
-            data_sim: np.ndarray,
-            kspace_data: np.ndarray,
-            kspace_mask: np.ndarray,
-            smaps: np.ndarray,
-            n_coils: int,
-        ) -> None:
-            shot_selected: KspaceTrajectory = plan["shot_selected"]
-            sim_frame: int = plan["sim_frame"]
-            kspace_frame: int = plan["kspace_frame"]
-            mask = shot_selected.get_binary_mask(data_sim.shape[1:])
-            kspace_mask[kspace_frame, ...] |= mask
-            kspace_data[kspace_frame, ...] += FFT(
-                data_sim.shape[1:],
-                mask=mask,
-                smaps=smaps,
-                n_coils=n_coils,
-            ).op(data_sim[sim_frame])
-
-        # Execute the plans using joblib
-        data_sim = sim.data_acq
-        smaps = sim.smaps
-        n_coils = sim.n_coils
-
-        path = Path("/tmp/vdsjoblib/")
-        path.mkdir(parents=True, exist_ok=True)
-
-        kspace_data = np.squeeze(
-            np.memmap(
-                filename=path / "kspace_data",
-                shape=(int(sim.sim_time / self.TR), n_coils, *sim.shape),
-                dtype=np.complex64,
-                mode="w+",
-            )
-        )
-
-        kspace_mask = np.squeeze(
-            np.memmap(
-                filename=path / "kspace_mask",
-                shape=(int(sim.sim_time / self.TR), n_coils, *sim.shape),
-                dtype=np.bool,
-                mode="w+",
-            )
-        )
-
-        self.log.debug("Executing plans")
-        Parallel(n_jobs=-1, verbose=0)(
-            delayed(_execute_plan)(
-                plan, data_sim, kspace_data, kspace_mask, smaps, n_coils
-            )
-            for plan in plans
-        )
-        try:
-            shutil.rmtree(path)
-        except:  # noqa
-            self.log.warning("Could not delete temporary folder")
-        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={self.TR} s.")
-        sim.kspace_data = np.array(kspace_data)
-        sim.kspace_mask = np.array(kspace_mask)
-        sim.extra_infos["TR"] = self.TR
-        sim.extra_infos["traj_name"] = "vds"
-        sim.extra_infos["traj_params"] = self._traj_params
-        return sim
+        return self._acquire_variable(sim, trajectory_factory=KspaceTrajectory.vds)
