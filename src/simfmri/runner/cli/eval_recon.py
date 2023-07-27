@@ -13,12 +13,11 @@ from hydra.core.config_store import ConfigStore
 from hydra.core.plugins import Plugins
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
-from simfmri.glm import compute_confusion, compute_test
-from simfmri.metric import get_ptsnr, get_snr
+from simfmri.runner.metric import get_ptsnr, get_snr
 from simfmri.simulator import SimulationData
 
-from .sweeper import DatasetSweeper
-from .utils import keyval_fmt, log_kwargs, product_dict, setup_warning_logger
+from ..sweeper import DatasetSweeper
+from ..utils import keyval_fmt, log_kwargs, product_dict, setup_warning_logger
 
 # HACK: We get hydra to see the custom sweeper.
 # The sweeper is not a plugin, but we can still register it as one.
@@ -81,6 +80,7 @@ def get_metrics(
 
     # compute qualitative metrics
     # TODO parametrize globally the event name.
+
     for stat_conf in stat_confs:
         thresh_map, dm, contrast_data = compute_test(
             sim=sim,
