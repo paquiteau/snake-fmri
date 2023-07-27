@@ -39,7 +39,7 @@ classifiers = [  # Optional
 ]
 
 dependencies = [ # Optional
-  "oldest-supported-numpy",
+  "numpy",
   "scipy",
   "nilearn",
   "scikit-image", # problems on install otherwise ?
