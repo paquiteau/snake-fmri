@@ -160,10 +160,10 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         # FIXME: Detect the correct operator and use it.
         # The global operator is faster than the frame based operator
         fourier_op = CartesianSpaceFourier(
-            shape=sim.kspace_mask.shape[1:],
+            shape=sim.shape,
             mask=sim.kspace_mask,
             n_frames=len(sim.kspace_data),
-            n_coils=len(sim.smaps),
+            n_coils=sim.n_coils,
             smaps=sim.smaps,
         )
         time_linear_op = TimeFourier(time_axis=0)
@@ -176,12 +176,10 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
             sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
             tf = time_linear_op.op(adj_data).reshape(len(adj_data), -1)
             for i in range(len(sure_thresh)):
-                sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(
-                    tf[:, i], centered=False
-                )
+                sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(tf[:, i])
 
-            self.lambda_s = np.median(sure_thresh)
-            logger.info("SURE threshold: ", self.lambda_time)
+            self.lambda_s = np.median(sure_thresh) / 2
+            logger.info("SURE threshold: ", self.lambda_s)
 
         time_prox_op = InTransformSparseThreshold(
             time_linear_op, self.lambda_s, thresh_type="soft"
