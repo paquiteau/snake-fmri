@@ -126,7 +126,7 @@ class AcquisitionHandler(AbstractHandler):
         shot_in_frame, shot_total = 0, 0
         sim_frame, kspace_frame = 0, 0
 
-        with PerfLogger(self.log, level=10, name="Planning"):  # 10 is DEBUG
+        with PerfLogger(self.log, level=10, name="Planning Acquisition"):  # 10 is DEBUG
             while shot_total < trajectory.n_shots * n_kspace_frame:
                 if shot_in_frame + 2 * n_shot_per_sim_frame > trajectory.n_shots:
                     # the next run (after this one) will not have enough shots
@@ -164,7 +164,7 @@ class AcquisitionHandler(AbstractHandler):
 
         self.log.debug("stopped at frame %s/%s", sim_frame, sim.n_frames)
 
-        with PerfLogger(self.log, level=10, name="Execution"):
+        with PerfLogger(self.log, level=10, name="Execute Acquisition"):
             data_sim = sim.data_acq
             smaps = sim.smaps
             n_coils = sim.n_coils
@@ -172,7 +172,7 @@ class AcquisitionHandler(AbstractHandler):
             kspace_shape = (n_kspace_frame, n_coils, *sim.shape)
 
             kspace_data = np.squeeze(np.zeros(kspace_shape, dtype=np.complex64))
-            kspace_mask = np.zeros((kspace_frame, *sim.shape), dtype=np.bool)
+            kspace_mask = np.zeros((kspace_frame, *sim.shape), dtype=bool)
             for p in plans:
                 kspace_data, kspace_mask = self.__execute_plan(
                     p, data_sim, kspace_data, kspace_mask, smaps, n_coils

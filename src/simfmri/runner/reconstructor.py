@@ -79,10 +79,12 @@ class SequentialReconstructor(BenchmarkReconstructor):
         max_iter_per_frame: int = 15,
         optimizer: str = "pogm",
         wavelet: str = "sym8",
+        threshold: float | Literal["sure"] = "sure",
     ):
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.wavelet = wavelet
+        self.threshold = threshold
 
     def __str__(self):
         return (
@@ -95,6 +97,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         from fmri.reconstructors.frame_based import SequentialReconstructor
         from mri.operators.linear.wavelet import WaveletN
         from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
+        from modopt.opt.proximity import SparseThreshold
 
         # FIXME: Detect the correct operator and use it.
         fourier_op = CartesianSpaceFourier(
@@ -106,11 +109,17 @@ class SequentialReconstructor(BenchmarkReconstructor):
         )
         space_linear_op = WaveletN(self.wavelet, nb_scale=3, padding="periodization")
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
-        space_prox_op = AutoWeightedSparseThreshold(
-            space_linear_op.coeffs_shape,
-            threshold_estimation="hybrid-sure",
-            threshold_scaler=0.6,
-        )
+
+        if self.threshold == "sure":
+            space_prox_op = AutoWeightedSparseThreshold(
+                space_linear_op.coeffs_shape,
+                threshold_estimation="hybrid-sure",
+                threshold_scaler=0.6,
+            )
+        else:
+            self.threshold = float(self.threshold)
+            space_prox_op = SparseThreshold(self.threshold)
+
         seq_reconstructor2 = SequentialReconstructor(
             fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
         )

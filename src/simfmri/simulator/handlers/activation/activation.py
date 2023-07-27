@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Literal, Mapping
 
 import numpy as np
-import pandas as pd
 from nilearn.glm.first_level import compute_regressor
 
 from simfmri.simulator.simulation import SimulationData
@@ -151,6 +150,7 @@ class ActivationHandler(AbstractHandler):
             in seconds, the starting point of the experiment.
         event_name
             name of the block event, default="block_on"
+
         See Also
         --------
         simfmri.utils.activations.block_design
@@ -187,9 +187,9 @@ class ActivationHandler(AbstractHandler):
         # update the experimental paradigm
 
         try:
-            sim._meta.extra_infos["events"].concat(self._event_conditions)
+            sim._meta.extra_infos["events"].concat(self._event_condition)
         except KeyError:
-            sim._meta.extra_infos["events"] = self._event_conditions
+            sim._meta.extra_infos["events"] = self._event_condition
 
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
