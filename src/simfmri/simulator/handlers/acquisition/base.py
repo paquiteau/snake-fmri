@@ -230,9 +230,12 @@ class AcquisitionHandler(AbstractHandler):
                 f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
             )
         if TR_ms % sim.sim_tr_ms != 0:
+            old_TR_ms = TR_ms
             self.log.error(f"TR {sim.sim_tr_ms}ms does not divide shot time {TR_ms}ms.")
             TR_ms = sim.sim_tr_ms * (TR_ms // sim.sim_tr_ms)
-            self.log.warning(f"Using TR={TR_ms}ms instead.")
+            self.log.warning(
+                f"Using TR={TR_ms}ms instead. (shot time {shot_time_ms * TR_ms/old_TR_ms }ms)"
+            )
         self.log.debug(
             f"trajectory has {len(trajectory._shots)} shots, TR={TR_ms}ms\n"
             f"sim: {sim.n_frames} frames, @{sim.sim_tr_ms}ms, total {sim.sim_time_ms}\n"
