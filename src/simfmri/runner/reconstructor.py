@@ -8,7 +8,6 @@ from typing import Literal
 import logging
 
 import numpy as np
-from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 
 from simfmri.simulator import SimulationData
 
@@ -30,25 +29,6 @@ class BenchmarkReconstructor:
         raise NotImplementedError()
 
 
-def get_fourier_operator(sim: SimulationData) -> SpaceFourierBase:
-    """Get fourier operator from from the simulation.
-
-    Parameters
-    ----------
-    sim
-        Simulation Data that contains all the information to create a fourier operator.
-    TODO: add support for non cartesian simulation.
-    """
-    # the number of reconstructed frames is different from the number of simframes!
-    return CartesianSpaceFourier(
-        shape=sim.shape,
-        mask=sim.kspace_mask,
-        n_frames=len(sim.kspace_data),
-        n_coils=sim.n_coils,
-        smaps=sim.smaps,
-    )
-
-
 class ZeroFilledReconstructor(BenchmarkReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
@@ -57,7 +37,15 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
-        fourier_op = get_fourier_operator(sim)
+        from fmri.operators.fourier import CartesianSpaceFourier
+
+        fourier_op = CartesianSpaceFourier(
+            shape=sim.kspace_mask.shape[1:],
+            mask=sim.kspace_mask,
+            n_frames=len(sim.kspace_data),
+            n_coils=len(sim.smaps),
+            smaps=sim.smaps,
+        )
         return fourier_op.adj_op(sim.kspace_data)
 
 
@@ -95,18 +83,23 @@ class SequentialReconstructor(BenchmarkReconstructor):
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Sequential."""
         from fmri.reconstructors.frame_based import SequentialReconstructor
+        from fmri.operators.fourier import FFT_Sense, RepeatOperator
         from mri.operators.linear.wavelet import WaveletN
         from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
-        # FIXME: Detect the correct operator and use it.
-        fourier_op = CartesianSpaceFourier(
-            shape=sim.kspace_mask.shape[1:],
-            mask=sim.kspace_mask,
-            n_frames=len(sim.kspace_data),
-            n_coils=len(sim.smaps),
-            smaps=sim.smaps,
+        fourier_op = RepeatOperator(
+            [
+                FFT_Sense(
+                    shape=sim.kspace_mask.shape[1:],
+                    mask=sim.kspace_mask[i],
+                    n_coils=len(sim.smaps),
+                    smaps=sim.smaps,
+                )
+                for i in range(len(sim.kspace_data))
+            ]
         )
+
         space_linear_op = WaveletN(self.wavelet, nb_scale=3, padding="periodization")
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
 
@@ -188,7 +181,7 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
                 sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(tf[:, i])
 
             self.lambda_s = np.median(sure_thresh) / 2
-            logger.info("SURE threshold: ", self.lambda_s)
+            logger.info(f"SURE threshold: {self.lambda_s:.4e}")
 
         time_prox_op = InTransformSparseThreshold(
             time_linear_op, self.lambda_s, thresh_type="soft"
