@@ -22,3 +22,8 @@ hydra:
       _target_: hydra_callbacks.LatestRunLink
     perf:
       _target_: hydra_callbacks.ResourceMonitor
+  run:
+    dir: /volatile/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: /volatile/pierre-antoine/simfmri/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}
