@@ -43,7 +43,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
             shape=sim.kspace_mask.shape[1:],
             mask=sim.kspace_mask,
             n_frames=len(sim.kspace_data),
-            n_coils=len(sim.smaps),
+            n_coils=sim.n_coils,
             smaps=sim.smaps,
         )
         return fourier_op.adj_op(sim.kspace_data)
@@ -93,7 +93,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
                 FFT_Sense(
                     shape=sim.kspace_mask.shape[1:],
                     mask=sim.kspace_mask[i],
-                    n_coils=len(sim.smaps),
+                    n_coils=sim.n_coils,
                     smaps=sim.smaps,
                 )
                 for i in range(len(sim.kspace_data))
