@@ -113,6 +113,7 @@ class AcquisitionHandler(AbstractHandler):
         sim.kspace_mask = np.array(kspace_mask)
         sim.extra_infos["TR_ms"] = TR_ms
         sim.extra_infos["traj_name"] = "vds"
+        sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
         return sim
 
@@ -348,7 +349,7 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
     ) -> tuple[np.ndarray, np.ndarray]:
         """Execute the plan."""
         with PerfLogger(self.log, level=10, name="Execute Acquisition"):
-            data_sim = sim.data_acq
+            data_sim = sim.data_acq.astype(np.complex64)
             smaps = sim.smaps
             n_coils = sim.n_coils
 
@@ -416,5 +417,5 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         self._traj_params["dim"] = len(sim.shape)
-        sim.extra_info["operator"] = self._backend
+        sim.extra_infos["operator"] = self._backend
         return self._acquire(sim, trajectory_factory=KspaceTrajectory.radial)

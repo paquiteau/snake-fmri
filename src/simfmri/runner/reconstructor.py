@@ -8,22 +8,67 @@ from typing import Literal
 import logging
 
 import numpy as np
-
+from mrinufft.operators import get_operator
 from simfmri.simulator import SimulationData
+
+from fmri.operators.fourier import FFT_Sense, RepeatOperator
+from fmri.operators.fourier import CartesianSpaceFourier
 
 logger = logging.getLogger(__name__)
 
 
-def get_fourier_operator(sim: SimulationData):
+def get_fourier_operator(
+    sim: SimulationData, repeat: bool = False, **kwargs: None
+) -> RepeatOperator | CartesianSpaceFourier:
+    """Return a Fourier operator for the given simulation."""
+    kwargs = kwargs.copy() if kwargs is not None else {}
+
     if backend := sim.extra_infos.get("operator", None):
-        return get_operator(backend)(
-            sim.kspace_mask,
-            sim.shape,
+        if "finufft" in backend:
+            kwargs["squeeze_dims"] = True
+
+        def _get_op(i: int = 0) -> RepeatOperator | CartesianSpaceFourier:
+            return get_operator(backend)(
+                sim.kspace_mask[i],
+                shape=sim.shape,
+                n_coils=sim.n_coils,
+                smaps=sim.smaps,
+                **kwargs,
+            )
+
+        if sim.extra_infos["traj_constant"]:
+            return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
+        else:
+            return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
+    elif repeat:
+        return RepeatOperator(
+            [
+                FFT_Sense(
+                    shape=sim.kspace_mask.shape[1:],
+                    mask=sim.kspace_mask[i],
+                    n_coils=sim.n_coils,
+                    smaps=sim.smaps,
+                    **kwargs,
+                )
+                for i in range(len(sim.kspace_data))
+            ]
         )
+
+    return CartesianSpaceFourier(
+        shape=sim.kspace_mask.shape[1:],
+        mask=sim.kspace_mask,
+        n_frames=len(sim.kspace_data),
+        n_coils=sim.n_coils,
+        smaps=sim.smaps,
+        **kwargs,
+    )
 
 
 class BenchmarkReconstructor:
     """Represents the interface required to be benchmark-able."""
+
+    def __init__(self):
+        self.reconstructor = None
 
     def setup(self, sim: SimulationData) -> None:
         """Set up the reconstructor."""
@@ -45,15 +90,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
 
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
-        from fmri.operators.fourier import CartesianSpaceFourier
-
-        fourier_op = CartesianSpaceFourier(
-            shape=sim.kspace_mask.shape[1:],
-            mask=sim.kspace_mask,
-            n_frames=len(sim.kspace_data),
-            n_coils=sim.n_coils,
-            smaps=sim.smaps,
-        )
+        fourier_op = get_fourier_operator(sim)
         return fourier_op.adj_op(sim.kspace_data)
 
 
@@ -77,36 +114,19 @@ class SequentialReconstructor(BenchmarkReconstructor):
         wavelet: str = "sym8",
         threshold: float | Literal["sure"] = "sure",
     ):
+        super().__init__()
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.wavelet = wavelet
         self.threshold = threshold
 
-    def __str__(self):
-        return (
-            f"Sequential-{self.max_iter_per_frame}iter"
-            f"-{self.optimizer}-{self.threshold}"
-        )
-
-    def reconstruct(self, sim: SimulationData) -> np.ndarray:
-        """Reconstruct with Sequential."""
-        from fmri.reconstructors.frame_based import SequentialReconstructor
-        from fmri.operators.fourier import FFT_Sense, RepeatOperator
+    def setup(self, sim: SimulationData) -> None:
+        """Set up the reconstructor."""
         from mri.operators.linear.wavelet import WaveletN
         from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
-        fourier_op = RepeatOperator(
-            [
-                FFT_Sense(
-                    shape=sim.kspace_mask.shape[1:],
-                    mask=sim.kspace_mask[i],
-                    n_coils=sim.n_coils,
-                    smaps=sim.smaps,
-                )
-                for i in range(len(sim.kspace_data))
-            ]
-        )
+        fourier_op = get_fourier_operator(sim, repeat=True)
 
         space_linear_op = WaveletN(self.wavelet, nb_scale=3, padding="periodization")
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
@@ -120,11 +140,17 @@ class SequentialReconstructor(BenchmarkReconstructor):
         else:
             self.threshold = float(self.threshold)
             space_prox_op = SparseThreshold(self.threshold)
+        from fmri.reconstructors.frame_based import SequentialReconstructor
 
-        seq_reconstructor2 = SequentialReconstructor(
+        self.reconstructor = SequentialReconstructor(
             fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
         )
-        seq_rec = seq_reconstructor2.reconstruct(
+
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
+        """Reconstruct with Sequential."""
+        if self.reconstructor is None:
+            self.setup(sim)
+        seq_rec = self.reconstructor.reconstruct(
             sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame, warm_x=True
         )
         return seq_rec
@@ -150,6 +176,7 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
         algorithm: str = "otazo",
         max_iter: int = 20,
     ):
+        super().__init__()
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
@@ -158,24 +185,15 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
 
-    def reconstruct(self, sim: SimulationData) -> np.ndarray:
-        """Reconstruct using LowRank+Sparse Method."""
+    def setup(self, sim: SimulationData) -> None:
+        """Set up the reconstructor."""
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from fmri.operators.time_op import TimeFourier
         from fmri.operators.utils import sure_est, sigma_mad
-        from fmri.operators.fourier import CartesianSpaceFourier
         from fmri.operators.svt import FlattenSVT
         from fmri.operators.utils import InTransformSparseThreshold
 
-        # FIXME: Detect the correct operator and use it.
-        # The global operator is faster than the frame based operator
-        fourier_op = CartesianSpaceFourier(
-            shape=sim.shape,
-            mask=sim.kspace_mask,
-            n_frames=len(sim.kspace_data),
-            n_coils=sim.n_coils,
-            smaps=sim.smaps,
-        )
+        fourier_op = get_fourier_operator(sim, repeat=False)
         time_linear_op = TimeFourier(time_axis=0)
         space_prox_op = FlattenSVT(
             self.lambda_l, initial_rank=10, thresh_type="soft-rel"
@@ -195,13 +213,18 @@ class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
             time_linear_op, self.lambda_s, thresh_type="soft"
         )
 
-        reconstructor = LowRankPlusSparseReconstructor(
+        self.reconstructor = LowRankPlusSparseReconstructor(
             fourier_op,
             space_prox_op=space_prox_op,
             time_prox_op=time_prox_op,
             cost="auto",
         )
-        M, L, S, costs = reconstructor.reconstruct(
+
+    def reconstruct(self, sim: SimulationData) -> np.ndarray:
+        """Reconstruct using LowRank+Sparse Method."""
+        if self.reconstructor is None:
+            self.setup(sim)
+        M, L, S, costs = self.reconstructor.reconstruct(
             sim.kspace_data,
             grad_step=0.5,
             max_iter=self.max_iter,
