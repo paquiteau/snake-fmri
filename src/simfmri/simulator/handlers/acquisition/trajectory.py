@@ -131,7 +131,7 @@ class KspaceTrajectory:
             If the shape has not the same number of dimension as the trajectory.
         """
         if not self.is_cartesian:
-            raise NotImplementedError(
+            raise RuntimeError(
                 "No Mask can be determined for non cartesian trajectories."
             )
         if len(shape) != self._shots.shape[-1]:
@@ -140,29 +140,6 @@ class KspaceTrajectory:
         mask = np.zeros(shape, dtype=bool)
         mask[tuple(self._shots.reshape(-1, len(shape)).T)] = 1
         return mask
-
-    @staticmethod
-    def validate_TR(
-        TR_ms: int, base_TR_ms: int, accel: int, n_shot: int, shot_time_ms: int
-    ) -> float:
-        """Compute the TR of an accelerated acquisition."""
-        if TR_ms is None and base_TR_ms is None and shot_time_ms is None:
-            raise ValueError("Either shot_time, TR or base_TR should be provided.")
-        if (
-            (TR_ms is not None and base_TR_ms is not None)
-            or (TR_ms is not None and shot_time_ms is not None)
-            or (base_TR_ms is not None and shot_time_ms is not None)
-        ):
-            raise ValueError("TR and base_TR, and shot_time are exclusive.")
-        if TR_ms is None and base_TR_ms is not None:
-            if accel != 0:
-                TR_ms = base_TR_ms / accel
-            else:
-                TR_ms = base_TR_ms
-        elif TR_ms is None and base_TR_ms is None:
-            TR_ms = n_shot * shot_time_ms
-
-        return TR_ms
 
     @classmethod
     def vds(
@@ -223,7 +200,7 @@ class KspaceTrajectory:
         else:
             raise ValueError(f"Unknown direction '{direction}'.")
 
-        TR_ms = cls.validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
+        TR_ms = validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
@@ -265,3 +242,67 @@ class KspaceTrajectory:
     def poisson_sampling(cls) -> KspaceTrajectory:
         """Create a poisson sampling trajectory. 3D only."""
         raise NotImplementedError("Poisson sampling not implemented.")
+
+    @classmethod
+    def radial(
+        cls,
+        n_shots: int,
+        n_points: int,
+        TR: float,
+        dim: Literal[2, 3] = 2,
+        expansion: str = None,
+        n_repeat: int = None,
+        TR_ms: int = None,
+        shot_time_ms: int = None,
+    ) -> KspaceTrajectory:
+        """Create a radial sampling trajectory."""
+        from mrinufft.trajectories.trajectory2D import initialize_2D_radial
+        from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
+
+        if dim == 2:
+            traj_points = initialize_2D_radial(n_shots, n_points)
+
+        elif dim == 3:
+            if expansion is None:
+                raise ValueError("Expansion should be provided for 3D radial sampling.")
+            if n_repeat is None:
+                raise ValueError("n_repeat should be provided for 3D radial sampling.")
+            traj_points = initialize_3D_from_2D_expansion(
+                basis="radial",
+                expansion=expansion,
+                Nc=n_shots,
+                Ns=n_points,
+                nb_repetitions=n_repeat,
+            )
+        else:
+            raise ValueError("Only 2D and 3D trajectories are supported.")
+
+        TR_ms = validate_TR(TR_ms, None, 1, n_shots, shot_time_ms)
+
+        traj = KspaceTrajectory(
+            n_shots, n_points, is_cartesian=False, TR_ms=TR_ms, dim=dim
+        )
+        traj.shots = traj_points
+
+
+def validate_TR(
+    TR_ms: int, base_TR_ms: int, accel: int, n_shot: int, shot_time_ms: int
+) -> float:
+    """Compute the TR of an accelerated acquisition."""
+    if TR_ms is None and base_TR_ms is None and shot_time_ms is None:
+        raise ValueError("Either shot_time, TR or base_TR should be provided.")
+    if (
+        (TR_ms is not None and base_TR_ms is not None)
+        or (TR_ms is not None and shot_time_ms is not None)
+        or (base_TR_ms is not None and shot_time_ms is not None)
+    ):
+        raise ValueError("TR and base_TR, and shot_time are exclusive.")
+    if TR_ms is None and base_TR_ms is not None:
+        if accel != 0:
+            TR_ms = base_TR_ms / accel
+        else:
+            TR_ms = base_TR_ms
+    elif TR_ms is None and base_TR_ms is None:
+        TR_ms = n_shot * shot_time_ms
+
+    return TR_ms
