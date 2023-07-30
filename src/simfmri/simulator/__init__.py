@@ -7,36 +7,38 @@ from .handlers import (
     AbstractHandler,
     AcquisitionHandler,
     ActivationHandler,
-    VDSAcquisitionHandler,
     BigPhantomGeneratorHandler,
     BrainwebPhantomHandler,
     GaussianNoiseHandler,
     KspaceNoiseHandler,
     NoiseHandler,
+    RadialAcquisitionHandler,
     RicianNoiseHandler,
     RoiDefinerHandler,
     SheppLoganGeneratorHandler,
     SlicerHandler,
     TextureAdderHandler,
+    VDSAcquisitionHandler,
 )
 
 __all__ = [
-    # simulation
-    "SimulationData",
-    "SimulationParams",
-    # handlers
     "AbstractHandler",
     "AcquisitionHandler",
-    "VDSAcquisitionHandler",
     "ActivationHandler",
     "BigPhantomGeneratorHandler",
     "BrainwebPhantomHandler",
     "GaussianNoiseHandler",
     "KspaceNoiseHandler",
     "NoiseHandler",
+    "RadialAcquisitionHandler",
     "RicianNoiseHandler",
     "RoiDefinerHandler",
     "SheppLoganGeneratorHandler",
+    "SimulationData",
+    "SimulationParams",
     "SlicerHandler",
     "TextureAdderHandler",
+    "VDSAcquisitionHandler",
+    # handlers
+    # simulation
 ]

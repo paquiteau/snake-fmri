@@ -142,14 +142,7 @@ class AcquisitionHandler(AbstractHandler):
         """Plan the acquisition."""
         trajectory = trajectory_factory(**self._traj_params)
 
-        TR_ms = KspaceTrajectory.validate_TR(
-            TR_ms=self._traj_params["TR_ms"],
-            base_TR_ms=self._traj_params["base_TR_ms"],
-            accel=self._traj_params["accel"],
-            shot_time_ms=self._traj_params["shot_time_ms"],
-            n_shot=trajectory.n_shots,
-        )
-        TR_ms = self._debug(sim, trajectory, TR_ms, self._traj_params["shot_time_ms"])
+        TR_ms = self._validate_TR(sim, trajectory, self._traj_params["shot_time_ms"])
         n_kspace_frame = sim.sim_time_ms // TR_ms
         n_shot_per_sim_frame = int(trajectory.n_shots * sim.sim_tr_ms / TR_ms)
 
@@ -184,9 +177,7 @@ class AcquisitionHandler(AbstractHandler):
                     kspace_frame += 1
                     if not self.constant:
                         # new frame, new sampling
-                        trajectory = trajectory_factory(
-                            **self._traj_params,
-                        )
+                        trajectory = trajectory_factory(**self._traj_params)
                 assert shot_in_frame <= trajectory.n_shots
                 assert sim_frame <= sim.n_frames
                 assert kspace_frame <= n_kspace_frame
@@ -194,14 +185,14 @@ class AcquisitionHandler(AbstractHandler):
         self.log.debug("stopped at frame %s/%s", sim_frame, sim.n_frames)
         return plans, n_kspace_frame, TR_ms
 
-    def _debug(
+    def _validate_TR(
         self,
         sim: SimulationData,
         trajectory: KspaceTrajectory,
-        TR_ms: int,
         shot_time_ms: int,
     ) -> None:
         """Print debug information about the trajectory."""
+        TR_ms = shot_time_ms * len(trajectory._shots)
         if sim.sim_tr_ms % shot_time_ms != 0:
             self.log.warning(
                 f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
@@ -210,8 +201,9 @@ class AcquisitionHandler(AbstractHandler):
             old_TR_ms = TR_ms
             self.log.error(f"TR {sim.sim_tr_ms}ms does not divide shot time {TR_ms}ms.")
             TR_ms = sim.sim_tr_ms * (TR_ms // sim.sim_tr_ms)
+            shot_time_ms = shot_time_ms * TR_ms / old_TR_ms
             self.log.warning(
-                f"Using TR={TR_ms}ms instead. (shot time {shot_time_ms * TR_ms/old_TR_ms }ms)"
+                f"Using TR={TR_ms}ms instead. (shot time {shot_time_ms}ms)"
             )
         self.log.debug(
             f"trajectory has {len(trajectory._shots)} shots, TR={TR_ms}ms\n"
@@ -262,8 +254,6 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        TR_ms: int = None,
-        base_TR_ms: int = None,
         shot_time_ms: int = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
@@ -280,21 +270,12 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             "direction": direction,
             "pdf": pdf,
             "rng": rng,
-            "TR_ms": TR_ms,
-            "base_TR_ms": base_TR_ms,
             "shot_time_ms": shot_time_ms,
         }
-        KspaceTrajectory.validate_TR(
-            TR_ms,
-            base_TR_ms,
-            1,
-            1,
-            shot_time_ms,
-        )
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-        self.traj_params["shape"] = sim.shape
-        return self._acquire_variable(sim, trajectory_factory=KspaceTrajectory.vds)
+        self._traj_params["shape"] = sim.shape
+        return self._acquire(sim, trajectory_factory=KspaceTrajectory.vds)
 
 
 class NonCartesianAcquisitionHandler(AcquisitionHandler):
@@ -331,35 +312,15 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
     """
 
     # TODO: add other trajectories sampling and refactor.
-
-    def __init__(self, constant: bool, smaps: bool, n_jobs: int):
-        super().__init__()
-        self.constant = constant
-        self.smaps = smaps
-        self.n_jobs = 4
-
-    @staticmethod
-    def __execute_plan(
-        operatorKlass: Callable,
-        plan: dict[str, Any],
-        data_sim: np.ndarray,
-        kspace_data: np.ndarray,
-        kspace_mask: np.ndarray,
-        smaps: np.ndarray,
-        n_coils: int,
-    ) -> None:
-        shot_selected: KspaceTrajectory = plan["shot_selected"]
-        sim_frame: int = plan["sim_frame"]
-        kspace_frame: int = plan["kspace_frame"]
-        fft_op = operatorKlass(
-            samples=shot_selected,
-            shape=data_sim.shape[1:],
-            n_coils=n_coils,
-            smaps=smaps,
-        )
-
-        kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame])
-        return kspace_data
+    def __init__(
+        self,
+        constant: bool = False,
+        smaps: bool = True,
+        n_jobs: int = 4,
+        backend: str = "finufft",
+    ):
+        super().__init__(constant, smaps, n_jobs)
+        self._backend = backend
 
     @staticmethod
     def __execute_plan(
@@ -395,14 +356,14 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
             kspace_locs = [[] for _ in range(n_kspace_frame)]
             for p in plans:
                 kspace_data, kspace_locs = self.__execute_plan(
-                    p, data_sim, kspace_data, kspace_locs, smaps, n_coils
+                    self._backend, p, data_sim, kspace_data, kspace_locs, smaps, n_coils
                 )
         kspace_data = np.array(kspace_data)
         kspace_locs = np.array(kspace_locs)
         return kspace_data, kspace_locs
 
 
-class Radial2DAcquisitionHandler(NonCartesianAcquisitionHandler):
+class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     """
     Radial 2D Acquisition Handler to generate k-space data.
 
@@ -428,27 +389,32 @@ class Radial2DAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     def __init__(
         self,
-        Nc: int,
-        Ns: int,
+        n_shots: int,
+        n_points: int,
         expansion: str = "rotation",
-        nb_repeat: int = 1,
+        n_repeat: int = 1,
         smaps: bool = True,
         angle: str = "constant",
         n_jobs: int = 4,
+        shot_time_ms: int = 20,
+        backend: str = "finufft",
     ) -> None:
-        super().__init__(constant=angle == "constant", smaps=smaps, n_jobs=n_jobs)
+        super().__init__(
+            constant=angle == "constant", smaps=smaps, n_jobs=n_jobs, backend=backend
+        )
 
         self._traj_params = {
-            "Nc": Nc,
-            "Ns": Ns,
+            "n_shots": n_shots,
+            "n_points": n_points,
             "expansion": expansion,
-            "nb_repeat": nb_repeat,
+            "n_repeat": n_repeat,
+            "shot_time_ms": shot_time_ms,
+            #            "TR_ms": shot_time_ms * n_shots,
         }
 
         self._angle = angle
-        self._backend = "finufft"
 
     def _handle(self, sim: SimulationData) -> SimulationData:
-        self.traj_params["dim"] = len(sim.shape)
-
-        return self._acquire_variable(sim, trajectory_factory=KspaceTrajectory.radial)
+        self._traj_params["dim"] = len(sim.shape)
+        sim.extra_info["operator"] = self._backend
+        return self._acquire(sim, trajectory_factory=KspaceTrajectory.radial)

@@ -3,7 +3,11 @@
 This module gather all simulator build bricks, call handlers,
 that can be chained together, to create a fully capable and tailored fMRI simulator.
 """
-from .acquisition import AcquisitionHandler, VDSAcquisitionHandler
+from .acquisition import (
+    AcquisitionHandler,
+    VDSAcquisitionHandler,
+    RadialAcquisitionHandler,
+)
 from .activation import ActivationHandler
 from .base import AbstractHandler
 from .loader import LoadDataHandler, SaveDataHandler
@@ -39,4 +43,5 @@ __all__ = [
     "SlicerHandler",
     "TextureAdderHandler",
     "VDSAcquisitionHandler",
+    "RadialAcquisitionHandler",
 ]

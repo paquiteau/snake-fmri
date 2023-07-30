@@ -149,8 +149,6 @@ class KspaceTrajectory:
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        TR_ms: int = None,
-        base_TR_ms: int = None,
         shot_time_ms: int = None,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         rng: RngType = None,
@@ -200,7 +198,7 @@ class KspaceTrajectory:
         else:
             raise ValueError(f"Unknown direction '{direction}'.")
 
-        TR_ms = validate_TR(TR_ms, base_TR_ms, accel, n_shots, shot_time_ms)
+        TR_ms = n_shots * shot_time_ms
         # Create the trajectory
         traj = KspaceTrajectory(
             n_shots,
@@ -248,7 +246,6 @@ class KspaceTrajectory:
         cls,
         n_shots: int,
         n_points: int,
-        TR: float,
         dim: Literal[2, 3] = 2,
         expansion: str = None,
         n_repeat: int = None,
@@ -261,6 +258,8 @@ class KspaceTrajectory:
 
         if dim == 2:
             traj_points = initialize_2D_radial(n_shots, n_points)
+            traj_points *= 2 * np.pi
+            traj_points = np.float32(traj_points)
 
         elif dim == 3:
             if expansion is None:
@@ -277,32 +276,8 @@ class KspaceTrajectory:
         else:
             raise ValueError("Only 2D and 3D trajectories are supported.")
 
-        TR_ms = validate_TR(TR_ms, None, 1, n_shots, shot_time_ms)
-
         traj = KspaceTrajectory(
             n_shots, n_points, is_cartesian=False, TR_ms=TR_ms, dim=dim
         )
         traj.shots = traj_points
-
-
-def validate_TR(
-    TR_ms: int, base_TR_ms: int, accel: int, n_shot: int, shot_time_ms: int
-) -> float:
-    """Compute the TR of an accelerated acquisition."""
-    if TR_ms is None and base_TR_ms is None and shot_time_ms is None:
-        raise ValueError("Either shot_time, TR or base_TR should be provided.")
-    if (
-        (TR_ms is not None and base_TR_ms is not None)
-        or (TR_ms is not None and shot_time_ms is not None)
-        or (base_TR_ms is not None and shot_time_ms is not None)
-    ):
-        raise ValueError("TR and base_TR, and shot_time are exclusive.")
-    if TR_ms is None and base_TR_ms is not None:
-        if accel != 0:
-            TR_ms = base_TR_ms / accel
-        else:
-            TR_ms = base_TR_ms
-    elif TR_ms is None and base_TR_ms is None:
-        TR_ms = n_shot * shot_time_ms
-
-    return TR_ms
+        return traj
