@@ -16,7 +16,7 @@ from fmri.operators.fourier import FFT_Sense
 from mrinufft import get_operator
 
 from ._coils import get_smaps
-from .trajectory import KspaceTrajectory
+from .trajectory import KspaceTrajectory, IterativeRotate
 
 
 class AcquisitionHandler(AbstractHandler):
@@ -341,7 +341,8 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
             shot_selected.shots, data_sim.shape[1:], n_coils=n_coils, smaps=smaps
         )
 
-        kspace_data[kspace_frame].append(fourier_op.op(data_sim[sim_frame]))
+        kspace_data[kspace_frame].append(fourier_op.op(data_sim[sim_frame]).copy())
+        del fourier_op
         return kspace_data, kspace_locs
 
     def _execute_plan(
@@ -359,8 +360,19 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
                 kspace_data, kspace_locs = self.__execute_plan(
                     self._backend, p, data_sim, kspace_data, kspace_locs, smaps, n_coils
                 )
+
         kspace_data = np.array(kspace_data)
+        if sim.n_coils > 1:
+            kspace_data = np.moveaxis(kspace_data, (0, 1, 2, 3), (0, 2, 1, 3))
+            kspace_data = kspace_data.reshape(n_kspace_frame, sim.n_coils, -1)
+        else:
+            kspace_data = kspace_data.reshape(n_kspace_frame, -1)
+        kspace_data = np.ascontiguousarray(kspace_data)
+
         kspace_locs = np.array(kspace_locs)
+        kspace_locs = kspace_locs.reshape(n_kspace_frame, -1, *kspace_locs.shape[-2:])
+        kspace_locs = np.ascontiguousarray(kspace_locs)
+
         return kspace_data, kspace_locs
 
 
@@ -418,4 +430,6 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     def _handle(self, sim: SimulationData) -> SimulationData:
         self._traj_params["dim"] = len(sim.shape)
         sim.extra_infos["operator"] = self._backend
-        return self._acquire(sim, trajectory_factory=KspaceTrajectory.radial)
+
+        trajectory_factory = IterativeRotate(self._angle, KspaceTrajectory.radial)
+        return self._acquire(sim, trajectory_factory=trajectory_factory)

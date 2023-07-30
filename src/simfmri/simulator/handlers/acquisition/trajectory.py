@@ -1,7 +1,7 @@
 """K-spac trajectory data structure."""
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, Callable
 import numpy as np
 import logging
 from simfmri.utils import validate_rng
@@ -57,6 +57,7 @@ class KspaceTrajectory:
         self.is_cartesian = is_cartesian
         self.shot_duration = TR_ms
         self.n_points = n_points
+        self.dim = dim
 
         # sampling time should remain sorted.
         self._shots = np.zeros((n_shots, n_points, dim), dtype=np.float32)
@@ -258,7 +259,6 @@ class KspaceTrajectory:
 
         if dim == 2:
             traj_points = initialize_2D_radial(n_shots, n_points)
-            traj_points *= 2 * np.pi
             traj_points = np.float32(traj_points)
 
         elif dim == 3:
@@ -280,4 +280,53 @@ class KspaceTrajectory:
             n_shots, n_points, is_cartesian=False, TR_ms=TR_ms, dim=dim
         )
         traj.shots = traj_points
+        return traj
+
+
+class IterativeRotate:
+    """Rotate a trajectory fresh out from the factory."""
+
+    ROTATE_ANGLES = {
+        "constant": 0,
+        None: 0,
+        "golden": 2.39996322972865332,  # 2pi(2-phi)
+        "golden-mri": 1.941678793,  # 115.15 deg
+    }
+
+    def __init__(self, theta: float, factory: Callable[KspaceTrajectory]):
+        self.calls = 0
+        self.factory = factory
+        if isinstance(theta, float):
+            self.base_theta = theta
+        else:
+            self.base_theta = self.ROTATE_ANGLES[theta]
+
+    def reset(self) -> None:
+        """Reset the number of calls."""
+        self.calls = 0
+
+    def __call__(self, **kwargs: None) -> KspaceTrajectory:
+        """Apply an increasing rotation in the 2D plane (around  z if 3D)."""
+        traj = self.factory(**kwargs)
+        if self.base_theta == 0:
+            return traj
+
+        theta = self.calls * self.base_theta
+
+        # fmt: off
+        if traj.dim == 2:
+            rot = np.array([
+                [np.cos(theta), -np.sin(theta)],
+                [np.sin(theta), np.cos(theta)]
+            ])
+        else:
+            rot = np.array([
+                    [np.cos(theta) ,  -np.sin(theta),  0],
+                    [np.sin(theta) ,  np.cos(theta),   0],
+                    [0             ,  0,               1],
+            ])
+        # fmt: on
+
+        traj.shots = np.einsum("ij,klj->kli", rot, traj.shots)
+        self.calls += 1
         return traj
