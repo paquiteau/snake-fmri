@@ -14,6 +14,14 @@ from simfmri.simulator import SimulationData
 logger = logging.getLogger(__name__)
 
 
+def get_fourier_operator(sim: SimulationData):
+    if backend := sim.extra_infos.get("operator", None):
+        return get_operator(backend)(
+            sim.kspace_mask,
+            sim.shape,
+        )
+
+
 class BenchmarkReconstructor:
     """Represents the interface required to be benchmark-able."""
 
