@@ -183,7 +183,9 @@ class ActivationHandler(AbstractHandler):
         regressor = np.squeeze(regressor)
         regressor = 1 + (regressor * self._bold_strength / regressor.max())
         # apply the activations
-        sim.data_ref[:, roi] = sim.data_ref[:, roi] * regressor[:, np.newaxis]
+        sim.data_ref[:, roi > 0] = (
+            sim.data_ref[:, roi > 0] * roi[roi > 0] * regressor[:, np.newaxis]
+        )
         # update the experimental paradigm
 
         try:
