@@ -26,6 +26,7 @@ def get_fourier_operator(
     if backend := sim.extra_infos.get("operator", None):
         if "finufft" in backend:
             kwargs["squeeze_dims"] = True
+        kwargs["density"] = True
 
         def _get_op(i: int = 0) -> RepeatOperator | CartesianSpaceFourier:
             return get_operator(backend)(
@@ -88,10 +89,15 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
     def __str__(self):
         return "ZeroFilled"
 
+    def setup(self, sim: SimulationData) -> None:
+        """Set up the reconstructor."""
+        self.reconstructor = get_fourier_operator(sim)
+
     def reconstruct(self, sim: SimulationData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
-        fourier_op = get_fourier_operator(sim)
-        return fourier_op.adj_op(sim.kspace_data)
+        if self.reconstructor is None:
+            self.setup(sim)
+        return self.reconstructor.adj_op(sim.kspace_data)
 
 
 class SequentialReconstructor(BenchmarkReconstructor):
