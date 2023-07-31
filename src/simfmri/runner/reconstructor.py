@@ -156,7 +156,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         return seq_rec
 
 
-class LowRankPlusSParseReconstructor(BenchmarkReconstructor):
+class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
     """Low Rank + Sparse Benchmark reconstructor.
 
     Parameters
