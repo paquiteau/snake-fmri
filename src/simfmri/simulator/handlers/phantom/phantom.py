@@ -158,17 +158,37 @@ class BrainwebPhantomHandler(AbstractHandler):
 
         sim.static_vol = get_mri(
             self.subject_id,
-            brainweb_folder=self.brainweb_folder,
+            brainweb_dir=self.brainweb_folder,
             contrast="T2*",
             rng=sim.rng or self.rng,
+            shape=sim.shape,
         )
         sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
+        # 2 is the label for the gray matter
         sim.roi = get_mri(
-            self.subject_id, brainweb_folder=self.brainweb_folder, contrast="crisp"
+            self.subject_id,
+            brainweb_dir=self.brainweb_folder,
+            contrast="fuzzy",
+            shape=sim.shape,
+        )[..., 2]
+
+        self.log.debug(f"roi shape: {sim.roi.shape}")
+        self.log.debug(f"data_ref shape: {sim.data_ref.shape}")
+
+        roi_zoom = np.array(sim.roi.shape) / np.array(BRAINWEB_OCCIPTAL_ROI["shape"])
+
+        ellipsoid = get_indices_inside_ellipsoid(
+            sim.roi.shape,
+            center=np.array(BRAINWEB_OCCIPTAL_ROI["center"]) * roi_zoom,
+            semi_axes_lengths=np.array(BRAINWEB_OCCIPTAL_ROI["semi_axes_lengths"])
+            * roi_zoom,
+            euler_angles=np.array(BRAINWEB_OCCIPTAL_ROI["euler_angles"]),
         )
-        ellipsoid = get_indices_inside_ellipsoid(sim.roi.shape, **BRAINWEB_OCCIPTAL_ROI)
-        # 2 is the label for the gray matter.
-        sim.roi = sim.roi == 2 & ellipsoid
+        sim.roi[~ellipsoid] = 0
+
+        if -1 in sim.shape:
+            sim._meta.shape = sim.static_vol.shape
+            self.log.warning(f"shape was implicit, it is now {sim.shape}.")
         return sim
 
 
