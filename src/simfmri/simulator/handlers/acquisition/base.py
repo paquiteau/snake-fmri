@@ -72,10 +72,18 @@ class AcquisitionHandler(AbstractHandler):
         smaps: np.ndarray,
         n_coils: int,
     ) -> None:
-        shot_selected: KspaceTrajectory = plan["shot_selected"]
+        shot_selected: np.ndarray = plan["shot_selected"].shots
         sim_frame: int = plan["sim_frame"]
         kspace_frame: int = plan["kspace_frame"]
-        mask = shot_selected.get_binary_mask(data_sim.shape[1:])
+
+        mask = np.zeros(data_sim.shape[1:], dtype=bool)
+        slicer = [slice(None, None, None)] * (mask.ndim)
+        # find the axis where the shots coordinates are located
+        accel_axis = [i for i, v in enumerate(shot_selected[0][0]) if v != 0][0]
+
+        slicer[accel_axis] = shot_selected[:, :, accel_axis].flatten()
+        mask[tuple(slicer)] = 1
+
         kspace_mask[kspace_frame, ...] |= mask
 
         fft_op = FFT_Sense(data_sim.shape[1:], mask=mask, n_coils=n_coils, smaps=smaps)
