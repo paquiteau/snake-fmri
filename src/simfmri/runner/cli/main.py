@@ -54,9 +54,10 @@ def main_app(cfg: DictConfig) -> None:
         results = {"stats": stats, "config": OmegaConf.to_container(cfg)}
         if cfg.save and cfg.save.data:
             filename = save_data(cfg.save.data, cfg.save.compress, sim, log)
-            results["data"] = os.path.join(os.path.cwd(), filename)
+            results["data"] = os.path.join(os.getcwd(), filename)
 
-        json.dump(results, open("results.json", "w"))
+        with open("results.json", "w") as f:
+            json.dump(results, f)
 
     log.info(PerfLogger.recap())
 
