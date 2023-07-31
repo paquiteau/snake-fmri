@@ -142,7 +142,7 @@ def get_scores(
     stats["alphas"] = list(alphas)
     stats["roc_auc"] = roc_auc_score(gt_f, contrast.flatten())
     fpr, tpr, thresholds = roc_curve(gt_f, contrast.flatten())
-    stats["roc_fpr"] = fpr
-    stats["roc_tpr"] = tpr
-    stats["roc_thresh"] = thresholds
+    stats["roc_fpr"] = list(fpr)
+    stats["roc_tpr"] = list(tpr)
+    stats["roc_thresh"] = list(thresholds)
     return stats
