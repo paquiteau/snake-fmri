@@ -8,6 +8,10 @@ hydra:
     params:
       simulation.handlers.noise.snr:  10, 30, 100, 1000
       simulation.handlers.acquisition.accel: 1, 2, 4, 8
+      reconstruction: lowrank_sparse, sequential, zero_filled
 
+  run:
+    dir: /volatile/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
   sweep:
-    dir: multirun/extend_sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: /volatile/pierre-antoine/simfmri/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    subdir: ${hydra.job.num}

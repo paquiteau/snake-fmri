@@ -1,7 +1,7 @@
 """Main script fot the reconstruction validation."""
 import logging
 import json
-
+import os
 import hydra
 import numpy as np
 from hydra_callbacks import PerfLogger
@@ -51,10 +51,10 @@ def main_app(cfg: DictConfig) -> None:
         sim.extra_infos["stats"] = stats
         sim.extra_infos["data_test"] = np.squeeze(data_test)
 
-        if cfg.save and cfg.save.data:
-            save_data(cfg.save.data, cfg.save.compress, sim, log)
-
         results = {"stats": stats, "config": OmegaConf.to_container(cfg)}
+        if cfg.save and cfg.save.data:
+            filename = save_data(cfg.save.data, cfg.save.compress, sim, log)
+            results["data"] = os.path.join(os.path.cwd(), filename)
 
         json.dump(results, open("results.json", "w"))
 

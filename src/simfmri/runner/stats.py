@@ -3,8 +3,8 @@ import logging
 from typing import Literal
 
 from sklearn.metrics import (
-    confusion_matrix,
     roc_auc_score,
+    roc_curve,
     accuracy_score,
     jaccard_score,
     precision_score,
@@ -140,5 +140,9 @@ def get_scores(
         stats["f1"].append(f1_score(gt_f, thresh_mapf))
         stats["jaccard"].append(jaccard_score(gt_f, thresh_mapf))
     stats["alphas"] = list(alphas)
-    stats["auc"] = roc_auc_score(gt_f, contrast.flatten())
+    stats["roc_auc"] = roc_auc_score(gt_f, contrast.flatten())
+    fpr, tpr, thresholds = roc_curve(gt_f, contrast.flatten())
+    stats["roc_fpr"] = fpr
+    stats["roc_tpr"] = tpr
+    stats["roc_thresh"] = thresholds
     return stats
