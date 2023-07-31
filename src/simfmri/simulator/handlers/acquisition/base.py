@@ -80,7 +80,9 @@ class AcquisitionHandler(AbstractHandler):
 
         fft_op = FFT_Sense(data_sim.shape[1:], mask=mask, n_coils=n_coils, smaps=smaps)
 
-        kspace_data[kspace_frame, ...] += fft_op.op(data_sim[sim_frame])
+        kspace_data[kspace_frame, ...] += fft_op.op(
+            data_sim[sim_frame].astype(np.complex64)
+        )
         return kspace_data, kspace_mask
 
     def _acquire(self, sim: SimulationData, trajectory_factory: Callable) -> np.ndarray:
@@ -103,7 +105,7 @@ class AcquisitionHandler(AbstractHandler):
 
         """
         if self.smaps and sim.n_coils > 1:
-            sim.smaps = get_smaps(sim.shape, sim.n_coils)
+            sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
         plans, n_kspace_frame, TR_ms = self._plan(sim, trajectory_factory)
         kspace_data, kspace_mask = self._execute_plan(plans, n_kspace_frame, sim)
