@@ -134,7 +134,9 @@ class SequentialReconstructor(BenchmarkReconstructor):
 
         fourier_op = get_fourier_operator(sim, repeat=True)
 
-        space_linear_op = WaveletN(self.wavelet, nb_scale=3, padding="periodization")
+        space_linear_op = WaveletN(
+            self.wavelet, nb_scale=3, dim=len(sim.shape), padding="periodization"
+        )
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
 
         if self.threshold == "sure":
