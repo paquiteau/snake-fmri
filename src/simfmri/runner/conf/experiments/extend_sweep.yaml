@@ -6,8 +6,9 @@ hydra:
   mode: MULTIRUN
   sweeper:
     params:
-      simulation.handlers.noise.snr:  10, 30, 100, 1000
-      simulation.handlers.acquisition.accel: 2, 4, 8
+      simulation.handlers.noise.snr:  10, 30, 100, 300,  1000
+      simulation.handlers.acquisition.accel: 2, 4, 6, 8, 10, 12
+      simulation.handlers.acquisitoin.acs: 0.05
       reconstruction: lowrank_sparse, sequential, zero_filled
 
   run:
@@ -15,3 +16,11 @@ hydra:
   sweep:
     dir: /volatile/pierre-antoine/simfmri/multirun/extend-sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
     subdir: ${hydra.job.num}
+
+  callbacks:
+    gather_files:
+      _target_: hydra_callbacks.MultiRunGatherer
+      result_file: "results.json"
+
+    latest_link:
+      _target_: hydra_callbacks.LatestRunLink

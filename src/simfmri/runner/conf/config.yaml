@@ -7,23 +7,7 @@ defaults:
   - override hydra/hydra_logging: colorlog
 
 dry_mode: false
+
 save:
   data: "mini"
   compress: true
-
-hydra:
-  job:
-    chdir: true
-  callbacks:
-    gather_files:
-      _target_: hydra_callbacks.MultiRunGatherer
-      result_file: "results.json"
-    latest_link:
-      _target_: hydra_callbacks.LatestRunLink
-    perf:
-      _target_: hydra_callbacks.ResourceMonitor
-  run:
-    dir: /volatile/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
-  sweep:
-    dir: /volatile/pierre-antoine/simfmri/multirun/${now:%Y-%m-%d}/${now:%H-%M-%S}
-    subdir: ${hydra.job.num}
