@@ -58,7 +58,8 @@ class KspaceTrajectory:
         self.shot_duration = TR_ms
         self.n_points = n_points
         self.dim = dim
-
+        if n_shots < 1:
+            raise ValueError("n_shots must be >= 1")
         # sampling time should remain sorted.
         self._shots = np.zeros((n_shots, n_points, dim), dtype=np.float32)
 
@@ -106,6 +107,7 @@ class KspaceTrajectory:
         new_traj = KspaceTrajectory(
             end_shot - begin_shot, self.n_points, self.is_cartesian, self.shot_duration
         )
+
         new_traj._shots = self._shots[begin_shot:end_shot]
 
         return new_traj

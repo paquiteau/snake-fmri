@@ -73,6 +73,9 @@ class AcquisitionHandler(AbstractHandler):
         n_coils: int,
     ) -> None:
         shot_selected: np.ndarray = plan["shot_selected"].shots
+        if len(shot_selected) == 0:
+            return kspace_data, kspace_mask
+
         sim_frame: int = plan["sim_frame"]
         kspace_frame: int = plan["kspace_frame"]
 
@@ -156,20 +159,44 @@ class AcquisitionHandler(AbstractHandler):
         TR_ms = self._validate_TR(sim, trajectory, self._traj_params["shot_time_ms"])
         n_kspace_frame = sim.sim_time_ms // TR_ms
         n_shot_per_sim_frame = int(trajectory.n_shots * sim.sim_tr_ms / TR_ms)
-
+        self.log.debug("n_shot_per_sim_frame: %d", n_shot_per_sim_frame)
         plans = []
         shot_in_frame, shot_total = 0, 0
         sim_frame, kspace_frame = 0, 0
+        partial_update = False
+        was_partial_update = False
         with PerfLogger(self.log, level=10, name="Planning Acquisition"):  # 10 is DEBUG
             while shot_total < trajectory.n_shots * n_kspace_frame:
-                if shot_in_frame + 2 * n_shot_per_sim_frame > trajectory.n_shots:
-                    # the next run (after this one) will not have enough shots
-                    # so we merge it with this one
-                    # This is equivalent to duplicate the current sim_frame and
-                    # use it for the remaining shots.
+                if shot_in_frame + n_shot_per_sim_frame > trajectory.n_shots:
+                    # Partial update, the sim frame is shared between two kspace frames.
                     update = trajectory.n_shots - shot_in_frame
+                    partial_update = True
+                    was_partial_update = True
                 else:
-                    update = n_shot_per_sim_frame
+                    if was_partial_update:
+                        # We are in a partial update, we need to finish the frame before
+                        # moving to the next one.
+                        update = n_shot_per_sim_frame - update
+                        was_partial_update = False
+                    else:
+                        update = n_shot_per_sim_frame
+                        partial_update = False
+                self.log.debug(
+                    f"update: ({shot_in_frame}+{update})/{trajectory.n_shots} "
+                    f"sim_frame: {sim_frame}/{sim.n_frames} "
+                    f"kspace_frame: {kspace_frame}/{n_kspace_frame} "
+                )
+
+                if (
+                    sim_frame + (trajectory.n_shots / n_shot_per_sim_frame)
+                    >= sim.n_frames
+                ):
+                    self.log.warning(
+                        "Not enough simulation frames to complete the acquisition. Stopping now."
+                        f"sim_frame: {sim_frame}, ks_frame: {kspace_frame}/{n_kspace_frame}"
+                    )
+                    break
+
                 plans.append(
                     {
                         "shot_selected": trajectory.extract_trajectory(
@@ -180,17 +207,19 @@ class AcquisitionHandler(AbstractHandler):
                         "kspace_frame": kspace_frame,
                     }
                 )
+                if not partial_update:
+                    sim_frame += 1
                 shot_in_frame += update
                 shot_total += update
-                sim_frame += 1
+
                 if shot_in_frame >= trajectory.n_shots:
                     shot_in_frame = 0
                     kspace_frame += 1
                     if not self.constant:
                         # new frame, new sampling
                         trajectory = trajectory_factory(**self._traj_params)
-                assert shot_in_frame <= trajectory.n_shots
-                assert sim_frame <= sim.n_frames
+                assert shot_in_frame < trajectory.n_shots
+                assert sim_frame < sim.n_frames
                 assert kspace_frame <= n_kspace_frame
 
         self.log.debug("stopped at frame %s/%s", sim_frame, sim.n_frames)
