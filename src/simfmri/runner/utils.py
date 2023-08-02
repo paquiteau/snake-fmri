@@ -177,3 +177,17 @@ def log_kwargs(log: logging.Logger, oneline: True = False, **kwargs: None) -> No
         return
     for key, val in kwargs.items():
         log.info(f"{key}: {val}")
+
+
+def aggregate_results(results_files: list[str]) -> str:
+    """Aggregate all the .json results files into a single parquet file."""
+    import pandas as pd
+
+    results_proc = pd.json_normalize([json.load(open(r)) for r in results_files])
+    df = pd.DataFrame(results_proc)
+    # Some light preprocessing.
+    df["config.reconstruction._target_"] = df["config.reconstruction._target_"].apply(
+        lambda x: x.split(".")[-1].replace("Reconstructor", "")
+    )
+    df.to_parquet("results_gathered.gzip")
+    return os.getcwd() + "/results_gathered.gzip"

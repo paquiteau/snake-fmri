@@ -21,6 +21,9 @@ hydra:
     gather_files:
       _target_: hydra_callbacks.MultiRunGatherer
       result_file: "results.json"
+      aggregator:
+        _target_: simfmri.runner.utils.aggregate_results
+        _partial_: true
 
     latest_link:
       _target_: hydra_callbacks.LatestRunLink
