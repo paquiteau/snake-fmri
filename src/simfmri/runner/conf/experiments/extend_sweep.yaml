@@ -8,7 +8,7 @@ hydra:
     params:
       simulation.handlers.noise.snr:  10, 30, 100, 300,  1000
       simulation.handlers.acquisition.accel: 2, 4, 6, 8, 10, 12
-      simulation.handlers.acquisitoin.acs: 0.05
+      simulation.handlers.acquisition.acs: 0.05
       reconstruction: lowrank_sparse, sequential, zero_filled
 
   run:

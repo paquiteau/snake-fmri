@@ -54,7 +54,10 @@ def main_app(cfg: DictConfig) -> None:
         results = {"stats": stats, "config": OmegaConf.to_container(cfg)}
         if cfg.save and cfg.save.data:
             filename = save_data(cfg.save.data, cfg.save.compress, sim, log)
-            results["data"] = os.path.join(os.getcwd(), filename)
+            if isinstance(filename, str):
+                results["data"] = os.path.join(os.getcwd(), filename)
+            elif isinstance(filename, list):
+                results["data"] = [os.path.join(os.getcwd(), f) for f in filename]
 
         with open("results.json", "w") as f:
             json.dump(results, f)
