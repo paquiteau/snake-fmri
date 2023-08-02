@@ -138,10 +138,15 @@ def save_data(
         try:
             to_save = _save_preset[data_saved]
         except KeyError:
-            log.error("save data preset not found.")
+            log.warning(
+                "save data preset not found, will try to find attribute matching."
+            )
+            to_save = [data_saved]
 
-    if isinstance(data_saved, list):
+    elif isinstance(data_saved, list):
         to_save = data_saved
+    else:
+        raise ValueError("data_saved must be a str or a list")
 
     data_dict = {}
     for data_name in to_save:
