@@ -4,9 +4,12 @@ import time
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Any
 
 from ..simulation import SimulationData
+
+
+CallbackType = Callable[[SimulationData, SimulationData], Any]
 
 
 class AbstractHandler(ABC):
@@ -28,20 +31,24 @@ class AbstractHandler(ABC):
 
     """
 
-    def __init__(self):
+    _callbacks: list[CallbackType]
+    _next: AbstractHandler | None
+    _prev: AbstractHandler | None
+
+    def __init__(self) -> None:
         self._callbacks = []
         self._next = None
         self._prev = None
 
-    def __matmul__(self, obj: AbstractHandler):
+    def __rrshift__(self, obj: AbstractHandler) -> AbstractHandler:
         """Chain the handler with the righhandside, and return the righhandside.
 
         Example
         -------
         >>> a, b = Handler(), Handler()
-        >>> a @ b is a.set_next(b)
+        >>> a >> b is a.set_next(b)
         True
-        >>> a @ b is b
+        >>> a >> b is b
         True
         """
         if isinstance(obj, AbstractHandler):
@@ -54,7 +61,7 @@ class AbstractHandler(ABC):
         """Short-hand for handle operation."""
         return self.handle(sim)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.__class__.__name__
 
     def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
@@ -77,11 +84,11 @@ class AbstractHandler(ABC):
                 raise RuntimeError("callback function not callable.") from e
 
     @property
-    def callbacks(self) -> list:
+    def callbacks(self) -> list[CallbackType]:
         """Return the list of callbacks run after the handling."""
         return self._callbacks
 
-    def add_callback(self, call: Callable) -> None:
+    def add_callback(self, call: CallbackType) -> None:
         """Add a callback to the callback list.
 
         Parameters
@@ -96,7 +103,7 @@ class AbstractHandler(ABC):
 
         self._callbacks.append(call)
 
-    def remove_callback(self, idx: int) -> Callable:
+    def remove_callback(self, idx: int) -> CallbackType:
         """Remove callback according to its position.
 
         Parameters
@@ -109,15 +116,15 @@ class AbstractHandler(ABC):
         callable
             the removed callback.
         """
-        return self._callback.pop(idx)
+        return self._callbacks.pop(idx)
 
     @property
-    def next(self) -> AbstractHandler:
+    def next(self) -> AbstractHandler | None:
         """Next handler in the chain."""
         return self._next
 
     @next.setter
-    def next(self, handler: AbstractHandler) -> AbstractHandler:
+    def next(self, handler: AbstractHandler) -> None:
         """Set the next handler to call.
 
         Parameters
@@ -135,15 +142,14 @@ class AbstractHandler(ABC):
             handler._prev = self
         else:
             raise ValueError("next should be an Handler.")
-        return handler
 
     @property
-    def prev(self) -> AbstractHandler:
+    def prev(self) -> AbstractHandler | None:
         """Prev handler in the chain."""
         return self._prev
 
     @prev.setter
-    def prev(self, handler: AbstractHandler) -> AbstractHandler:
+    def prev(self, handler: AbstractHandler) -> None:
         """Set the prev handler to call.
 
         Parameters
@@ -161,20 +167,6 @@ class AbstractHandler(ABC):
             handler._next = self
         else:
             raise ValueError("prev should be an Handler.")
-        return handler
-
-    def get_chain(self) -> str:
-        """Show the chain of actions that would be applyied to a simulation."""
-        cur = self
-        handler_chain = []
-        while cur is not None:
-            handler_chain.append(cur)
-            cur = cur.prev
-        ret_str = ""
-        for h in handler_chain[::-1]:
-            ret_str += f"{h.__class__.__name__}" + "->"
-
-        return ret_str
 
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
