@@ -4,13 +4,16 @@ Simulation data model.
 The Simulation class holds all the information and data relative to a simulation.
 """
 from __future__ import annotations
-from typing import Literal
+from typing import Literal, Any
 import copy
 import pickle
 import dataclasses
 
 import numpy as np
+from numpy.typing import DTypeLike, NDArray
 from simfmri.utils import Shape2d3d, cplx_type
+
+DataArray = NDArray[np.float64 | np.complex128]
 
 
 @dataclasses.dataclass
@@ -27,7 +30,9 @@ class SimulationParams:
     """Number of coil of the simulation."""
     rng: int = 19980408
     """Random number generator seed."""
-    extra_infos: dict = dataclasses.field(default_factory=lambda: dict(), repr=False)
+    extra_infos: dict[str, Any] = dataclasses.field(
+        default_factory=lambda: dict(), repr=False
+    )
     """Extra information, to add more information to the simulation"""
 
 
@@ -86,35 +91,31 @@ class SimulationData:
         If n_coils > 1 , describes the sensitivity maps of each coil.
     """
 
+    static_vol: DataArray
+    data_ref: DataArray
+    roi: DataArray
+    _data_acq: DataArray
+    data_rec: DataArray
+    kspace_data: DataArray
+    kspace_mask: DataArray
+    kspace_location: DataArray
+    smaps: DataArray | None
+
     def __init__(
         self,
         shape: Shape2d3d,
         sim_tr: float,
-        n_frames: int = None,
-        sim_time: float = None,
+        sim_time: float,
         n_coils: int = 1,
         rng: int = 19980408,
-        extra_infos: dict = None,
-    ) -> SimulationData:
-        if sim_time is None and n_frames is None:
-            raise ValueError("Either sim_time or n_frames must be defined")
-        if sim_time is not None and n_frames is None:
-            n_frames = int(sim_time / sim_tr)
+        extra_infos: dict[str, Any] | None = None,
+    ) -> None:
+        n_frames = int(sim_time / sim_tr)
         if extra_infos is None:
             extra_infos = dict()
         self._meta = SimulationParams(
             shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
         )
-
-        self.static_vol = None
-        self.data_ref = None
-        self.roi = None
-        self._data_acq = None
-        self.data_rec = None
-        self.kspace_data = None
-        self.kspace_mask = None
-        self.kspace_location = None
-        self.smaps = None
 
     @classmethod
     def from_params(
@@ -140,7 +141,7 @@ class SimulationData:
         return obj
 
     @classmethod
-    def load_from_file(cls, filename: str, dtype: str) -> SimulationData:
+    def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimulationData:
         """Load a simulation from file.
 
         Parameters
@@ -151,12 +152,12 @@ class SimulationData:
             The dtype
         """
         with open(filename, "rb") as f:
-            obj = pickle.load(f)
+            obj: SimulationData = pickle.load(f)
         if obj.is_valid():
             for attr in obj.__dict__:
                 val = getattr(obj, attr)
                 if attr != "roi" and isinstance(val, np.ndarray):
-                    if np.iscomplexobj(val):
+                    if val.dtype in [np.complex64, np.complex128]:
                         cdtype = cplx_type(dtype)
                     else:
                         cdtype = dtype
@@ -184,7 +185,7 @@ class SimulationData:
     @property
     def duration(self) -> float:
         """Return the duration (in seconds) of the experiment."""
-        return self.TR * self.n_frames
+        return self.sim_tr * self.n_frames
 
     @property
     def data_acq(self) -> np.ndarray:
@@ -228,12 +229,14 @@ class SimulationData:
         """Get the total simulation time in milliseconds."""
         return int(self.n_frames * self.sim_tr * 1000)
 
-    def get_sample_time(self, unit: Literal["s", "ms"] = "s") -> np.ndarray:
+    def get_sample_time(self, unit: Literal["s", "ms"] = "s") -> Any:  # noqa: ANN401
         """Get the time vector of the simulation."""
         if unit == "s":
             return np.arange(0, self.n_frames) * self.sim_tr
         elif unit == "ms":
             return np.arange(0, self.n_frames) * self.sim_tr_ms
+        else:
+            raise ValueError("unit must be s or ms")
 
     @property
     def n_coils(self) -> int:
@@ -241,7 +244,7 @@ class SimulationData:
         return self._meta.n_coils
 
     @property
-    def extra_infos(self) -> dict:
+    def extra_infos(self) -> dict[str, Any]:
         """Get extra infos."""
         return self._meta.extra_infos
 

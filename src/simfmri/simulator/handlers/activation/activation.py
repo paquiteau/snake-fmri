@@ -1,7 +1,7 @@
 """Handler to add activations."""
 from __future__ import annotations
 
-from typing import Literal, Mapping
+from typing import Literal, Mapping, get_args
 
 import numpy as np
 from nilearn.glm.first_level import compute_regressor
@@ -11,16 +11,8 @@ from simfmri.simulator.simulation import SimulationData
 from ..base import AbstractHandler
 from ._block import block_design
 
-NILEARN_HRF = [
-    "spm",
-    # "spm + derivative",
-    # "spm + derivative + dispersion",
-    #    "fir",
-    "glover",
-    # "glover + derivative",
-    # "glover + derivative + dispersion",
-    None,
-]
+
+HrfType = Literal["glover", "spm", None]
 
 
 class ActivationHandler(AbstractHandler):
@@ -49,22 +41,22 @@ class ActivationHandler(AbstractHandler):
     def __init__(
         self,
         event_condition: np.ndarray,
-        roi: np.ndarray,
+        roi: np.ndarray | None,
         bold_strength: float = 0.02,
-        hrf_model: Literal[NILEARN_HRF] = "glover",
+        hrf_model: HrfType = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
     ):
         super().__init__()
-        if hrf_model not in NILEARN_HRF:
+        if hrf_model not in get_args(HrfType):
             raise ValueError(
-                f"Unsupported HRF `{hrf_model}`, available are: {NILEARN_HRF}"
+                f"Unsupported HRF `{hrf_model}`, available are: {get_args(HrfType)}"
             )
         self._event_condition = event_condition
         self._hrf_model = hrf_model
         self._oversampling = oversampling
         self._bold_strength = bold_strength
-        self._roi = roi
+        self._roi: np.ndarray | None = roi
         self._min_onset = min_onset
 
     @classmethod
@@ -74,7 +66,7 @@ class ActivationHandler(AbstractHandler):
         rois: Mapping[str, np.ndarray],
         prev_handler: AbstractHandler,
         bold_strength: float = 0.02,
-        hrf_model: Literal[NILEARN_HRF] = "glover",
+        hrf_model: HrfType = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
     ) -> ActivationHandler:
@@ -116,13 +108,13 @@ class ActivationHandler(AbstractHandler):
         for event, roi_event in zip(events, rois, strict=True):
             h = cls(
                 event,
-                roi_event,
+                rois[roi_event],
                 bold_strength,
                 hrf_model,
                 oversampling,
                 min_onset,
             )
-            h_old.set_next(h)
+            h_old.next = h
             h_old = h
         return h
 

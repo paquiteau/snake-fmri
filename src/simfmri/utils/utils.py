@@ -2,6 +2,7 @@
 """General utility tools."""
 import logging
 import numpy as np
+from numpy.typing import DTypeLike
 
 sim_logger = logging.getLogger("simulation")
 
@@ -18,7 +19,7 @@ def validate_rng(rng: int | np.random.Generator = None) -> np.random.Generator:
         raise ValueError("rng shoud be a numpy Generator, None or an integer seed.")
 
 
-def cplx_type(dtype: str | np.dtype) -> np.dtype:
+def cplx_type(dtype: DTypeLike) -> DTypeLike:
     """Return the complex dtype with the same precision as a real one.
 
     Example
