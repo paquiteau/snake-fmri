@@ -3,6 +3,7 @@ Simulation data model.
 
 The Simulation class holds all the information and data relative to a simulation.
 """
+
 from __future__ import annotations
 from typing import Literal, Any
 import copy
@@ -109,6 +110,7 @@ class SimulationData:
         n_coils: int = 1,
         rng: int = 19980408,
         extra_infos: dict[str, Any] | None = None,
+        lazy: bool = False,
     ) -> None:
         n_frames = int(sim_time / sim_tr)
         if extra_infos is None:
@@ -127,6 +129,7 @@ class SimulationData:
         self.kspace_mask = None
         self.kspace_location = None
         self.smaps = None
+        self.lazy = lazy
 
     @classmethod
     def from_params(
