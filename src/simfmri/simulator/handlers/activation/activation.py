@@ -176,10 +176,12 @@ class ActivationHandler(AbstractHandler):
         regressor = np.squeeze(regressor)
         regressor = 1 + (regressor * self._bold_strength / regressor.max())
         # apply the activations
-        sim.data_ref[:, roi > 0] = (
-            sim.data_ref[:, roi > 0] * roi[roi > 0] * regressor[:, np.newaxis]
-        )
-        # update the experimental paradigm
+        if sim.lazy:
+            sim.data_ref.apply(lazy_apply_regressor, regressor, roi)
+        else:
+            sim.data_ref[:, roi > 0] = (
+                sim.data_ref[:, roi > 0] * roi[roi > 0] * regressor[:, np.newaxis]
+            )
 
         try:
             sim._meta.extra_infos["events"].concat(self._event_condition)
@@ -188,3 +190,25 @@ class ActivationHandler(AbstractHandler):
 
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
+
+
+def lazy_apply_regressor(
+    data: np.ndarray, regressor: np.ndarray, roi: np.ndarray, frame_idx: int = None
+) -> np.ndarray:
+    """
+    Lazy apply the regressor to the data.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        frame data to apply the regressor.
+    regressor: np.ndarray
+        regressor data.
+    roi: np.ndarray
+        roi data.
+    frame_idx: int
+        frame index to apply the regressor.
+    """
+    data = np.copy(data)
+    data[roi > 0] = data[roi > 0] * roi[roi > 0] * regressor[frame_idx]
+    return data

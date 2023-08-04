@@ -5,7 +5,7 @@ import numpy as np
 
 from brainweb_dl import get_mri
 
-from simfmri.simulator.simulation import SimulationData
+from simfmri.simulator.simulation import SimulationData, LazySimArray
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
@@ -51,7 +51,10 @@ class SheppLoganGeneratorHandler(AbstractHandler):
         M0, T1, T2, labels = mr_shepp_logan(sim.shape, B0=self.B0, T2star=True)
 
         T2 = T2.astype(self.dtype)
-        sim.data_ref = np.repeat(T2[None, ...], sim.n_frames, axis=0)
+        if sim.lazy:
+            sim.data_ref = LazySimArray(T2, sim.n_frames)
+        else:
+            sim.data_ref = np.repeat(T2[None, ...], sim.n_frames, axis=0)
         sim.static_vol = T2.copy()
         sim.roi = labels == self.roi_index
 
@@ -90,7 +93,10 @@ class BigPhantomGeneratorHandler(AbstractHandler):
             raster_osf=self.raster_osf,
             phantom_data=self.phantom_data,
         )
-        sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
+        if sim.lazy:
+            sim.data_ref = LazySimArray(sim.static_vol, sim.n_frames)
+        else:
+            sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
         if self.roi_index is not None:
             sim.roi = (
                 raster_phantom(sim.shape, self.phantom_data, weighting="label")
@@ -163,7 +169,10 @@ class BrainwebPhantomHandler(AbstractHandler):
             rng=sim.rng or self.rng,
             shape=sim.shape,
         )
-        sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
+        if sim.lazy:
+            sim.data_ref = LazySimArray(sim.static_vol, sim.n_frames)
+        else:
+            sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
         # 2 is the label for the gray matter
         sim.roi = get_mri(
             self.subject_id,
@@ -208,6 +217,7 @@ class TextureAdderHandler(AbstractHandler):
     def _handle(self, sim: SimulationData) -> SimulationData:
         sigma_noise = self._var_texture * sim.data_ref[0]
         rng = validate_rng(sim.rng)
+
         sim.data_ref += sigma_noise * rng.standard_normal(
             sim.data_ref.shape[1:], dtype=sim.data_ref.dtype
         )
@@ -250,6 +260,8 @@ class SlicerHandler(AbstractHandler):
         for data_type in ["data_ref", "_data_acq"]:
             if (array := getattr(sim, data_type)) is not None:
                 setattr(sim, data_type, array[self.slicer])
+        if sim.lazy:
+            raise NotImplementedError("Lazy simulation is not supported yet.")
         sim.roi = sim.roi[self.slicer[1:]]  # roi does not have frame dimension.
         new_shape = sim._meta.shape
         sim._meta.shape = tuple(s for ax, s in enumerate(new_shape) if ax != self.axis)
