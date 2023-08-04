@@ -1,8 +1,12 @@
 """Cartesian sampling simulation."""
 
 import numpy as np
-from scipy.stats import norm
-from simfmri.utils import RngType, validate_rng
+from scipy.stats import norm  # type: ignore
+
+from typing import Sequence, Any
+from simfmri.utils import RngType, validate_rng, AnyShape
+
+SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
 
 
 def get_kspace_slice_loc(
@@ -32,7 +36,7 @@ def get_kspace_slice_loc(
     np.ndarray: array of size dim_size/accel.
     """
     if accel == 0:
-        return np.arange(dim_size)
+        return np.arange(dim_size)  # type: ignore
 
     indexes = list(range(dim_size))
 
@@ -69,7 +73,7 @@ def get_kspace_slice_loc(
 
 
 def get_cartesian_mask(
-    shape: tuple,
+    shape: AnyShape,
     n_frames: int,
     rng: RngType = None,
     constant: bool = False,
@@ -107,7 +111,7 @@ def get_cartesian_mask(
     rng = validate_rng(rng)
 
     mask = np.zeros((n_frames, *shape))
-    slicer = [slice(None, None, None)] * (1 + len(shape))
+    slicer: SlicerType = [slice(None, None, None)] * (1 + len(shape))
     if accel_axis < 0:
         accel_axis = len(shape) + accel_axis
     if not (0 < accel_axis < len(shape)):
@@ -128,7 +132,7 @@ def get_cartesian_mask(
     return mask
 
 
-def flip2center(mask_cols: np.ndarray, center_value: int) -> np.ndarray:
+def flip2center(mask_cols: Sequence[int], center_value: int) -> np.ndarray:
     """
     Reorder a list by starting by a center_position and alternating left/right.
 

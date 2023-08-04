@@ -11,7 +11,7 @@ import dataclasses
 
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
-from simfmri.utils import Shape2d3d, cplx_type
+from simfmri.utils import AnyShape, cplx_type
 
 DataArray = NDArray[np.float64 | np.complex128]
 
@@ -20,7 +20,7 @@ DataArray = NDArray[np.float64 | np.complex128]
 class SimulationParams:
     """Simulation metadata."""
 
-    shape: Shape2d3d
+    shape: AnyShape
     """Shape of the volume of the simulation."""
     n_frames: int
     """Number of frame of the simulation."""
@@ -103,7 +103,7 @@ class SimulationData:
 
     def __init__(
         self,
-        shape: Shape2d3d,
+        shape: AnyShape,
         sim_tr: float,
         sim_time: float,
         n_coils: int = 1,
@@ -116,6 +116,17 @@ class SimulationData:
         self._meta = SimulationParams(
             shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
         )
+        self.static_vol = None
+        self.data_ref = None
+        self.roi = None
+        self._data_acq = None
+        self.data_rec = None
+        self.kspace_data = None
+        self._data_acq = None
+        self.data_ref = None
+        self.kspace_mask = None
+        self.kspace_location = None
+        self.smaps = None
 
     @classmethod
     def from_params(
@@ -200,7 +211,7 @@ class SimulationData:
         self._data_acq = value
 
     @property
-    def shape(self) -> Shape2d3d:
+    def shape(self) -> AnyShape:
         """Get shape."""
         return self._meta.shape
 

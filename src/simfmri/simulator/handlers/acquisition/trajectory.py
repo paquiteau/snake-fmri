@@ -1,27 +1,41 @@
 """K-spac trajectory data structure."""
 from __future__ import annotations
 
-from typing import Literal, Callable, Generator
+from typing import Literal, Protocol, Mapping, Any
+from collections.abc import Generator
 import numpy as np
 import logging
 from simfmri.utils import validate_rng
-from simfmri.utils.typing import RngType, Shape2d3d
+from simfmri.utils.typing import RngType, AnyShape
 
 from .cartesian_sampling import (
     flip2center,
     get_kspace_slice_loc,
 )
 
+from mrinufft.trajectories.trajectory2D import initialize_2D_radial
+from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
+
 logger = logging.getLogger("simulation.acquisition.trajectory")
 
+TrajectoryGeneratorType = Generator[np.ndarray, None, None]
 
-def vds(
-    shape: Shape2d3d,
+
+class TrajectoryFactoryProtocol(Protocol):
+    """Protocol for trajectory factory."""
+
+    def __call__(self, **kwargs: Mapping[str, Any]) -> np.ndarray:
+        """Create a trajectory."""
+        ...
+
+
+def vds_factory(
+    shape: AnyShape,
     acs: float | int,
     accel: int,
     accel_axis: int,
     direction: Literal["center-out", "random"],
-    shot_time_ms: int = None,
+    shot_time_ms: int | None = None,
     pdf: Literal["gaussian", "uniform"] = "gaussian",
     rng: RngType = None,
 ) -> np.ndarray:
@@ -59,7 +73,6 @@ def vds(
         )
 
     line_locs = get_kspace_slice_loc(shape[accel_axis], acs, accel, pdf, rng)
-    n_points_shots = np.prod(shape) // shape[accel_axis]
     n_shots = len(line_locs)
     if direction == "center-out":
         line_locs = flip2center(sorted(line_locs), shape[accel_axis] // 2)
@@ -69,25 +82,23 @@ def vds(
         pass
     else:
         raise ValueError(f"Unknown direction '{direction}'.")
-
-    shots = np.zeros((n_shots, n_points_shots, len(shape)), dtype=np.int32)
+    # initialize the trajetory. -1 is the default value, and we put the line index in the correct axis (0-indexed)
+    shots = -np.ones((n_shots, 1, len(shape)), dtype=np.int32)
     for shot_idx, line_loc in enumerate(line_locs):
         shots[shot_idx, :, accel_axis] = line_loc
     return shots
 
 
-def radial(
+def radial_factory(
     n_shots: int,
     n_points: int,
     dim: Literal[2, 3] = 2,
-    expansion: str = None,
-    n_repeat: int = None,
-    TR_ms: int = None,
-    shot_time_ms: int = None,
+    expansion: str | None = None,
+    n_repeat: int = 0,
+    TR_ms: int = 0,
+    shot_time_ms: int = 0,
 ) -> np.ndarray:
     """Create a radial sampling trajectory."""
-    from mrinufft.trajectories.trajectory2D import initialize_2D_radial
-    from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
 
     if dim == 2:
         traj_points = initialize_2D_radial(n_shots, n_points)
@@ -112,8 +123,8 @@ def radial(
 
 
 def trajectory_generator(
-    traj_factory: Callable, **kwargs: None
-) -> Generator[np.ndarray]:
+    traj_factory: TrajectoryFactoryProtocol, **kwargs: Mapping[str, Any]
+) -> Generator[np.ndarray, None, None]:
     """Generate a trajectory.
 
     Parameters

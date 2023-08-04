@@ -117,3 +117,10 @@ convention = "numpy"
 "examples/conftest.py" = ["ANN"]
 "examples/example_*.py" = ["D", "ANN"]
 "tests/test_*.py" = ["D", "ANN"]
+
+
+[tool.pylsp-mypy]
+enabled = true
+live_mode = true
+strict = true
+overrides = ["--ignore-missing-imports", ""]

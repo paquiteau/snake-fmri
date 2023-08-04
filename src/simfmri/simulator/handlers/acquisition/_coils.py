@@ -1,10 +1,10 @@
 """Simulation of Smaps."""
 import numpy as np
-from simfmri.utils.typing import Shape2d3d
+from simfmri.utils.typing import AnyShape
 
 
 def get_smaps(
-    shape: Shape2d3d,
+    shape: AnyShape,
     n_coils: int,
     antenna: str = "birdcage",
     dtype: np.dtype = np.complex64,
@@ -29,7 +29,7 @@ def get_smaps(
 
 
 def _birdcage_maps(
-    shape: Shape2d3d, r: float = 1.5, nzz: int = 8, dtype: np.dtype = np.complex64
+    shape: AnyShape, r: float = 1.5, nzz: int = 8, dtype: np.dtype = np.complex64
 ) -> np.ndarray:
     """Simulate birdcage coil sensitivies.
 

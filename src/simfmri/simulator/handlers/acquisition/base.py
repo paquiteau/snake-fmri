@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Callable, Literal
+from typing import Any, Literal
+from collections.abc import Generator
 
 import numpy as np
 
@@ -15,8 +16,47 @@ from simfmri.utils.typing import RngType
 from fmri.operators.fourier import FFT_Sense
 from mrinufft import get_operator
 
+from .trajectory import (
+    vds_factory,
+    radial_factory,
+    TrajectoryGeneratorType,
+    trajectory_generator,
+    rotate_trajectory,
+    kspace_bulk_shot,
+)
 from ._coils import get_smaps
-from .trajectory import KspaceTrajectory, IterativeRotate
+
+SimGeneratorType = Generator[np.ndarray, None, None]
+
+
+def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
+    """Return a slicer for the mask."""
+    slicer = [slice(None, None, None)] * shot.shape[-1]
+    accel_axis = [i for i, v in enumerate(shot[0]) if v != -1][0]
+    slicer[accel_axis] = shot[0][accel_axis]
+    return tuple(slicer)
+
+
+def _gen_kspace_cartesian(
+    data_generator: SimGeneratorType,
+    shots_generator: TrajectoryGeneratorType,
+    smaps: np.ndarray,
+    n_coils: int,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    for sim_frame, (shot_batch, shot_in_kspace_frame) in zip(
+        data_generator, shots_generator
+    ):
+        masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
+        for i, shot in enumerate(shot_batch):
+            masks[i][_get_slicer(shot)] = 1
+        mask = np.sum(masks, axis=0)
+        fourier_op = FFT_Sense(sim_frame.shape, mask=mask, smaps=smaps, n_coils=n_coils)
+        yield fourier_op.op(sim_frame), masks, shot_in_kspace_frame
+
+
+def _data_acq_generator(sim: SimulationData) -> np.ndarray:
+    for i in range(sim.n_frames):
+        yield np.complex64(sim.data_acq[i])
 
 
 class AcquisitionHandler(AbstractHandler):
@@ -63,48 +103,31 @@ class AcquisitionHandler(AbstractHandler):
         self.n_jobs = 4
         self.is_cartesian = True
 
-    @staticmethod
-    def __execute_plan(
-        plan: dict[str, Any],
-        data_sim: np.ndarray,
-        kspace_data: np.ndarray,
-        kspace_mask: np.ndarray,
-        smaps: np.ndarray,
-        n_coils: int,
-    ) -> None:
-        shot_selected: np.ndarray = plan["shot_selected"].shots
-        if len(shot_selected) == 0:
-            return kspace_data, kspace_mask
-
-        sim_frame: int = plan["sim_frame"]
-        kspace_frame: int = plan["kspace_frame"]
-
-        mask = np.zeros(data_sim.shape[1:], dtype=bool)
-        slicer = [slice(None, None, None)] * (mask.ndim)
-        # find the axis where the shots coordinates are located
-        accel_axis = [i for i, v in enumerate(shot_selected[0][0]) if v != 0][0]
-
-        slicer[accel_axis] = shot_selected[:, :, accel_axis].flatten()
-        mask[tuple(slicer)] = 1
-
-        kspace_mask[kspace_frame, ...] |= mask
-
-        fft_op = FFT_Sense(data_sim.shape[1:], mask=mask, n_coils=n_coils, smaps=smaps)
-
-        kspace_data[kspace_frame, ...] += fft_op.op(
-            data_sim[sim_frame].astype(np.complex64)
+    def _acquire_cartesian(
+        self,
+        data_gen: SimGeneratorType,
+        shot_gen: TrajectoryGeneratorType,
+        n_kspace_frames: int,
+        sim: SimulationData,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        kspace_data = np.zeros(
+            (n_kspace_frames, sim.n_coils, *sim.shape), dtype=np.complex64
         )
+        kspace_mask = np.zeros((n_kspace_frames, *sim.shape), dtype=np.int8)
+
+        for kspace_val, kspace_masks, shot_in_kspace_frame in _gen_kspace_cartesian(
+            data_gen, shot_gen, sim.smaps, sim.n_coils
+        ):
+            for mask, ks_frame in zip(kspace_masks, shot_in_kspace_frame):
+                kspace_data[ks_frame, :] += mask * kspace_val
+                kspace_mask[ks_frame] |= mask
+
         return kspace_data, kspace_mask
 
-    def _acquire(self, sim: SimulationData, trajectory_factory: Callable) -> np.ndarray:
+    def _acquire(
+        self, sim: SimulationData, trajectory_generator: TrajectoryGeneratorType
+    ) -> np.ndarray:
         """Acquire the data by splitting the kspace shot over the simulation frames.
-
-        This procedure is done in two steps:
-        1. Plan the kspace trajectories
-        - find the shots each simulation frame will consume
-        - group the shots by kspace frame
-        2. Execute the plan
-        - Acquire each kspace frame in parallel.
 
         Parameters
         ----------
@@ -112,127 +135,44 @@ class AcquisitionHandler(AbstractHandler):
             The simulation data.
         trajectory_factory
             The factory to create the trajectory. This factory should return the
-            trajectory for a single volume; and will be called for each
-
+            trajectory for a single volume. and takes **self.traj_params as input.
         """
         if self.smaps and sim.n_coils > 1:
             sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
-        plans, n_kspace_frame, TR_ms = self._plan(sim, trajectory_factory)
-        kspace_data, kspace_mask = self._execute_plan(plans, n_kspace_frame, sim)
+        test_traj = next(trajectory_generator)
+        frame_TR_ms = self._validate_TR(
+            sim, len(test_traj), self._traj_params["shot_time_ms"]
+        )
+        if sim.sim_time_ms % frame_TR_ms:
+            self.log.warning("the TR for a frame does not divide the simulation time.")
 
-        self.log.info(f"Acquired {len(kspace_data)} kspace volumes, at TR={TR_ms}ms.")
-        sim.kspace_data = np.array(kspace_data)
-        sim.kspace_mask = np.array(kspace_mask)
-        sim.extra_infos["TR_ms"] = TR_ms
+        n_kspace_frame = int(sim.sim_time_ms / frame_TR_ms)
+        n_shot_sim_frame = (n_kspace_frame * len(test_traj)) // sim.n_frames
+        self.log.debug("n_shot/sim_frame %d/%d", n_shot_sim_frame, sim.n_frames)
+        shot_generator = kspace_bulk_shot(trajectory_generator, n_shot_sim_frame)
+        data_generator = _data_acq_generator(sim)
+
+        kspace_data, kspace_mask = self._acquire_cartesian(
+            data_generator, shot_generator, n_kspace_frame, sim
+        )
+
+        sim.kspace_data = kspace_data
+        sim.kspace_mask = kspace_mask
+        sim.extra_infos["TR_ms"] = frame_TR_ms
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
         return sim
 
-    def _execute_plan(
-        self, plans: list[dict], n_kspace_frame: int, sim: SimulationData
-    ) -> tuple[np.ndarray, np.ndarray]:
-        """Execute the plan."""
-        with PerfLogger(self.log, level=10, name="Execute Acquisition"):
-            data_sim = sim.data_acq
-            smaps = sim.smaps
-            n_coils = sim.n_coils
-            kspace_shape = (n_kspace_frame, n_coils, *sim.shape)
-
-            kspace_data = np.squeeze(np.zeros(kspace_shape, dtype=np.complex64))
-            kspace_mask = np.zeros((n_kspace_frame, *sim.shape), dtype=bool)
-            for p in plans:
-                kspace_data, kspace_mask = self.__execute_plan(
-                    p, data_sim, kspace_data, kspace_mask, smaps, n_coils
-                )
-        return kspace_data, kspace_mask
-
-    def _plan(
-        self,
-        sim: SimulationData,
-        trajectory_factory: Callable,
-    ) -> list[dict]:
-        """Plan the acquisition."""
-        trajectory = trajectory_factory(**self._traj_params)
-
-        TR_ms = self._validate_TR(sim, trajectory, self._traj_params["shot_time_ms"])
-        n_kspace_frame = sim.sim_time_ms // TR_ms
-        n_shot_per_sim_frame = int(trajectory.n_shots * sim.sim_tr_ms / TR_ms)
-        self.log.debug("n_shot_per_sim_frame: %d", n_shot_per_sim_frame)
-        plans = []
-        shot_in_frame, shot_total = 0, 0
-        sim_frame, kspace_frame = 0, 0
-        partial_update = False
-        was_partial_update = False
-        with PerfLogger(self.log, level=10, name="Planning Acquisition"):  # 10 is DEBUG
-            while shot_total < trajectory.n_shots * n_kspace_frame:
-                if shot_in_frame + n_shot_per_sim_frame > trajectory.n_shots:
-                    # Partial update, the sim frame is shared between two kspace frames.
-                    update = trajectory.n_shots - shot_in_frame
-                    partial_update = True
-                    was_partial_update = True
-                else:
-                    if was_partial_update:
-                        # We are in a partial update, we need to finish the frame before
-                        # moving to the next one.
-                        update = n_shot_per_sim_frame - update
-                        was_partial_update = False
-                    else:
-                        update = n_shot_per_sim_frame
-                        partial_update = False
-                self.log.debug(
-                    f"update: ({shot_in_frame}+{update})/{trajectory.n_shots} "
-                    f"sim_frame: {sim_frame}/{sim.n_frames} "
-                    f"kspace_frame: {kspace_frame}/{n_kspace_frame} "
-                )
-
-                if (
-                    sim_frame + (trajectory.n_shots / n_shot_per_sim_frame)
-                    >= sim.n_frames
-                ):
-                    self.log.warning(
-                        "Not enough simulation frames to complete the acquisition. Stopping now."
-                        f"sim_frame: {sim_frame}, ks_frame: {kspace_frame}/{n_kspace_frame}"
-                    )
-                    break
-
-                plans.append(
-                    {
-                        "shot_selected": trajectory.extract_trajectory(
-                            shot_in_frame,
-                            shot_in_frame + update,
-                        ),
-                        "sim_frame": sim_frame,
-                        "kspace_frame": kspace_frame,
-                    }
-                )
-                if not partial_update:
-                    sim_frame += 1
-                shot_in_frame += update
-                shot_total += update
-
-                if shot_in_frame >= trajectory.n_shots:
-                    shot_in_frame = 0
-                    kspace_frame += 1
-                    if not self.constant:
-                        # new frame, new sampling
-                        trajectory = trajectory_factory(**self._traj_params)
-                assert shot_in_frame < trajectory.n_shots
-                assert sim_frame < sim.n_frames
-                assert kspace_frame <= n_kspace_frame
-
-        self.log.debug("stopped at frame %s/%s", sim_frame, sim.n_frames)
-        return plans, n_kspace_frame, TR_ms
-
     def _validate_TR(
         self,
         sim: SimulationData,
-        trajectory: KspaceTrajectory,
+        n_shots: int,
         shot_time_ms: int,
     ) -> None:
         """Print debug information about the trajectory."""
-        TR_ms = shot_time_ms * len(trajectory._shots)
+        TR_ms = shot_time_ms * n_shots
         if sim.sim_tr_ms % shot_time_ms != 0:
             self.log.warning(
                 f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
@@ -245,14 +185,6 @@ class AcquisitionHandler(AbstractHandler):
             self.log.warning(
                 f"Using TR={TR_ms}ms instead. (shot time {shot_time_ms}ms)"
             )
-        self.log.debug(
-            f"trajectory has {len(trajectory._shots)} shots, TR={TR_ms}ms\n"
-            f"sim: {sim.n_frames} frames, @{sim.sim_tr_ms}ms, total {sim.sim_time_ms}\n"
-            f"expected number of frames {sim.sim_time_ms // TR_ms}\n"
-            f"portion of kspace updated at each sim frame:"
-            f"{sim.sim_tr_ms / TR_ms}"
-            f"({trajectory.n_shots * sim.sim_tr_ms/TR_ms}/{trajectory.n_shots})"
-        )
         return TR_ms
 
 
@@ -315,7 +247,10 @@ class VDSAcquisitionHandler(AcquisitionHandler):
 
     def _handle(self, sim: SimulationData) -> SimulationData:
         self._traj_params["shape"] = sim.shape
-        return self._acquire(sim, trajectory_factory=KspaceTrajectory.vds)
+        return self._acquire(
+            sim,
+            trajectory_generator=trajectory_generator(vds_factory, **self._traj_params),
+        )
 
 
 class NonCartesianAcquisitionHandler(AcquisitionHandler):
@@ -372,7 +307,7 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         smaps: np.ndarray,
         n_coils: int,
     ) -> None:
-        shot_selected: KspaceTrajectory = plan["shot_selected"]
+        shot_selected = plan["shot_selected"]
         sim_frame: int = plan["sim_frame"]
         kspace_frame: int = plan["kspace_frame"]
         kspace_locs[kspace_frame].append(shot_selected.shots)
@@ -470,5 +405,10 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         self._traj_params["dim"] = len(sim.shape)
         sim.extra_infos["operator"] = self._backend
 
-        trajectory_factory = IterativeRotate(self._angle, KspaceTrajectory.radial)
-        return self._acquire(sim, trajectory_factory=trajectory_factory)
+        return self._acquire(
+            sim,
+            trajectory_generator=rotate_trajectory(
+                trajectory_generator(radial_factory, **self._traj_params),
+                self._angle,
+            ),
+        )

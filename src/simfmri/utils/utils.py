@@ -3,11 +3,12 @@
 import logging
 import numpy as np
 from numpy.typing import DTypeLike
+from simfmri.utils.typing import RngType
 
 sim_logger = logging.getLogger("simulation")
 
 
-def validate_rng(rng: int | np.random.Generator = None) -> np.random.Generator:
+def validate_rng(rng: RngType = None) -> np.random.Generator:
     """Validate Random Number Generator."""
     if isinstance(rng, int):
         return np.random.default_rng(rng)

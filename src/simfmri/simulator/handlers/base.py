@@ -25,22 +25,20 @@ class AbstractHandler(ABC):
     --------
     >>> A = Handler()
     >>> B = Handler()
-    >>> C = Handler() @ A
+    >>> C = Handler() >> A
     >>> s1 = Simulation()
     >>> C.handle(s1.copy()) == B.handle(A.handle(s1))
 
     """
 
     _callbacks: list[CallbackType]
-    _next: AbstractHandler | None
-    _prev: AbstractHandler | None
 
     def __init__(self) -> None:
         self._callbacks = []
-        self._next = None
-        self._prev = None
+        self.next = None
+        self.prev = None
 
-    def __rrshift__(self, obj: AbstractHandler) -> AbstractHandler:
+    def __rshift__(self, obj: AbstractHandler) -> AbstractHandler:
         """Chain the handler with the righhandside, and return the righhandside.
 
         Example
@@ -53,6 +51,7 @@ class AbstractHandler(ABC):
         """
         if isinstance(obj, AbstractHandler):
             self.next = obj
+            obj.prev = self
             return obj
         else:
             raise TypeError
@@ -118,60 +117,10 @@ class AbstractHandler(ABC):
         """
         return self._callbacks.pop(idx)
 
-    @property
-    def next(self) -> AbstractHandler | None:
-        """Next handler in the chain."""
-        return self._next
-
-    @next.setter
-    def next(self, handler: AbstractHandler) -> None:
-        """Set the next handler to call.
-
-        Parameters
-        ----------
-        handler
-            The next handler to call
-
-        Returns
-        -------
-        handler
-            The next handler to call
-        """
-        if isinstance(handler, AbstractHandler):
-            self._next = handler
-            handler._prev = self
-        else:
-            raise ValueError("next should be an Handler.")
-
-    @property
-    def prev(self) -> AbstractHandler | None:
-        """Prev handler in the chain."""
-        return self._prev
-
-    @prev.setter
-    def prev(self, handler: AbstractHandler) -> None:
-        """Set the prev handler to call.
-
-        Parameters
-        ----------
-        handler
-            The prev handler to call
-
-        Returns
-        -------
-        handler
-            The prev handler to call
-        """
-        if isinstance(handler, AbstractHandler):
-            self._prev = handler
-            handler._next = self
-        else:
-            raise ValueError("prev should be an Handler.")
-
     def handle(self, sim: SimulationData) -> SimulationData:
         """Handle a specific action done on the simulation, and move to the next one."""
-        if self._prev is not None:
-            sim = self._prev.handle(sim)
+        if self.prev is not None:
+            sim = self.prev.handle(sim)
         if self._callbacks:
             old_sim = copy.deepcopy(sim)
 

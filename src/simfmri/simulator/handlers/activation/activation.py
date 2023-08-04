@@ -4,7 +4,8 @@ from __future__ import annotations
 from typing import Literal, Mapping, get_args
 
 import numpy as np
-from nilearn.glm.first_level import compute_regressor
+import pandas as pd
+from nilearn.glm.first_level import compute_regressor  # type: ignore
 
 from simfmri.simulator.simulation import SimulationData
 
@@ -40,7 +41,7 @@ class ActivationHandler(AbstractHandler):
 
     def __init__(
         self,
-        event_condition: np.ndarray,
+        event_condition: pd.DataFrame | np.ndarray,
         roi: np.ndarray | None,
         bold_strength: float = 0.02,
         hrf_model: HrfType = "glover",
