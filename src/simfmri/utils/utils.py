@@ -10,7 +10,7 @@ sim_logger = logging.getLogger("simulation")
 
 def validate_rng(rng: RngType = None) -> np.random.Generator:
     """Validate Random Number Generator."""
-    if isinstance(rng, int):
+    if isinstance(rng, (int, list)):  # TODO use pattern matching
         return np.random.default_rng(rng)
     elif rng is None:
         return np.random.default_rng()

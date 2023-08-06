@@ -43,16 +43,31 @@ class NoiseHandler(AbstractHandler):
         if self._snr == 0:
             return sim
         else:
-            self._rng = validate_rng(sim.rng)
             # SNR is defined as average(brain signal) / noise_std
-            noise_std = np.mean(abs(sim.data_ref > 0)) / self._snr
-            self._add_noise(sim, noise_std)
+            noise_std = np.mean(abs(sim.static_vol > 0)) / self._snr
+        if sim.lazy:
+            self._add_noise_lazy(sim, sim.rng, noise_std)
+        else:
+            self._add_noise(sim, sim.rng, noise_std)
 
         sim.extra_infos["input_snr"] = self._snr
         return sim
 
     def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         """Add noise to the simulation.
+
+        This should only update the attribute data_acq  of a Simulation object
+        and use the ``_rng`` attribute to generate the noise.
+
+        Parameters
+        ----------
+        sim
+            Simulation data object
+        """
+        raise NotImplementedError
+
+    def _add_noise_lazy(self, sim: SimDataType, noise_std: float) -> None:
+        """Lazily add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
         and use the ``_rng`` attribute to generate the noise.
@@ -89,11 +104,43 @@ class GaussianNoiseHandler(NoiseHandler):
 
         sim.data_acq = sim.data_ref + noise
 
+    def _add_noise_lazy(
+        self, sim: SimDataType, rng_seed: int, noise_std: float
+    ) -> None:
+        sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
+
+        def _add_noise(
+            data: np.ndarray,
+            noise_std: float,
+            root_seed: int,
+            frame_idx: int = None,
+        ) -> np.ndarray:
+            rng = np.random.default_rng([frame_idx, root_seed])
+            if data.dtype in [np.complex128, np.complex64]:
+                noise_std /= np.sqrt(2)
+            noise = noise_std * rng.standard_normal(
+                data.shape, dtype=abs(data[:][0]).dtype
+            )
+            noise = noise.astype(data.dtype)
+
+            if data.dtype in [np.complex128, np.complex64]:
+                noise += (
+                    1j
+                    * noise_std
+                    * rng.standard_normal(
+                        data.shape,
+                        dtype=abs(data[:][0]).dtype,
+                    )
+                )
+            return data + noise
+
+        sim.data_acq.apply(_add_noise, noise_std, rng_seed)
+
 
 class RicianNoiseHandler(NoiseHandler):
     """Add rician noise to the data."""
 
-    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
+    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
             raise ValueError(
                 "The Rice distribution is only applicable to real-valued data."
