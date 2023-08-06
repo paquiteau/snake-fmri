@@ -2,7 +2,7 @@
 
 This module is responsible for the creation of data
 """
-from .simulation import SimulationData, SimulationParams
+from .simulation import SimDataType, SimulationParams, SimulationData
 from .handlers import (
     AbstractHandler,
     AcquisitionHandler,
@@ -35,6 +35,7 @@ __all__ = [
     "RoiDefinerHandler",
     "SheppLoganGeneratorHandler",
     "SimulationData",
+    "SimDataType",
     "SimulationParams",
     "SlicerHandler",
     "TextureAdderHandler",

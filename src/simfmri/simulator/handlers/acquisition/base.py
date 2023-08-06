@@ -10,7 +10,7 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 
 from simfmri.simulator.handlers.base import AbstractHandler
-from simfmri.simulator.simulation import SimulationData
+from simfmri.simulator.simulation import SimDataType
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 from fmri.operators.fourier import FFT_Sense
@@ -54,7 +54,7 @@ def _gen_kspace_cartesian(
         yield fourier_op.op(sim_frame), masks, shot_in_kspace_frame
 
 
-def _data_acq_generator(sim: SimulationData) -> np.ndarray:
+def _data_acq_generator(sim: SimDataType) -> np.ndarray:
     for i in range(sim.n_frames):
         yield np.complex64(sim.data_acq[i])
 
@@ -108,7 +108,7 @@ class AcquisitionHandler(AbstractHandler):
         data_gen: SimGeneratorType,
         shot_gen: TrajectoryGeneratorType,
         n_kspace_frames: int,
-        sim: SimulationData,
+        sim: SimDataType,
     ) -> tuple[np.ndarray, np.ndarray]:
         kspace_data = np.zeros(
             (n_kspace_frames, sim.n_coils, *sim.shape), dtype=np.complex64
@@ -125,7 +125,7 @@ class AcquisitionHandler(AbstractHandler):
         return kspace_data, kspace_mask
 
     def _acquire(
-        self, sim: SimulationData, trajectory_generator: TrajectoryGeneratorType
+        self, sim: SimDataType, trajectory_generator: TrajectoryGeneratorType
     ) -> np.ndarray:
         """Acquire the data by splitting the kspace shot over the simulation frames.
 
@@ -167,7 +167,7 @@ class AcquisitionHandler(AbstractHandler):
 
     def _validate_TR(
         self,
-        sim: SimulationData,
+        sim: SimDataType,
         n_shots: int,
         shot_time_ms: int,
     ) -> None:
@@ -245,7 +245,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             "shot_time_ms": shot_time_ms,
         }
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         self._traj_params["shape"] = sim.shape
         return self._acquire(
             sim,
@@ -320,7 +320,7 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         return kspace_data, kspace_locs
 
     def _execute_plan(
-        self, plans: list[dict], n_kspace_frame: int, sim: SimulationData
+        self, plans: list[dict], n_kspace_frame: int, sim: SimDataType
     ) -> tuple[np.ndarray, np.ndarray]:
         """Execute the plan."""
         with PerfLogger(self.log, level=10, name="Execute Acquisition"):
@@ -401,7 +401,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
 
         self._angle = angle
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         self._traj_params["dim"] = len(sim.shape)
         sim.extra_infos["operator"] = self._backend
 

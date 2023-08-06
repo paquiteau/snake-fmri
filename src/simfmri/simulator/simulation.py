@@ -5,7 +5,7 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any
+from typing import Literal, Any, TypeVar
 import copy
 import pickle
 import dataclasses
@@ -13,6 +13,9 @@ import dataclasses
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 from simfmri.utils import AnyShape, cplx_type
+from .lazy import LazySimArray
+
+__all__ = ["SimulationData", "SimulationParams", "LazySimArray", "SimDataType"]
 
 DataArray = NDArray[np.float64 | np.complex128]
 
@@ -134,7 +137,7 @@ class SimulationData:
     @classmethod
     def from_params(
         cls, sim_meta: SimulationParams, in_place: bool = False
-    ) -> SimulationData:
+    ) -> SimDataType:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -155,7 +158,7 @@ class SimulationData:
         return obj
 
     @classmethod
-    def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimulationData:
+    def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimDataType:
         """Load a simulation from file.
 
         Parameters
@@ -166,7 +169,7 @@ class SimulationData:
             The dtype
         """
         with open(filename, "rb") as f:
-            obj: SimulationData = pickle.load(f)
+            obj: SimDataType = pickle.load(f)
         if obj.is_valid():
             for attr in obj.__dict__:
                 val = getattr(obj, attr)
@@ -192,7 +195,7 @@ class SimulationData:
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
-    def copy(self) -> SimulationData:
+    def copy(self) -> SimDataType:
         """Return a deep copy of the Simulation."""
         return copy.deepcopy(self)
 
@@ -324,3 +327,6 @@ class SimulationData:
             else:
                 ret += f" {k}: {v}\n"
         return ret
+
+
+SimDataType = TypeVar("SimDataType", bound=SimulationData)

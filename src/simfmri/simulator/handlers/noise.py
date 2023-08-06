@@ -4,7 +4,7 @@ This module declares the various noise models availables.
 """
 from __future__ import annotations
 from .base import AbstractHandler
-from ..simulation import SimulationData
+from ..simulation import SimDataType, LazySimArray
 
 from simfmri.utils import validate_rng
 
@@ -35,11 +35,11 @@ class NoiseHandler(AbstractHandler):
 
         self._snr = snr
 
-    def _callback_fun(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
+    def _callback_fun(self, old_sim: SimDataType, new_sim: SimDataType) -> None:
         # TODO compute the SNR and print it.
         pass
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         if self._snr == 0:
             return sim
         else:
@@ -51,7 +51,7 @@ class NoiseHandler(AbstractHandler):
         sim.extra_infos["input_snr"] = self._snr
         return sim
 
-    def _add_noise(self, sim: SimulationData) -> None:
+    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         """Add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
@@ -68,10 +68,11 @@ class NoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
-    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
+    def _add_noise(self, sim: SimDataType, rng_seed: int, noise_std: float) -> None:
+        rng = validate_rng(rng_seed)
         if np.iscomplexobj(sim.data_ref):
             noise_std /= np.sqrt(2)
-        noise = noise_std * self._rng.standard_normal(
+        noise = noise_std * rng.standard_normal(
             sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
         )
         noise = noise.astype(sim.data_ref.dtype)
@@ -80,7 +81,7 @@ class GaussianNoiseHandler(NoiseHandler):
             noise += (
                 1j
                 * noise_std
-                * self._rng.standard_normal(
+                * rng.standard_normal(
                     sim.data_ref.shape,
                     dtype=abs(sim.data_ref[:][0]).dtype,
                 )
@@ -106,7 +107,7 @@ class RicianNoiseHandler(NoiseHandler):
 class KspaceNoiseHandler(NoiseHandler):
     """Add gaussian in the kspace."""
 
-    def _add_noise(self, sim: SimulationData, noise_std: float) -> None:
+    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 

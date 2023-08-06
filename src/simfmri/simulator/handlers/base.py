@@ -6,10 +6,10 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Callable, Any
 
-from ..simulation import SimulationData
+from ..simulation import SimDataType
 
 
-CallbackType = Callable[[SimulationData, SimulationData], Any]
+CallbackType = Callable[[SimDataType, SimDataType], Any]
 
 
 class AbstractHandler(ABC):
@@ -56,14 +56,14 @@ class AbstractHandler(ABC):
         else:
             raise TypeError
 
-    def __call__(self, sim: SimulationData) -> SimulationData:
+    def __call__(self, sim: SimDataType) -> SimDataType:
         """Short-hand for handle operation."""
         return self.handle(sim)
 
     def __str__(self) -> str:
         return self.__class__.__name__
 
-    def _run_callbacks(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
+    def _run_callbacks(self, old_sim: SimDataType, new_sim: SimDataType) -> None:
         """Run the different callbacks.
 
         Parameters
@@ -117,7 +117,7 @@ class AbstractHandler(ABC):
         """
         return self._callbacks.pop(idx)
 
-    def handle(self, sim: SimulationData) -> SimulationData:
+    def handle(self, sim: SimDataType) -> SimDataType:
         """Handle a specific action done on the simulation, and move to the next one."""
         if self.prev is not None:
             sim = self.prev.handle(sim)
@@ -140,5 +140,5 @@ class AbstractHandler(ABC):
         return logging.getLogger(f"simulation.{self.__class__.__name__}")
 
     @abstractmethod
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         pass

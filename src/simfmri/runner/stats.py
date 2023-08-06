@@ -18,7 +18,7 @@ from nilearn.glm import compute_contrast, expression_to_contrast_vector
 from nilearn.glm.thresholding import fdr_threshold
 from scipy.stats import norm
 
-from simfmri.simulator import SimulationData
+from simfmri.simulator import SimDataType
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ HeightControl = Literal["fpr", "fdr"]
 
 def contrast_zscore(
     image: np.ndarray,
-    sim: SimulationData,
+    sim: SimDataType,
     contrast_name: str,
     **kwargs: None,
 ) -> tuple[np.ndarray, dict]:

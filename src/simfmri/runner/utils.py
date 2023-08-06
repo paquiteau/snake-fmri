@@ -5,7 +5,7 @@ import os
 import itertools
 import numpy as np
 from collections.abc import Iterator
-from simfmri.simulator import SimulationData
+from simfmri.simulator import SimDataType
 import logging
 
 
@@ -98,7 +98,7 @@ def dump_confusion(
 def save_data(
     data_saved: str | list[str],
     compress: bool,
-    sim: SimulationData,
+    sim: SimDataType,
     log: logging.Logger,
 ) -> None:
     """Save part of the data of the simulation.

@@ -5,7 +5,7 @@ import numpy as np
 
 from brainweb_dl import get_mri
 
-from simfmri.simulator.simulation import SimulationData, LazySimArray
+from simfmri.simulator.simulation import SimDataType, LazySimArray
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
@@ -44,7 +44,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
         self.roi_index = roi_index
         self.dtype = dtype
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         if len(sim.shape) != 3:
             raise ValueError("simulation shape should be 3D.")
 
@@ -85,7 +85,7 @@ class BigPhantomGeneratorHandler(AbstractHandler):
         self.roi_index = roi_index
         self.dtype = dtype
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         if len(sim.shape) > 2:
             raise ValueError("simulation shape should be 2D.")
         sim.static_vol = generate_phantom(
@@ -122,7 +122,7 @@ class RoiDefinerHandler(AbstractHandler):
             )
         self.roi_data = roi_data
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         sim.roi = raster_phantom(
             sim.shape,
             phantom_data=self.roi_data,
@@ -156,7 +156,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         self.brainweb_folder = brainweb_folder
         self.roi = roi
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         from ._brainweb import (
             get_indices_inside_ellipsoid,
             BRAINWEB_OCCIPTAL_ROI,
@@ -214,7 +214,7 @@ class TextureAdderHandler(AbstractHandler):
         super().__init__()
         self._var_texture = var_texture
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         sigma_noise = self._var_texture * sim.data_ref[0]
         rng = validate_rng(sim.rng)
 
@@ -244,7 +244,7 @@ class SlicerHandler(AbstractHandler):
         self.axis = axis
         self.index = index
 
-    def _run_callback(self, old_sim: SimulationData, new_sim: SimulationData) -> None:
+    def _run_callback(self, old_sim: SimDataType, new_sim: SimDataType) -> None:
         """Notify that we are now in  2D."""
         self.log.warning("Simulation is now 2D")
 
@@ -255,7 +255,7 @@ class SlicerHandler(AbstractHandler):
         base_slicer[self.axis + 1] = self.index
         return tuple(base_slicer)
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         """Perform the slicing on all relevant data and update data_shape."""
         for data_type in ["data_ref", "_data_acq"]:
             if (array := getattr(sim, data_type)) is not None:

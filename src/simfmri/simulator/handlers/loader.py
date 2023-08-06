@@ -1,7 +1,7 @@
 """Handler to load existing simulation data."""
 
 from .base import AbstractHandler
-from ..simulation import SimulationData
+from ..simulation import SimDataType
 
 
 class LoadDataHandler(AbstractHandler):
@@ -20,7 +20,7 @@ class LoadDataHandler(AbstractHandler):
         self.sim_file = sim_file
         self.dtype = dtype
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         """Load the simulation using pickle."""
         return sim.load_from_file(self.sim_file, dtype=self.dtype)
 
@@ -42,7 +42,7 @@ class SaveDataHandler(AbstractHandler):
         super().__init__()
         self.sim_file = sim_file
 
-    def _handle(self, sim: SimulationData) -> SimulationData:
+    def _handle(self, sim: SimDataType) -> SimDataType:
         """Save the simulation using pickle."""
         sim.save(self.sim_file)
         return sim

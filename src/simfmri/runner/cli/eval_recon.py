@@ -14,7 +14,7 @@ from hydra.core.plugins import Plugins
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 from simfmri.runner.metric import get_ptsnr, get_snr
-from simfmri.simulator import SimulationData
+from simfmri.simulator import SimDataType, SimulationData
 
 from ..sweeper import DatasetSweeper
 from ..utils import keyval_fmt, log_kwargs, product_dict, setup_warning_logger
@@ -52,7 +52,7 @@ log = logging.getLogger(__name__)
 
 def get_metrics(
     data_test: np.ndarray,
-    sim: SimulationData,
+    sim: SimDataType,
     stat_confs: list[dict],
 ) -> dict:
     """
