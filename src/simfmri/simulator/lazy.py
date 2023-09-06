@@ -97,13 +97,13 @@ class LazySimArray(Sequence):
 
     def ndim(self) -> int:
         """Get number of dimensions."""
-        return len(self.shape)
+        return len(self.shape) + 1
 
     def __len__(self) -> int:
         """Get length."""
         return self._n_frames
 
-    def __getitem__(self, frame_idx: int) -> np.ndarray:
+    def __getitem__(self, addr: int | tuple[slice | int]) -> np.ndarray:
         """Get frame idx by applying all the operations in order.
 
         If an operation requires the frame index, (ie has `frame_idx=None` in signature)
@@ -114,6 +114,23 @@ class LazySimArray(Sequence):
         - extract the rest of the slice from the modified base array and return it.
         This would allow stuff like larray[:, mask] to work.
         """
+        match addr:
+            case int():
+                return self._get_frame(addr)
+            case (int() as frame_idx, slicer):
+                return self._get_frame(frame_idx)[slicer]
+            case (slice(start=start, stop=stop, step=step), slicer):
+                start = start or 0
+                stop = stop or len(self)
+                step = step or 1
+                return np.concatenate(
+                    [
+                        self._get_frame(i)[np.newaxis, slicer]
+                        for i in range(start, stop, step)
+                    ]
+                )
+
+    def _get_frame(self, frame_idx: int) -> np.ndarray:
         if isinstance(self._base_array, LazySimArray):
             cur = self._base_array[frame_idx]
         else:
