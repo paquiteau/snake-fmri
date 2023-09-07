@@ -187,8 +187,9 @@ def rotate_trajectory(
 
 def kspace_bulk_shot(
     traj_generator: Generator[np.ndarray],
+    n_sim_frame: int,
     n_batch: int = 3,
-) -> Generator[tuple[np.ndarray, list[int]]]:
+) -> Generator[tuple[int, np.ndarray, list[int]]]:
     """Generate a stream of shot, delivered in batch.
 
     Parameters
@@ -211,9 +212,13 @@ def kspace_bulk_shot(
     shot_idx = 0
     print(f"full trajectory has {len(shots)} shots")
     kspace_frame = 0
-    while True:
+    for sim_frame_idx in range(n_sim_frame):
         if shot_idx + n_batch <= len(shots):
-            yield shots[shot_idx : shot_idx + n_batch], [kspace_frame] * n_batch
+            yield (
+                sim_frame_idx,
+                shots[shot_idx : shot_idx + n_batch],
+                [kspace_frame] * n_batch,
+            )
             shot_idx += n_batch
         elif shot_idx <= len(shots):
             # The last batch is incomplete, so we start a new trajectory
@@ -221,6 +226,7 @@ def kspace_bulk_shot(
             new_shots = next(traj_generator)
             new_shot_idx = shot_idx + n_batch - len(shots)
             yield (
+                sim_frame_idx,
                 np.vstack([shots[shot_idx:], new_shots[:new_shot_idx]]),
                 [kspace_frame] * (len(shots) - shot_idx)
                 + [kspace_frame + 1] * new_shot_idx,
