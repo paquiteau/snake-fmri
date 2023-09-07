@@ -88,7 +88,7 @@ class LazySimArray(Sequence):
     @property
     def shape(self) -> tuple[int, ...]:
         """Get shape."""
-        return tuple(len(self), *self._base_array.shape)
+        return (len(self), *self._base_array.shape)
 
     @property
     def dtype(self) -> np.dtype:
