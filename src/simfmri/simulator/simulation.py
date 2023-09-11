@@ -302,6 +302,26 @@ class SimulationData:
 
         return True
 
+    def memory_estimate(self, unit: str = "MB") -> int | float:
+        """Return an estimate of the memory used by the simulation."""
+        mem = 0
+        for attr in self.__dict__:
+            val = getattr(self, attr)
+            if isinstance(val, np.ndarray):
+                mem += val.nbytes
+        if self.lazy:
+            arr = self.data_acq
+            while isinstance(arr, LazySimArray):
+                arr = arr._base_array
+            mem += arr.nbytes * self.n_frames
+
+        if unit == "MB":
+            return mem / 1024**2
+        elif unit == "GB":
+            return mem / 1024**3
+        else:
+            raise ValueError("unit must be MB or GB")
+
     def __str__(self) -> str:
         ret = "SimulationData: \n"
         ret += f"{self._meta}\n"
