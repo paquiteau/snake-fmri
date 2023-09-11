@@ -82,7 +82,8 @@ def vds_factory(
         pass
     else:
         raise ValueError(f"Unknown direction '{direction}'.")
-    # initialize the trajetory. -1 is the default value, and we put the line index in the correct axis (0-indexed)
+    # initialize the trajetory. -1 is the default value,
+    # and we put the line index in the correct axis (0-indexed)
     shots = -np.ones((n_shots, 1, len(shape)), dtype=np.int32)
     for shot_idx, line_loc in enumerate(line_locs):
         shots[shot_idx, :, accel_axis] = line_loc
@@ -95,11 +96,9 @@ def radial_factory(
     dim: Literal[2, 3] = 2,
     expansion: str | None = None,
     n_repeat: int = 0,
-    TR_ms: int = 0,
-    shot_time_ms: int = 0,
+    **kwargs: Mapping[str, Any],
 ) -> np.ndarray:
     """Create a radial sampling trajectory."""
-
     if dim == 2:
         traj_points = initialize_2D_radial(n_shots, n_points)
         traj_points = np.float32(traj_points)
