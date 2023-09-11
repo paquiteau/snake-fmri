@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, Mapping
 from collections.abc import Generator
 
 import numpy as np
@@ -24,39 +24,53 @@ from .trajectory import (
     rotate_trajectory,
     kspace_bulk_shot,
 )
+
 from ._coils import get_smaps
+from .workers import acquire_cartesian_mp
+
 
 SimGeneratorType = Generator[np.ndarray, None, None]
 
 
 def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
-    """Return a slicer for the mask."""
+    """Return a slicer for the mask.
+
+    Fully sampled axis are marked with a -1.
+    """
     slicer = [slice(None, None, None)] * shot.shape[-1]
     accel_axis = [i for i, v in enumerate(shot[0]) if v != -1][0]
     slicer[accel_axis] = shot[0][accel_axis]
     return tuple(slicer)
 
 
-def _gen_kspace_cartesian(
-    data_generator: SimGeneratorType,
-    shots_generator: TrajectoryGeneratorType,
-    smaps: np.ndarray,
+def _acquire_single_cartesian(
+    sim_frame: np.ndarray,
+    shot_batch: np.ndarray,
+    shot_in_kspace_frame: np.ndarray,
+    smaps: np.ndarray | None,
     n_coils: int,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    for sim_frame, (shot_batch, shot_in_kspace_frame) in zip(
-        data_generator, shots_generator
-    ):
-        masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
-        for i, shot in enumerate(shot_batch):
-            masks[i][_get_slicer(shot)] = 1
-        mask = np.sum(masks, axis=0)
-        fourier_op = FFT_Sense(sim_frame.shape, mask=mask, smaps=smaps, n_coils=n_coils)
-        yield fourier_op.op(sim_frame), masks, shot_in_kspace_frame
+    masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
+    for i, shot in enumerate(shot_batch):
+        masks[i][_get_slicer(shot)] = 1
+    mask = np.sum(masks, axis=0)
+    fourier_op = FFT_Sense(sim_frame.shape, mask=mask, smaps=smaps, n_coils=n_coils)
+    return fourier_op.op(sim_frame), masks, shot_in_kspace_frame
 
 
-def _data_acq_generator(sim: SimDataType) -> np.ndarray:
-    for i in range(sim.n_frames):
-        yield np.complex64(sim.data_acq[i])
+def _gen_kspace_cartesian(
+    sim: SimDataType,
+    shots_generator: TrajectoryGeneratorType,
+    **kwargs: Mapping[str, Any],
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    for sim_frame_idx, shot_batch, shot_in_kframe in shots_generator:
+        yield _acquire_single_cartesian(
+            np.complex64(sim.data_acq[sim_frame_idx]),
+            shot_batch,
+            shot_in_kframe,
+            smaps=sim.smaps,
+            n_coils=sim.n_coils,
+        )
 
 
 class AcquisitionHandler(AbstractHandler):
@@ -100,32 +114,45 @@ class AcquisitionHandler(AbstractHandler):
         super().__init__()
         self.constant = constant
         self.smaps = smaps
-        self.n_jobs = 4
+        self.n_jobs = n_jobs
         self.is_cartesian = True
 
     def _acquire_cartesian(
         self,
-        data_gen: SimGeneratorType,
-        shot_gen: TrajectoryGeneratorType,
-        n_kspace_frames: int,
         sim: SimDataType,
+        trajectory_generator: TrajectoryGeneratorType,
+        n_shot_sim_frames: int,
+        n_kspace_frames: int,
     ) -> tuple[np.ndarray, np.ndarray]:
+        """Acquire cartesiant data and mask. Using multi processing."""
         kspace_data = np.zeros(
             (n_kspace_frames, sim.n_coils, *sim.shape), dtype=np.complex64
         )
         kspace_mask = np.zeros((n_kspace_frames, *sim.shape), dtype=np.int8)
 
-        for kspace_val, kspace_masks, shot_in_kspace_frame in _gen_kspace_cartesian(
-            data_gen, shot_gen, sim.smaps, sim.n_coils
-        ):
+        shot_gen = kspace_bulk_shot(trajectory_generator, n_shot_sim_frames)
+
+        kspace_cartesian = _gen_kspace_cartesian(
+            sim,
+            shot_gen,
+        )
+
+        for kspace_val, kspace_masks, shot_in_kspace_frame in kspace_cartesian:
             for mask, ks_frame in zip(kspace_masks, shot_in_kspace_frame):
                 kspace_data[ks_frame, :] += mask * kspace_val
                 kspace_mask[ks_frame] |= mask
 
         return kspace_data, kspace_mask
+        # trajectory_generator returns (shots, kspace_frame)
+        #
+        # Parallel pool of worker / Queue
+        #   Get  sim.data_acq[sim_frame]
+        #
 
     def _acquire(
-        self, sim: SimDataType, trajectory_generator: TrajectoryGeneratorType
+        self,
+        sim: SimDataType,
+        trajectory_generator: TrajectoryGeneratorType,
     ) -> np.ndarray:
         """Acquire the data by splitting the kspace shot over the simulation frames.
 
@@ -150,19 +177,18 @@ class AcquisitionHandler(AbstractHandler):
         n_kspace_frame = int(sim.sim_time_ms / frame_TR_ms)
         n_shot_sim_frame = (n_kspace_frame * len(test_traj)) // sim.n_frames
         self.log.debug("n_shot/sim_frame %d/%d", n_shot_sim_frame, sim.n_frames)
-        shot_generator = kspace_bulk_shot(trajectory_generator, n_shot_sim_frame)
-        data_generator = _data_acq_generator(sim)
 
-        kspace_data, kspace_mask = self._acquire_cartesian(
-            data_generator, shot_generator, n_kspace_frame, sim
-        )
-
-        sim.kspace_data = kspace_data
-        sim.kspace_mask = kspace_mask
         sim.extra_infos["TR_ms"] = frame_TR_ms
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
+
+        kspace_data, kspace_mask = acquire_cartesian_mp(
+            sim, trajectory_generator, n_shot_sim_frame, n_kspace_frame, self.n_jobs
+        )
+
+        sim.kspace_data = kspace_data
+        sim.kspace_mask = kspace_mask
         return sim
 
     def _validate_TR(
@@ -179,7 +205,9 @@ class AcquisitionHandler(AbstractHandler):
             )
         if TR_ms % sim.sim_tr_ms != 0:
             old_TR_ms = TR_ms
-            self.log.error(f"TR {sim.sim_tr_ms}ms does not divide shot time {TR_ms}ms.")
+            self.log.error(
+                f"simTR {sim.sim_tr_ms}ms does not divide total shot time {TR_ms}ms."
+            )
             TR_ms = sim.sim_tr_ms * (TR_ms // sim.sim_tr_ms)
             shot_time_ms = shot_time_ms * TR_ms / old_TR_ms
             self.log.warning(
@@ -403,6 +431,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     def _handle(self, sim: SimDataType) -> SimDataType:
         self._traj_params["dim"] = len(sim.shape)
+        self._traj_params[""]
         sim.extra_infos["operator"] = self._backend
 
         return self._acquire(
