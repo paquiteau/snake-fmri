@@ -38,6 +38,12 @@ class SimulationParams:
         default_factory=lambda: dict(), repr=False
     )
     """Extra information, to add more information to the simulation"""
+    res: tuple[float, ...] = 1
+    """Resolution of the volume in mm"""
+
+    def __post_init__(self) -> None:
+        if isinstance(self.res, (float, int)):
+            self.res = (self.res,) * len(self.shape)
 
 
 class SimulationData:
@@ -108,6 +114,7 @@ class SimulationData:
     def __init__(
         self,
         shape: AnyShape,
+        res: float | tuple[float],
         sim_tr: float,
         sim_time: float,
         n_coils: int = 1,
@@ -119,7 +126,13 @@ class SimulationData:
         if extra_infos is None:
             extra_infos = dict()
         self._meta = SimulationParams(
-            shape, n_frames, sim_tr, n_coils, rng=rng, extra_infos=extra_infos
+            shape,
+            res=res,
+            n_frames=n_frames,
+            sim_tr=sim_tr,
+            n_coils=n_coils,
+            rng=rng,
+            extra_infos=extra_infos,
         )
         self.static_vol = None
         self.data_ref = None
@@ -225,6 +238,11 @@ class SimulationData:
     def n_frames(self) -> int:
         """Get number of frames."""
         return self._meta.n_frames
+
+    @property
+    def res(self) -> int:
+        """Get resolution."""
+        return self._meta.res
 
     @property
     def sim_tr(self) -> float:
