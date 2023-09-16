@@ -19,6 +19,7 @@ from .handlers import (
     SlicerHandler,
     TextureAdderHandler,
     VDSAcquisitionHandler,
+    StackedSpiralAcquisitionHandler,
 )
 
 __all__ = [
@@ -40,6 +41,7 @@ __all__ = [
     "SlicerHandler",
     "TextureAdderHandler",
     "VDSAcquisitionHandler",
+    "StackedSpiralAcquisitionHandler",
     # handlers
     # simulation
 ]

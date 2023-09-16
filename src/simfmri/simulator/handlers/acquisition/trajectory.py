@@ -121,6 +121,54 @@ def radial_factory(
     return traj_points
 
 
+def stack_spiral_factory(
+    shape: tuple[int],
+    accelz: int,
+    acsz: int | float,
+    n_samples: int,
+    nb_revolutions: int,
+    shot_time_ms: int | None = None,
+    in_out: bool = True,
+    directionz: Literal["center-out", "random"] = "center-out",
+    pdfz: Literal["gaussian", "uniform"] = "gaussian",
+    rng: RngType = None,
+) -> np.ndarray:
+    """Generate a trajectory of stack of spiral."""
+    sizeZ = shape[-1]
+
+    z_index = get_kspace_slice_loc(
+        sizeZ, acsz, accelz, pdf=pdfz, rng=rng, direction=directionz
+    )
+
+    spiral2D = initialize_2D_spiral(
+        Nc=1, Ns=n_samples, nb_revolutions=nb_revolutions
+    ).reshape(-1, 2)
+    z_kspace = (z_index - sizeZ // 2) / sizeZ
+    # create the equivalent 3d trajectory
+    nsamples = len(spiral2D)
+    nz = len(z_kspace)
+    kspace_locs3d = np.zeros((nz, nsamples, 3))
+    # TODO use numpy api for this ?
+    for i in range(nz):
+        kspace_locs3d[i, :, :2] = spiral2D
+        kspace_locs3d[i, :, 2] = z_kspace[i]
+
+    return kspace_locs3d
+
+
+#####################################
+# Generators                            #
+#####################################
+
+
+ROTATE_ANGLES = {
+    "constant": 0,
+    None: 0,
+    "golden": 2.39996322972865332,  # 2pi(2-phi)
+    "golden-mri": 1.941678793,  # 115.15 deg
+}
+
+
 def trajectory_generator(
     traj_factory: TrajectoryFactoryProtocol, **kwargs: Mapping[str, Any]
 ) -> Generator[np.ndarray, None, None]:

@@ -7,6 +7,7 @@ from .acquisition import (
     AcquisitionHandler,
     VDSAcquisitionHandler,
     RadialAcquisitionHandler,
+    StackedSpiralAcquisitionHandler,
 )
 from .activation import ActivationHandler
 from .base import AbstractHandler
@@ -44,4 +45,5 @@ __all__ = [
     "TextureAdderHandler",
     "VDSAcquisitionHandler",
     "RadialAcquisitionHandler",
+    "StackedSpiralAcquisitionHandler",
 ]

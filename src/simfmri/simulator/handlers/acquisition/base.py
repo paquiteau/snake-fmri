@@ -7,26 +7,21 @@ from collections.abc import Generator
 
 import numpy as np
 
-from hydra_callbacks import PerfLogger
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimDataType
-from simfmri.utils import validate_rng
-from simfmri.utils.typing import RngType
-from fmri.operators.fourier import FFT_Sense
-from mrinufft import get_operator
 
 from .trajectory import (
     vds_factory,
     radial_factory,
+    stack_spiral_factory,
     TrajectoryGeneratorType,
     trajectory_generator,
     rotate_trajectory,
-    kspace_bulk_shot,
 )
 
 from ._coils import get_smaps
-from .workers import acquire_cartesian_mp
+from .workers import acquire_cartesian_mp, acquire_noncartesian_mp
 
 
 SimGeneratorType = Generator[np.ndarray, None, None]
@@ -108,7 +103,7 @@ class AcquisitionHandler(AbstractHandler):
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
 
-    # TODO: add other trajectories sampling and refactor.
+    acquire_mp = staticmethod(acquire_cartesian_mp)
 
     def __init__(self, constant: bool, smaps: bool, n_jobs: int):
         super().__init__()
@@ -314,6 +309,8 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
 
+    acquire_mp = staticmethod(acquire_noncartesian_mp)
+
     # TODO: add other trajectories sampling and refactor.
     def __init__(
         self,
@@ -439,5 +436,88 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
             trajectory_generator=rotate_trajectory(
                 trajectory_generator(radial_factory, **self._traj_params),
                 self._angle,
+            ),
+        )
+
+
+class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
+    """
+    Spiral 2D Acquisition Handler to generate k-space data.
+
+    Parameters
+    ----------
+    acsz: float | int
+        Number/ proportion of lines to be acquired in the center of k-space.
+    accelz: int
+        Acceleration factor for the rest of the lines.
+    directionz: Literal["center-out", "random"]
+        Direction of the acquisition. Either "center-out" or "random".
+    pdfz: Literal["gaussian", "uniform"]
+        Probability density function of the sampling. Either "gaussian" or "uniform".
+    shot_time_ms: int
+        Time to acquire a single spiral in plane.
+    n_samples: int
+        Number of samples in the spiral.
+    nb_revolutions: int
+        Number of revolutions of the spiral.
+    in_out: bool
+        If true, the spiral is acquired with a double join pattern from/to the periphery
+    **kwargs:
+        Extra arguments (smaps, n_jobs, backend etc...)
+    """
+
+    def __init__(
+        self,
+        acsz: float | int,
+        accelz: int,
+        directionz: Literal["center-out", "random"],
+        shot_time_ms: int = 50,
+        n_samples: int = 3000,
+        nb_revolutions: int = 10,
+        in_out: bool = True,
+        pdfz: Literal["gaussian", "uniform"] = "gaussian",
+        **kwargs: Mapping[str, Any],
+    ):
+        super().__init__(**kwargs)
+        self._traj_params = {
+            "acsz": acsz,
+            "accelz": accelz,
+            "directionz": directionz,
+            "pdfz": pdfz,
+            "shot_time_ms": shot_time_ms,
+            "n_samples": n_samples,
+            "nb_revolutions": nb_revolutions,
+            "in_out": in_out,
+        }
+
+    def _handle(self, sim: SimDataType) -> SimDataType:
+        self._traj_params["shape"] = sim.shape
+        self._traj_params["rng"] = sim.rng
+
+        sim.extra_infos["operator"] = self._backend
+
+        from mrinufft.trajectories.utils import (
+            compute_gradients,
+            _check_gradient_constraints,
+            DEFAULT_RASTER_TIME_MS,
+        )
+
+        tobs = DEFAULT_RASTER_TIME_MS * self._traj_params["n_samples"]
+        shot_time = self._traj_params["shot_time_ms"]
+        if tobs > shot_time - 20:
+            self.log.warning(
+                f"The simulated trajectory takes {tobs}ms to run, "
+                f" in a {shot_time}ms shot."
+            )
+
+        test_traj = stack_spiral_factory(**self._traj_params)
+        grads, _, slews = compute_gradients(test_traj, resolution=sim.res[-1])
+        if not _check_gradient_constraints(grads, slews):
+            self.log.error("Trajectory does not respect gradient constraints.")
+
+        return self._acquire(
+            sim,
+            trajectory_generator=trajectory_generator(
+                stack_spiral_factory, **self._traj_params
             ),
         )
