@@ -1,6 +1,9 @@
 """Multiprocessing module for the acquisition of data."""
 from __future__ import annotations
 import logging
+from contextlib import nullcontext
+from typing import ContextManager, Mapping, Any
+from dataclasses import dataclass, field
 import multiprocessing as mp
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
@@ -15,20 +18,40 @@ from .trajectory import (
     TrajectoryGeneratorType,
     kspace_bulk_shot,
 )
+from mrinufft import get_operator
 
-KILLER = None  # explicit
+
+KILLER = None  # explicit is better than implicit
 
 # from mrinufft import get_operator
 
 logger = logging.getLogger("simulation." + __name__)
 
 
-def sm2np(
-    shared_mem: SharedMemory, dtype: np.dtype, shape: tuple[int, ...]
-) -> np.ndarray:
-    """Create a numpy array from a shared memory object."""
-    arr = np.frombuffer(shared_mem.buf, dtype=dtype)
-    return arr.reshape(shape)
+@dataclass
+class ArrayInfo:
+    """Information about an array."""
+
+    shape: tuple[int, ...]
+    dtype: np.dtype
+    has_lock: bool = True
+    lock: mp.Lock | ContextManager = field(init=False)
+
+    def __post_init__(self):
+        if self.has_lock:
+            self.lock = mp.Lock()
+        else:
+            self.lock = nullcontext()
+
+    def sm2np(self, shared_mem: SharedMemory) -> np.ndarray:
+        """Create a numpy array from a shared memory object."""
+        arr = np.frombuffer(shared_mem.buf, dtype=self.dtype)
+        return arr.reshape(self.shape)
+
+    @property
+    def byte_size(self) -> int:
+        """Return size of array in byte."""
+        return np.prod(self.shape) * self.dtype().itemsize
 
 
 class AcquisitionWorker(mp.Process):
@@ -36,20 +59,22 @@ class AcquisitionWorker(mp.Process):
 
     def __init__(
         self,
-        kspace_data_sm: SharedMemory,
-        kspace_mask_sm: SharedMemory,
+        kdata_sm: SharedMemory,
+        kmask_sm: SharedMemory,
         sim: SimDataType,
         job_queue: mp.Queue,
-        lock_data: mp.Lock,
-        lock_mask: mp.Lock,
+        kdata_info: ArrayInfo,
+        kmask_info: ArrayInfo,
+        **kwargs: Mapping[str, Any],
     ):
         super().__init__()
-        self.kspace_data_sm = kspace_data_sm
-        self.kspace_mask_sm = kspace_mask_sm
+        self.kdata_sm = kdata_sm
+        self.kmask_sm = kmask_sm
+        self.kdata_info = kdata_info
+        self.kmask_info = kmask_info
         self.job_queue = job_queue
         self.sim = sim
-        self._lock_data = lock_data
-        self._lock_mask = lock_mask
+        self.kwargs = kwargs
 
     def run(self) -> None:
         """Run the job."""
@@ -95,20 +120,15 @@ class CartesianWorker(AcquisitionWorker):
         )
         process_kspace = fourier_op.op(sim_frame)
 
-        kspace_data = sm2np(
-            self.kspace_data_sm,
-            np.complex64,
-            (n_kspace_frames, self.sim.n_coils, *sim_frame.shape),
-        )
-        kspace_mask = sm2np(
-            self.kspace_mask_sm, np.int8, (n_kspace_frames, *sim_frame.shape)
-        )
+        # TODO make the array in the context manager.
+        kdata = self.kdata_info.sm2np(self.kdata_sm)
+        kmask = self.kmask_info.sm2np(self.kmask_sm)
 
-        for m, kspace_frame in zip(masks, shot_in_kspace_frames):
-            with self._lock_data:
-                kspace_data[kspace_frame, ...] += process_kspace * m
-            with self._lock_mask:
-                kspace_mask[kspace_frame, ...] |= m
+        for m, (k, _) in zip(masks, shot_in_kspace_frames):
+            with self.kdata_info.lock:
+                kdata[k, ...] += process_kspace * m
+            with self.kmask_info.lock:
+                kmask[k, ...] |= m
 
 
 class NonCartesianWorker(AcquisitionWorker):
@@ -134,8 +154,9 @@ def _acquire_mp(
     n_shot_sim_frame: int,
     n_kspace_frame: int,
     n_jobs: int,
-    kspace_data_size: int,
-    kspace_mask_size: int,
+    kdata_info: ArrayInfo,
+    kmask_info: ArrayInfo,
+    **kwargs: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire cartesian data with parallel processing.
 
@@ -152,7 +173,7 @@ def _acquire_mp(
     )
     logger.debug(
         "Full memory  estimate for kspace %f GB",
-        kspace_data_size / 1024**3,
+        kdata_info.byte_size / 1024**3,
     )
 
     acquisition_director = kspace_bulk_shot(
@@ -164,27 +185,32 @@ def _acquire_mp(
     workers = []
 
     with SharedMemoryManager() as smm:
-        kspace_data_sm = smm.SharedMemory(size=kspace_data_size)
-        kspace_mask_sm = smm.SharedMemory(size=kspace_mask_size)
-        lock_data, lock_mask = mp.Lock(), mp.Lock()
+        kdata_sm = smm.SharedMemory(size=kdata_info.byte_size)
+        kmask_sm = smm.SharedMemory(size=kmask_info.byte_size)
         # create worker
         for _ in range(n_jobs):
             w = worker_klass(
-                kspace_data_sm, kspace_mask_sm, sim, work_queue, lock_data, lock_mask
+                kdata_sm,
+                kmask_sm,
+                sim,
+                work_queue,
+                kdata_info,
+                kmask_info,
+                **kwargs,
             )
             workers.append(w)
             logger.debug("Starting worker %s", w.name)
             w.start()
 
         # add jobs to queue (with max size )
-        for sim_frame_idx, shot_batch, shot_in_kframe in tqdm(
+        for sim_frame_idx, shot_batch, shot_pos in tqdm(
             acquisition_director, total=sim.n_frames
         ):
             work_queue.put(
                 {
                     "sim_frame_idx": sim_frame_idx,
                     "shot_batch": shot_batch,
-                    "shot_in_kspace_frames": shot_in_kframe,
+                    "shot_pos": shot_pos,
                     "n_kspace_frames": n_kspace_frame,
                 }
             )
@@ -195,7 +221,7 @@ def _acquire_mp(
         work_queue.join()
         del workers
         logger.debug("deleted all workers")
-        return kspace_data_sm, kspace_mask_sm
+        return kdata_sm, kmask_sm
 
 
 def acquire_cartesian_mp(
@@ -206,27 +232,24 @@ def acquire_cartesian_mp(
     n_jobs: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with cartesian stuff."""
-    kspace_data_size = (
-        n_kspace_frame * np.prod(sim.shape) * sim.n_coils * np.complex64().itemsize
-    )
-    kspace_mask_size = n_kspace_frame * np.prod(sim.shape) * np.int8().itemsize
+    kdata_info = ArrayInfo((n_kspace_frame, sim.n_coils, *sim.shape), np.complex64)
+    kmask_info = ArrayInfo((n_kspace_frame, *sim.shape), np.int8)
 
-    kspace_data_sm, kspace_mask_sm = _acquire_mp(
+    kdata_sm, kmask_sm = _acquire_mp(
         sim,
         trajectory_gen,
+        CartesianWorker,
         n_shot_sim_frame,
         n_kspace_frame,
         n_jobs,
-        kspace_data_size,
-        kspace_mask_size,
+        kdata_info,
+        kmask_info,
     )
 
-    kspace_data = sm2np(
-        kspace_data_sm, np.complex64, (n_kspace_frame, sim.n_coils, *sim.shape)
-    )
-    kspace_mask = sm2np(kspace_mask_sm, np.int8, (n_kspace_frame, *sim.shape))
+    kdata = kdata_info.sm2np(kdata_sm)
+    kmask = kmask_info.sm2np(kmask_sm)
 
-    return kspace_data, kspace_mask
+    return kdata, kmask
 
 
 def acquire_noncartesian_mp(
@@ -237,24 +260,26 @@ def acquire_noncartesian_mp(
     n_jobs: int,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with non cartesian stuff."""
-    kspace_data_size = (
-        n_kspace_frame * np.prod(sim.shape) * sim.n_coils * np.complex64().itemsize
-    )
-    kspace_mask_size = sim.extra_infos[""] * np.float32().itemsize
+    test_traj = next(trajectory_gen)
+    n_samples = np.prod(test_traj.shape[:-1])
+    dim = test_traj.shape[-1]
 
-    kspace_data_sm, kspace_mask_sm = _acquire_mp(
+    kdata_info = ArrayInfo((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
+    kmask_info = ArrayInfo((n_kspace_frame, n_samples, dim), np.float32)
+
+    kdata_sm, kmask_sm = _acquire_mp(
         sim,
         trajectory_gen,
+        NonCartesianWorker,
         n_shot_sim_frame,
         n_kspace_frame,
         n_jobs,
-        kspace_data_size,
-        kspace_mask_size,
+        kdata_info,
+        kmask_info,
+        backend=sim.extra_infos["operator"],
     )
 
-    kspace_data = sm2np(
-        kspace_data_sm, np.complex64, (n_kspace_frame, sim.n_coils, *sim.shape)
-    )
-    kspace_mask = sm2np(kspace_mask_sm, np.int8, (n_kspace_frame, *sim.shape))
+    kdata = kdata_info.sm2np(kdata_sm)
+    kmask = kmask_info.sm2np(kmask_sm)
 
-    return kspace_data, kspace_mask
+    return kdata, kmask
