@@ -1,6 +1,7 @@
 """Multiprocessing module for the acquisition of data."""
 from __future__ import annotations
 import logging
+import warnings
 from contextlib import nullcontext
 from typing import ContextManager, Mapping, Any
 from dataclasses import dataclass, field
@@ -106,7 +107,7 @@ class CartesianWorker(AcquisitionWorker):
         sim_frame_idx: int,
         n_kspace_frames: int,
         shot_batch: np.ndarray,
-        shot_in_kspace_frames: np.ndarray,
+        shot_pos: list[tuple(int)],
     ) -> None:
         """Acquire cartesian data with parallel processing. Single worker."""
         sim_frame = np.complex64(self.sim.data_acq[sim_frame_idx])
@@ -124,7 +125,7 @@ class CartesianWorker(AcquisitionWorker):
         kdata = self.kdata_info.sm2np(self.kdata_sm)
         kmask = self.kmask_info.sm2np(self.kmask_sm)
 
-        for m, (k, _) in zip(masks, shot_in_kspace_frames):
+        for m, (k, _) in zip(masks, shot_pos):
             with self.kdata_info.lock:
                 kdata[k, ...] += process_kspace * m
             with self.kmask_info.lock:
@@ -139,12 +140,36 @@ class NonCartesianWorker(AcquisitionWorker):
         sim_frame_idx: int,
         n_kspace_frames: int,
         shot_batch: np.ndarray,
-        shot_in_kspace_frames: np.ndarray,
+        shot_pos: list[tuple[int, int]],
     ) -> None:
         """Acquire cartesian data with parallel processing. Single worker."""
-        # sim_frame = np.complex64(self.sim.data_acq[sim_frame_idx])
+        sim_frame = np.complex64(self.sim.data_acq[sim_frame_idx])
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "once",
+                "Samples will be rescaled to .*",
+                category=UserWarning,
+                module="mrinufft",
+            )
+            fourier_op = get_operator(self.kwargs["backend"])(
+                samples=shot_batch,
+                shape=sim_frame.shape,
+                smaps=self.sim.smaps,
+                n_coils=self.sim.n_coils,
+                density=False,
+            )
 
-        ...
+        kspace = fourier_op.op(sim_frame)
+
+        L = shot_batch.shape[1]
+
+        kdata = self.kdata_info.sm2np(self.kdata_sm)
+        kmask = self.kmask_info.sm2np(self.kmask_sm)
+        for i, (k, s) in enumerate(shot_pos):
+            with self.kdata_info.lock:
+                kdata[k, :, s * L : (s + 1) * L] = kspace[:, :, i * L : (i + 1) * L]
+            with self.kmask_info.lock:
+                kmask[k, s * L : (s + 1) * L] = shot_batch[i]
 
 
 def _acquire_mp(
