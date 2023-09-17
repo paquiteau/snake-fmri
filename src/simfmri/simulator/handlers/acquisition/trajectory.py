@@ -8,12 +8,8 @@ import logging
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType, AnyShape
 
-from .cartesian_sampling import (
-    flip2center,
-    get_kspace_slice_loc,
-)
+from .cartesian_sampling import get_kspace_slice_loc
 
-from mrinufft.trajectories.trajectory2D import initialize_2D_radial
 from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
 
 logger = logging.getLogger("simulation.acquisition.trajectory")
@@ -72,19 +68,10 @@ def vds_factory(
             "accel_axis should be lower than the number of spatial dimension."
         )
 
-    line_locs = get_kspace_slice_loc(shape[accel_axis], acs, accel, pdf, rng)
-    n_shots = len(line_locs)
-    if direction == "center-out":
-        line_locs = flip2center(sorted(line_locs), shape[accel_axis] // 2)
-    elif direction == "random":
-        line_locs = rng.permutation(line_locs)
-    elif direction is None:
-        pass
-    else:
-        raise ValueError(f"Unknown direction '{direction}'.")
+    line_locs = get_kspace_slice_loc(shape[accel_axis], acs, accel, pdf, rng, direction)
     # initialize the trajetory. -1 is the default value,
     # and we put the line index in the correct axis (0-indexed)
-    shots = -np.ones((n_shots, 1, len(shape)), dtype=np.int32)
+    shots = -np.ones((len(line_locs), 1, len(shape)), dtype=np.int32)
     for shot_idx, line_loc in enumerate(line_locs):
         shots[shot_idx, :, accel_axis] = line_loc
     return shots

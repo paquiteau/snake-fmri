@@ -3,7 +3,7 @@
 import numpy as np
 from scipy.stats import norm  # type: ignore
 
-from typing import Sequence, Any
+from typing import Sequence, Any, Literal
 from simfmri.utils import RngType, validate_rng, AnyShape
 
 SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
@@ -15,6 +15,7 @@ def get_kspace_slice_loc(
     accel: int = 4,
     pdf: str = "gaussian",
     rng: RngType = None,
+    direction: Literal["center-out", "random"] = "center-out",
 ) -> np.ndarray:
     """Get slice index at a random position.
 
@@ -69,7 +70,17 @@ def get_kspace_slice_loc(
         rng.choice(borders, size=n_samples_borders, replace=False, p=p)
     )
 
-    return np.array(sorted(center_indexes + sampled_in_border))
+    line_locs = np.array(sorted(center_indexes + sampled_in_border))
+    # apply order of lines
+    if direction == "center-out":
+        line_locs = flip2center(sorted(line_locs), dim_size // 2)
+    elif direction == "random":
+        line_locs = rng.permutation(line_locs)
+    elif direction is None:
+        pass
+    else:
+        raise ValueError(f"Unknown direction '{direction}'.")
+    return line_locs
 
 
 def get_cartesian_mask(
