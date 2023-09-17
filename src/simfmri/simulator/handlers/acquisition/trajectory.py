@@ -177,15 +177,7 @@ def trajectory_generator(
         Kspace trajectory.
     """
     while True:
-        yield traj_factory(**kwargs)
-
-
-ROTATE_ANGLES = {
-    "constant": 0,
-    None: 0,
-    "golden": 2.39996322972865332,  # 2pi(2-phi)
-    "golden-mri": 1.941678793,  # 115.15 deg
-}
+        yield traj_factory(**kwargs).astype(np.float32)
 
 
 def rotate_trajectory(
@@ -239,20 +231,20 @@ def kspace_bulk_shot(
 
     Yields
     ------
-    tuple[np.ndarray, list[int]]
-        A tuple of (shots, kspace_frame) where kspace_frame is the index of the kspace
-        frame in the full trajectory.
+    tuple[int, np.ndarray, list[int], list[int]]
+        A tuple of (sim_frame shots, shot_pos) where shot_pos is the absolute position
+        (kspace_frame, shot_idx) index of the kspace frame in the full trajectory.
     """
     shots = next(traj_generator)
     shot_idx = 0
-    print(f"full trajectory has {len(shots)} shots")
-    kspace_frame = 0
+    logger.debug(f"full trajectory has {len(shots)} shots")
+    kframe = 0
     for sim_frame_idx in range(n_sim_frame):
         if shot_idx + n_batch <= len(shots):
             yield (
                 sim_frame_idx,
                 shots[shot_idx : shot_idx + n_batch],
-                [kspace_frame] * n_batch,
+                [(kframe, i) for i in range(shot_idx, shot_idx + n_batch)],
             )
             shot_idx += n_batch
         elif shot_idx <= len(shots):
@@ -263,11 +255,11 @@ def kspace_bulk_shot(
             yield (
                 sim_frame_idx,
                 np.vstack([shots[shot_idx:], new_shots[:new_shot_idx]]),
-                [kspace_frame] * (len(shots) - shot_idx)
-                + [kspace_frame + 1] * new_shot_idx,
+                [(kframe, i) for i in range(shot_idx, len(shots))]
+                + [(kframe + 1, i) for i in range(new_shot_idx)],
             )
             shots = new_shots
             shot_idx = new_shot_idx
-            kspace_frame += 1
+            kframe += 1
         else:
             raise RuntimeError("invalid shot_idx value")
