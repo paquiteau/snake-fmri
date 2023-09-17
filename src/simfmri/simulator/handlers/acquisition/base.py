@@ -258,18 +258,14 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         Number of shots in the radial pattern
     Ns: int
         Number of spokes in each shot
-    smaps: bool
         If true, apply sensitivity maps to the data.
     angle: str
         If "constant", the trajectory is generated once and used for all frames.
-        If "random", a random angle is generated for each frame.
-    n_jobs: int
-        Number of jobs to run in parallel for the frame acquisition.
-    backend: str
-        Backend to use for the Non Cartesian Fourier Transform default is "finufft"
+        If "random", a random angle is generated for each frame
+    **kwargs:
+        Extra arguments (smaps, n_jobs, backend etc...)
 
-
-    TODO: For Radial we could implement the Radon Transform.
+    TODO: For Radial we could implement the Radon Transform ?
     """
 
     def __init__(
@@ -278,15 +274,11 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         n_points: int,
         expansion: str = "rotation",
         n_repeat: int = 1,
-        smaps: bool = True,
         angle: str = "constant",
-        n_jobs: int = 4,
         shot_time_ms: int = 20,
-        backend: str = "finufft",
+        **kwargs: Mapping(str, Any),
     ) -> None:
-        super().__init__(
-            constant=angle == "constant", smaps=smaps, n_jobs=n_jobs, backend=backend
-        )
+        super().__init__(constant=angle == "constant", **kwargs)
 
         self._traj_params = {
             "n_shots": n_shots,
