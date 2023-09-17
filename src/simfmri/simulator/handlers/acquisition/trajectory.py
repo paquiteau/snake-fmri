@@ -5,11 +5,14 @@ from typing import Literal, Protocol, Mapping, Any
 from collections.abc import Generator
 import numpy as np
 import logging
-from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType, AnyShape
 
 from .cartesian_sampling import get_kspace_slice_loc
 
+from mrinufft.trajectories.trajectory2D import (
+    initialize_2D_radial,
+    initialize_2D_spiral,
+)
 from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
 
 logger = logging.getLogger("simulation.acquisition.trajectory")
@@ -60,7 +63,6 @@ def vds_factory(
     KspaceTrajectory
         Variable density sampling trajectory.
     """
-    rng = validate_rng(rng)
     if accel_axis < 0:
         accel_axis = len(shape) + accel_axis
     if not (0 <= accel_axis < len(shape)):
@@ -88,7 +90,6 @@ def radial_factory(
     """Create a radial sampling trajectory."""
     if dim == 2:
         traj_points = initialize_2D_radial(n_shots, n_points)
-        traj_points = np.float32(traj_points)
 
     elif dim == 3:
         if expansion is None:
@@ -134,13 +135,13 @@ def stack_spiral_factory(
     # create the equivalent 3d trajectory
     nsamples = len(spiral2D)
     nz = len(z_kspace)
-    kspace_locs3d = np.zeros((nz, nsamples, 3))
+    kspace_locs3d = np.zeros((nz, nsamples, 3), dtype=np.float32)
     # TODO use numpy api for this ?
     for i in range(nz):
         kspace_locs3d[i, :, :2] = spiral2D
         kspace_locs3d[i, :, 2] = z_kspace[i]
 
-    return kspace_locs3d
+    return np.float32(kspace_locs3d)
 
 
 #####################################
