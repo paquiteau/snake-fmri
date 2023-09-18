@@ -202,7 +202,9 @@ def _acquire_mp(
     )
 
     acquisition_director = kspace_bulk_shot(
-        trajectory_gen, sim.n_frames, n_shot_sim_frame
+        trajectory_gen,
+        sim.n_frames,
+        n_shot_sim_frame,
     )
 
     work_queue = mp.JoinableQueue(maxsize=2 * n_jobs)
