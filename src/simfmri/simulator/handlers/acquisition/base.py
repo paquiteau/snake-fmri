@@ -10,6 +10,7 @@ import numpy as np
 
 from simfmri.simulator.handlers.base import AbstractHandler
 from simfmri.simulator.simulation import SimDataType
+from simfmri.utils import validate_rng
 
 from .trajectory import (
     vds_factory,
@@ -194,7 +195,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
 
     def _handle(self, sim: SimDataType) -> SimDataType:
         self._traj_params["shape"] = sim.shape
-        self._traj_params["rng"] = sim.rng
+        self._traj_params["rng"] = validate_rng(sim.rng)
         return self._acquire(
             sim,
             trajectory_generator=trajectory_generator(vds_factory, **self._traj_params),
@@ -356,7 +357,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     def _handle(self, sim: SimDataType) -> SimDataType:
         self._traj_params["shape"] = sim.shape
-        self._traj_params["rng"] = sim.rng
+        self._traj_params["rng"] = validate_rng(sim.rng)
 
         sim.extra_infos["operator"] = self._backend
 
@@ -378,6 +379,8 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         grads, _, slews = compute_gradients(test_traj, resolution=sim.res[-1])
         if not _check_gradient_constraints(grads, slews):
             self.log.error("Trajectory does not respect gradient constraints.")
+
+        self._traj_params["constant"] = self.constant
 
         return self._acquire(
             sim,

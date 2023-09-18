@@ -176,8 +176,13 @@ def trajectory_generator(
     np.ndarray
         Kspace trajectory.
     """
+    if kwargs.pop("constant", False):
+        logger.debug("constant trajectory")
+        traj = traj_factory(**kwargs)
+        while True:
+            yield traj
     while True:
-        yield traj_factory(**kwargs).astype(np.float32)
+        yield traj_factory(**kwargs)
 
 
 def rotate_trajectory(
