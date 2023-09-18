@@ -146,7 +146,7 @@ class NonCartesianWorker(AcquisitionWorker):
         sim_frame = np.complex64(self.sim.data_acq[sim_frame_idx])
         with warnings.catch_warnings():
             warnings.filterwarnings(
-                "once",
+                "ignore",
                 "Samples will be rescaled to .*",
                 category=UserWarning,
                 module="mrinufft",
