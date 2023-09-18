@@ -88,19 +88,19 @@ class AcquisitionWorker(mp.Process):
         self.kmask_sm.close()
 
 
+def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
+    """Return a slicer for the mask.
+
+    Fully sampled axis are marked with a -1.
+    """
+    slicer = [slice(None, None, None)] * shot.shape[-1]
+    accel_axis = [i for i, v in enumerate(shot[0]) if v != -1][0]
+    slicer[accel_axis] = shot[0][accel_axis]
+    return tuple(slicer)
+
+
 class CartesianWorker(AcquisitionWorker):
     """A process performing a cartesian MRI acquisition."""
-
-    @staticmethod
-    def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
-        """Return a slicer for the mask.
-
-        Fully sampled axis are marked with a -1.
-        """
-        slicer = [slice(None, None, None)] * shot.shape[-1]
-        accel_axis = [i for i, v in enumerate(shot[0]) if v != -1][0]
-        slicer[accel_axis] = shot[0][accel_axis]
-        return tuple(slicer)
 
     def _run(
         self,
@@ -114,7 +114,7 @@ class CartesianWorker(AcquisitionWorker):
 
         masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
         for i, shot in enumerate(shot_batch):
-            masks[i][self._get_slicer(shot)] = 1
+            masks[i][_get_slicer(shot)] = 1
         mask = np.sum(masks, axis=0)
         fourier_op = FFT_Sense(
             sim_frame.shape, mask=mask, smaps=self.sim.smaps, n_coils=self.sim.n_coils
