@@ -31,8 +31,6 @@ class AbstractHandler(ABC):
 
     """
 
-    _callbacks: list[CallbackType]
-
     def __init__(self) -> None:
         self._callbacks = []
         self.next = None
