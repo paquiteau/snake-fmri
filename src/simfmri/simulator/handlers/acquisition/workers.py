@@ -6,7 +6,6 @@ from contextlib import nullcontext
 from typing import ContextManager, Mapping, Any
 from dataclasses import dataclass, field
 import multiprocessing as mp
-from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 
 import numpy as np
@@ -46,8 +45,7 @@ class ArrayInfo:
 
     def sm2np(self, shared_mem: SharedMemory) -> np.ndarray:
         """Create a numpy array from a shared memory object."""
-        arr = np.frombuffer(shared_mem.buf, dtype=self.dtype)
-        return arr.reshape(self.shape)
+        return np.ndarray(self.shape, buffer=shared_mem.buf, dtype=self.dtype)
 
     @property
     def byte_size(self) -> int:
@@ -86,6 +84,8 @@ class AcquisitionWorker(mp.Process):
             self._run(**job)
             self.job_queue.task_done()
         self.job_queue.task_done()
+        self.kdata_sm.close()
+        self.kmask_sm.close()
 
 
 class CartesianWorker(AcquisitionWorker):
@@ -209,44 +209,43 @@ def _acquire_mp(
 
     workers = []
 
-    with SharedMemoryManager() as smm:
-        kdata_sm = smm.SharedMemory(size=kdata_info.byte_size)
-        kmask_sm = smm.SharedMemory(size=kmask_info.byte_size)
-        # create worker
-        for _ in range(n_jobs):
-            w = worker_klass(
-                kdata_sm,
-                kmask_sm,
-                sim,
-                work_queue,
-                kdata_info,
-                kmask_info,
-                **kwargs,
-            )
-            workers.append(w)
-            logger.debug("Starting worker %s", w.name)
-            w.start()
+    kdata_sm = SharedMemory(size=kdata_info.byte_size, create=True)
+    kmask_sm = SharedMemory(size=kmask_info.byte_size, create=True)
+    # create worker
+    for _ in range(n_jobs):
+        w = worker_klass(
+            kdata_sm,
+            kmask_sm,
+            sim,
+            work_queue,
+            kdata_info,
+            kmask_info,
+            **kwargs,
+        )
+        workers.append(w)
+        logger.debug("Starting worker %s", w.name)
+        w.start()
 
-        # add jobs to queue (with max size )
-        for sim_frame_idx, shot_batch, shot_pos in tqdm(
-            acquisition_director, total=sim.n_frames
-        ):
-            work_queue.put(
-                {
-                    "sim_frame_idx": sim_frame_idx,
-                    "shot_batch": shot_batch,
-                    "shot_pos": shot_pos,
-                    "n_kspace_frames": n_kspace_frame,
-                }
-            )
-        work_queue.join()
-        # cleanup
-        for _ in workers:
-            work_queue.put(KILLER)
-        work_queue.join()
-        del workers
-        logger.debug("deleted all workers")
-        return kdata_sm, kmask_sm
+    # add jobs to queue (with max size )
+    for sim_frame_idx, shot_batch, shot_pos in tqdm(
+        acquisition_director, total=sim.n_frames
+    ):
+        work_queue.put(
+            {
+                "sim_frame_idx": sim_frame_idx,
+                "shot_batch": shot_batch,
+                "shot_pos": shot_pos,
+                "n_kspace_frames": n_kspace_frame,
+            }
+        )
+    work_queue.join()
+    # cleanup
+    for _ in workers:
+        work_queue.put(KILLER)
+    work_queue.join()
+    del workers
+    logger.debug("deleted all workers")
+    return kdata_sm, kmask_sm
 
 
 def acquire_cartesian_mp(
@@ -273,6 +272,11 @@ def acquire_cartesian_mp(
 
     kdata = kdata_info.sm2np(kdata_sm)
     kmask = kmask_info.sm2np(kmask_sm)
+
+    kdata_sm.close()
+    kmask_sm.close()
+    kdata_sm.unlink()
+    kmask_sm.unlink()
 
     return kdata, kmask
 
