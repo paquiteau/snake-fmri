@@ -65,17 +65,17 @@ class AcquisitionHandler(AbstractHandler):
 
     acquire_mp = staticmethod(acquire_cartesian_mp)
 
-    def __init__(self, constant: bool, smaps: bool, n_jobs: int):
+    def __init__(self, constant: bool, smaps: bool):
         super().__init__()
         self.constant = constant
         self.smaps = smaps
-        self.n_jobs = n_jobs
         self.is_cartesian = True
 
     def _acquire(
         self,
         sim: SimDataType,
         trajectory_generator: TrajectoryGeneratorType,
+        **kwargs: Mapping[str, Any],
     ) -> np.ndarray:
         """Acquire the data by splitting the kspace shot over the simulation frames.
 
@@ -91,52 +91,40 @@ class AcquisitionHandler(AbstractHandler):
             sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
         test_traj = next(trajectory_generator)
-        frame_TR_ms = self._validate_TR(
-            sim, len(test_traj), self._traj_params["shot_time_ms"]
-        )
-        if sim.sim_time_ms % frame_TR_ms:
-            self.log.warning("the TR for a frame does not divide the simulation time.")
+        n_shot_traj = len(test_traj)
+        shot_time_ms = self._traj_params["shot_time_ms"]
+        if sim.sim_tr_ms % shot_time_ms != 0:
+            # find the closest shot time that divides the simulation time
+            new_shot_time_ms = int(sim.sim_tr_ms / (sim.sim_tr_ms // shot_time_ms + 1))
+            self.log.warning(
+                f"shot time {shot_time_ms}ms does not divide sim tr {sim.sim_tr_ms}ms."
+                f" Updating to {new_shot_time_ms}ms per shot"
+            )
+            shot_time_ms = new_shot_time_ms
 
-        n_kspace_frame = int(sim.sim_time_ms / frame_TR_ms)
+        kframe_tr = n_shot_traj * shot_time_ms
+        self.log.debug("initial TR volume %i ms", kframe_tr)
+
+        n_kspace_frame = int(sim.sim_time_ms / kframe_tr)
         n_shot_sim_frame = (n_kspace_frame * len(test_traj)) // sim.n_frames
-        self.log.debug("n_shot/sim_frame %d/%d", n_shot_sim_frame, sim.n_frames)
+        self.log.debug("n_shot/sim_frame %d", n_shot_sim_frame)
 
-        sim.extra_infos["TR_ms"] = frame_TR_ms
+        sim.extra_infos["TR_ms"] = kframe_tr
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
 
         kspace_data, kspace_mask = self.acquire_mp(
-            sim, trajectory_generator, n_shot_sim_frame, n_kspace_frame, self.n_jobs
+            sim,
+            trajectory_generator,
+            n_shot_sim_frame,
+            n_kspace_frame,
+            **kwargs,
         )
 
         sim.kspace_data = kspace_data
         sim.kspace_mask = kspace_mask
         return sim
-
-    def _validate_TR(
-        self,
-        sim: SimDataType,
-        n_shots: int,
-        shot_time_ms: int,
-    ) -> None:
-        """Print debug information about the trajectory."""
-        TR_ms = shot_time_ms * n_shots
-        if sim.sim_tr_ms % shot_time_ms != 0:
-            self.log.warning(
-                f"shot time {shot_time_ms}ms does not divide TR {sim.sim_tr_ms}ms."
-            )
-        if TR_ms % sim.sim_tr_ms != 0:
-            old_TR_ms = TR_ms
-            self.log.error(
-                f"simTR {sim.sim_tr_ms}ms does not divide total shot time {TR_ms}ms."
-            )
-            TR_ms = sim.sim_tr_ms * (TR_ms // sim.sim_tr_ms)
-            shot_time_ms = shot_time_ms * TR_ms / old_TR_ms
-            self.log.warning(
-                f"Using TR={TR_ms}ms instead. (shot time {shot_time_ms}ms)"
-            )
-        return TR_ms
 
 
 class VDSAcquisitionHandler(AcquisitionHandler):
@@ -166,8 +154,6 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         Otherwise, it is regenerated at each frame.
     smaps
         If true, apply sensitivity maps to the data.
-    n_jobs
-        Number of jobs to run in parallel for the frame acquisition.
 
     """
 
@@ -181,9 +167,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
         smaps: bool = True,
-        n_jobs: int = 4,
     ):
-        super().__init__(constant, smaps, n_jobs)
+        super().__init__(constant, smaps)
         self._traj_params = {
             "acs": acs,
             "accel": accel,
@@ -242,10 +227,9 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         self,
         constant: bool = False,
         smaps: bool = True,
-        n_jobs: int = 4,
         backend: str = "finufft",
     ):
-        super().__init__(constant, smaps, n_jobs)
+        super().__init__(constant, smaps)
         self._backend = backend
 
 
@@ -387,4 +371,8 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             trajectory_generator=trajectory_generator(
                 stack_spiral_factory, **self._traj_params
             ),
+            # extra kwargs for the nufft operator
+            op_backend="stacked",
+            z_index="auto",
+            backend="finufft",
         )
