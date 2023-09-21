@@ -20,8 +20,6 @@ class NoiseHandler(AbstractHandler):
     snr
         The target SNR
         The  SNR  is defined as max(signal) / std(noise)
-    rng
-        Random Generator, optional,  int or numpy random state
     verbose
         verbose flag.
         If True, a callback function is setup to return the computed snr.
@@ -83,6 +81,8 @@ class NoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(NoiseHandler):
     """Add gaussian Noise to the data."""
 
+    name = "noise-gaussian"
+
     def _add_noise(self, sim: SimDataType, rng_seed: int, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
         if np.iscomplexobj(sim.data_ref):
@@ -140,6 +140,8 @@ class GaussianNoiseHandler(NoiseHandler):
 class RicianNoiseHandler(NoiseHandler):
     """Add rician noise to the data."""
 
+    name = "noise-rician"
+
     def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
             raise ValueError(
@@ -153,6 +155,8 @@ class RicianNoiseHandler(NoiseHandler):
 
 class KspaceNoiseHandler(NoiseHandler):
     """Add gaussian in the kspace."""
+
+    name = "noise-kspace"
 
     def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
         if sim.kspace_data is None:

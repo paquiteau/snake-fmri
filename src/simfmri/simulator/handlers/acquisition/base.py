@@ -169,6 +169,8 @@ class VDSAcquisitionHandler(AcquisitionHandler):
 
     """
 
+    name = "acquisition-vds"
+
     def __init__(
         self,
         acs: float | int,
@@ -265,6 +267,8 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     TODO: For Radial we could implement the Radon Transform ?
     """
 
+    name = "acquisition-radial"
+
     def __init__(
         self,
         n_shots: int,
@@ -326,6 +330,8 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
     **kwargs:
         Extra arguments (smaps, n_jobs, backend etc...)
     """
+
+    name = "acquisition-sos"
 
     def __init__(
         self,

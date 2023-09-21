@@ -4,12 +4,39 @@ import time
 import copy
 import logging
 from abc import ABC, abstractmethod
-from typing import Callable, Any
+from typing import Callable, Any, Iterable, Mapping
 
 from ..simulation import SimDataType
 
 
 CallbackType = Callable[[SimDataType, SimDataType], Any]
+
+
+AVAILABLE_HANDLERS: Mapping[str, AbstractHandler] = {}
+
+
+def handler(
+    name: str, *args: Iterable[Any], **kwargs: Mapping[str, Any]
+) -> AbstractHandler | type(AbstractHandler):
+    """Create a handler from its name."""
+    if args or kwargs:
+        return AVAILABLE_HANDLERS[name](*args, **kwargs)
+    else:
+        return AVAILABLE_HANDLERS[name]
+
+
+# short alias
+H = handler
+
+
+def list_handlers():
+    """List all available handlers."""
+    return list(AVAILABLE_HANDLERS.keys())
+
+
+def get_handler(name):
+    """Get a handler from its name."""
+    return AVAILABLE_HANDLERS[name]
 
 
 class AbstractHandler(ABC):
@@ -35,6 +62,10 @@ class AbstractHandler(ABC):
         self._callbacks = []
         self.next = None
         self.prev = None
+
+    def __init_subclass__(cls):
+        if getattr(cls, "name", None) is not None:
+            AVAILABLE_HANDLERS[cls.name] = cls
 
     def __rshift__(self, obj: AbstractHandler) -> AbstractHandler:
         """Chain the handler with the righhandside, and return the righhandside.

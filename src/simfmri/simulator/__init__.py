@@ -4,7 +4,7 @@ This module is responsible for the creation of data
 """
 from .simulation import SimDataType, SimulationParams, SimulationData
 from .handlers import (
-    AbstractHandler,
+    H,
     AcquisitionHandler,
     ActivationHandler,
     BigPhantomGeneratorHandler,
@@ -23,7 +23,7 @@ from .handlers import (
 )
 
 __all__ = [
-    "AbstractHandler",
+    "H",
     "AcquisitionHandler",
     "ActivationHandler",
     "BigPhantomGeneratorHandler",
