@@ -177,6 +177,11 @@ class BrainwebPhantomHandler(AbstractHandler):
             rng=sim.rng or self.rng,
             shape=sim.shape,
         )
+        if -1 in sim.shape:
+            old_shape = sim.shape
+            sim._meta.shape = sim.static_vol.shape
+            self.log.warning(f"shape was implicit {old_shape}, it is now {sim.shape}.")
+
         if sim.lazy:
             sim.data_ref = LazySimArray(sim.static_vol, sim.n_frames)
         else:
@@ -203,9 +208,6 @@ class BrainwebPhantomHandler(AbstractHandler):
         )
         sim.roi[~ellipsoid] = 0
 
-        if -1 in sim.shape:
-            sim._meta.shape = sim.static_vol.shape
-            self.log.warning(f"shape was implicit, it is now {sim.shape}.")
         return sim
 
 
