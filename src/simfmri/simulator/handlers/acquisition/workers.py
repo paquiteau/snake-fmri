@@ -63,6 +63,7 @@ def _run_non_cartesian(
     sim_frame_idx: int,
     shot_batch: np.ndarray,
     shot_pos: tuple[int, int],
+    nufft_backend: str,
     **kwargs: Mapping[str, Any],
 ) -> None:
     sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
@@ -73,15 +74,10 @@ def _run_non_cartesian(
             category=UserWarning,
             module="mrinufft",
         )
-        try:
-            nufft_backend = kwargs.pop("op_backend")
-        except KeyError:
-            nufft_backend = kwargs.pop("backend")
-        logger.debug("Using backend %s", nufft_backend)
         fourier_op = get_operator(
             nufft_backend,
             samples=shot_batch,
-            shape=sim_frame.shape,
+            shape=sim.shape,
             smaps=sim.smaps,
             n_coils=sim.n_coils,
             density=False,
@@ -93,7 +89,7 @@ def _run_non_cartesian(
     L = shot_batch.shape[1]
 
     for i, (k, s) in enumerate(shot_pos):
-        kdata[k, :, s * L : (s + 1) * L] = kspace[:, :, i * L : (i + 1) * L]
+        kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
         kmask[k, s * L : (s + 1) * L] = shot_batch[i]
 
 
@@ -113,8 +109,14 @@ def _acquire_mp(
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
 
     for sim_frame_idx, shot_batch, shot_pos in tqdm(scheduler, total=sim.n_frames):
-        _run_non_cartesian(
-            sim, kdata, kmask, sim_frame_idx, shot_batch, shot_pos, **kwargs
+        runner(
+            sim,
+            kdata,
+            kmask,
+            sim_frame_idx,
+            shot_batch,
+            shot_pos,
+            **kwargs,
         )
 
     return kdata, kmask
@@ -136,7 +138,6 @@ def acquire_cartesian_mp(
         _run_cartesian,
         n_shot_sim_frame,
         n_kspace_frame,
-        n_jobs,
         kdata_info,
         kmask_info,
     )
