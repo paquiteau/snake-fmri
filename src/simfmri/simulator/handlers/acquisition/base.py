@@ -95,7 +95,9 @@ class AcquisitionHandler(AbstractHandler):
         shot_time_ms = self._traj_params["shot_time_ms"]
         if sim.sim_tr_ms % shot_time_ms != 0:
             # find the closest shot time that divides the simulation time
-            new_shot_time_ms = int(sim.sim_tr_ms / (sim.sim_tr_ms // shot_time_ms + 1))
+            new_shot_time_ms = int(
+                sim.sim_tr_ms / ((sim.sim_tr_ms // shot_time_ms) + 1)
+            )
             self.log.warning(
                 f"shot time {shot_time_ms}ms does not divide sim tr {sim.sim_tr_ms}ms."
                 f" Updating to {new_shot_time_ms}ms per shot"
@@ -105,9 +107,14 @@ class AcquisitionHandler(AbstractHandler):
         kframe_tr = n_shot_traj * shot_time_ms
         self.log.debug("initial TR volume %i ms", kframe_tr)
 
-        n_kspace_frame = int(sim.sim_time_ms / kframe_tr)
-        n_shot_sim_frame = (n_kspace_frame * len(test_traj)) // sim.n_frames
-        self.log.debug("n_shot/sim_frame %d", n_shot_sim_frame)
+        n_shot_sim_frame = int(sim.sim_tr_ms / shot_time_ms)
+        n_tot_shots = sim.n_frames * n_shot_sim_frame
+        n_kspace_frame = int(np.ceil(n_tot_shots / n_shot_traj))
+
+        self.log.debug("n_kspace_frame %d", n_kspace_frame)
+        self.log.debug("n_tot_shots %d", n_tot_shots)
+        self.log.debug("n_shot_traj %d", n_shot_traj)
+        self.log.debug("n_shot_sim_frame %d", n_shot_sim_frame)
 
         sim.extra_infos["TR_ms"] = kframe_tr
         sim.extra_infos["traj_name"] = "vds"
@@ -121,6 +128,11 @@ class AcquisitionHandler(AbstractHandler):
             n_kspace_frame,
             **kwargs,
         )
+
+        if np.ceil(n_tot_shots / n_shot_traj) >= n_tot_shots / n_shot_traj:
+            # the last frame is not full and should be removed
+            kspace_data = kspace_data[:-1]
+            kspace_mask = kspace_mask[:-1]
 
         sim.kspace_data = kspace_data
         sim.kspace_mask = kspace_mask
