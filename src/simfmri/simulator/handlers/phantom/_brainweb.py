@@ -28,7 +28,7 @@ def get_indices_inside_ellipsoid(
 
 
 # this define a ellipsoid roi located in the occipital cortex.
-BRAINWEB_OCCIPTAL_ROI = {
+BRAINWEB_OCCIPITAL_ROI = {
     "shape": (362, 434, 362),
     "center": (185, 52, 145),
     "semi_axes_lengths": (100, 20, 50),

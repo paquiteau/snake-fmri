@@ -167,7 +167,7 @@ class BrainwebPhantomHandler(AbstractHandler):
     def _handle(self, sim: SimDataType) -> SimDataType:
         from ._brainweb import (
             get_indices_inside_ellipsoid,
-            BRAINWEB_OCCIPTAL_ROI,
+            BRAINWEB_OCCIPITAL_ROI,
         )
 
         sim.static_vol = get_mri(
@@ -192,14 +192,14 @@ class BrainwebPhantomHandler(AbstractHandler):
         self.log.debug(f"roi shape: {sim.roi.shape}")
         self.log.debug(f"data_ref shape: {sim.data_ref.shape}")
 
-        roi_zoom = np.array(sim.roi.shape) / np.array(BRAINWEB_OCCIPTAL_ROI["shape"])
+        roi_zoom = np.array(sim.roi.shape) / np.array(BRAINWEB_OCCIPITAL_ROI["shape"])
 
         ellipsoid = get_indices_inside_ellipsoid(
             sim.roi.shape,
-            center=np.array(BRAINWEB_OCCIPTAL_ROI["center"]) * roi_zoom,
-            semi_axes_lengths=np.array(BRAINWEB_OCCIPTAL_ROI["semi_axes_lengths"])
+            center=np.array(BRAINWEB_OCCIPITAL_ROI["center"]) * roi_zoom,
+            semi_axes_lengths=np.array(BRAINWEB_OCCIPITAL_ROI["semi_axes_lengths"])
             * roi_zoom,
-            euler_angles=np.array(BRAINWEB_OCCIPTAL_ROI["euler_angles"]),
+            euler_angles=np.array(BRAINWEB_OCCIPITAL_ROI["euler_angles"]),
         )
         sim.roi[~ellipsoid] = 0
 
