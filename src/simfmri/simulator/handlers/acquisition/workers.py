@@ -159,6 +159,15 @@ def acquire_noncartesian_mp(
     kdata_info = ((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
     kmask_info = ((n_kspace_frame, n_samples, dim), np.float32)
 
+    try:
+        nufft_backend = kwargs.pop("op_backend")
+    except KeyError:
+        nufft_backend = kwargs.pop("backend")
+    logger.debug("Using backend %s", nufft_backend)
+    kwargs["nufft_backend"] = nufft_backend
+    if nufft_backend == "stacked":
+        kwargs["z_index"] = "auto"
+    logger.debug("extra kwargs %s", kwargs)
     kdata, kmask = _acquire_mp(
         sim,
         trajectory_gen,
