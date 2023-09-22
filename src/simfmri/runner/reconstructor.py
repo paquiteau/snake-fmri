@@ -12,7 +12,7 @@ from mrinufft.operators import get_operator
 from simfmri.simulator import SimDataType
 
 from fmri.operators.fourier import FFT_Sense, RepeatOperator
-from fmri.operators.fourier import CartesianSpaceFourier
+from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ def get_fourier_operator(
             kwargs["squeeze_dims"] = True
         kwargs["density"] = True
 
-        def _get_op(i: int = 0) -> RepeatOperator | CartesianSpaceFourier:
+        def _get_op(i: int = 0) -> SpaceFourierBase:
             return get_operator(backend)(
                 sim.kspace_mask[i],
                 shape=sim.shape,
@@ -70,6 +70,7 @@ class BenchmarkReconstructor:
 
     def __init__(self):
         self.reconstructor = None
+        self.fourier_op = None
 
     def setup(self, sim: SimDataType) -> None:
         """Set up the reconstructor."""
@@ -132,7 +133,8 @@ class SequentialReconstructor(BenchmarkReconstructor):
         from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
-        fourier_op = get_fourier_operator(sim, repeat=True)
+        if self.fourier_op is None:
+            self.fourier_op = get_fourier_operator(sim, repeat=True)
 
         space_linear_op = WaveletN(
             self.wavelet, nb_scale=3, dim=len(sim.shape), padding="periodization"
@@ -151,13 +153,18 @@ class SequentialReconstructor(BenchmarkReconstructor):
         from fmri.reconstructors.frame_based import SequentialReconstructor
 
         self.reconstructor = SequentialReconstructor(
-            fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
+            self.fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
         )
 
-    def reconstruct(self, sim: SimDataType) -> np.ndarray:
+    def reconstruct(
+        self, sim: SimDataType, fourier_op: SpaceFourierBase | None = None
+    ) -> np.ndarray:
         """Reconstruct with Sequential."""
+        if fourier_op is not None:
+            self.fourier_op = fourier_op
         if self.reconstructor is None:
             self.setup(sim)
+
         seq_rec = self.reconstructor.reconstruct(
             sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame, warm_x=True
         )
@@ -201,14 +208,15 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
         from fmri.operators.svt import FlattenSVT
         from fmri.operators.utils import InTransformSparseThreshold
 
-        fourier_op = get_fourier_operator(sim, repeat=False)
+        if self.fourier_op is None:
+            self.fourier_op = get_fourier_operator(sim, repeat=False)
         time_linear_op = TimeFourier(time_axis=0)
         space_prox_op = FlattenSVT(
             self.lambda_l, initial_rank=10, thresh_type="soft-rel"
         )
 
         if self.lambda_s == "sure":
-            adj_data = fourier_op.adj_op(sim.kspace_data)
+            adj_data = self.fourier_op.adj_op(sim.kspace_data)
             sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
             tf = time_linear_op.op(adj_data).reshape(len(adj_data), -1)
             for i in range(len(sure_thresh)):
@@ -222,14 +230,18 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
         )
 
         self.reconstructor = LowRankPlusSparseReconstructor(
-            fourier_op,
+            self.fourier_op,
             space_prox_op=space_prox_op,
             time_prox_op=time_prox_op,
             cost="auto",
         )
 
-    def reconstruct(self, sim: SimDataType) -> np.ndarray:
+    def reconstruct(
+        self, sim: SimDataType, fourier_op: SpaceFourierBase | None = None
+    ) -> np.ndarray:
         """Reconstruct using LowRank+Sparse Method."""
+        if fourier_op is not None:
+            self.fourier_op = fourier_op
         if self.reconstructor is None:
             self.setup(sim)
         M, L, S, costs = self.reconstructor.reconstruct(
