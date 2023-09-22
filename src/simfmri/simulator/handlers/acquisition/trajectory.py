@@ -110,7 +110,7 @@ def radial_factory(
 
 
 def stack_spiral_factory(
-    shape: tuple[int],
+    shape: AnyShape,
     accelz: int,
     acsz: int | float,
     n_samples: int,
@@ -129,7 +129,10 @@ def stack_spiral_factory(
     )
 
     spiral2D = initialize_2D_spiral(
-        Nc=1, Ns=n_samples, nb_revolutions=nb_revolutions
+        Nc=1,
+        Ns=n_samples,
+        nb_revolutions=nb_revolutions,
+        in_out=in_out,
     ).reshape(-1, 2)
     z_kspace = (z_index - sizeZ // 2) / sizeZ
     # create the equivalent 3d trajectory
@@ -221,7 +224,7 @@ def kspace_bulk_shot(
     traj_generator: Generator[np.ndarray],
     n_sim_frame: int,
     n_batch: int = 3,
-) -> Generator[tuple[int, np.ndarray, list[int]]]:
+) -> Generator[tuple[int, np.ndarray, list[tuple[int, int]]]]:
     """Generate a stream of shot, delivered in batch.
 
     Parameters
@@ -236,7 +239,7 @@ def kspace_bulk_shot(
 
     Yields
     ------
-    tuple[int, np.ndarray, list[int], list[int]]
+    tuple[int, np.ndarray, list[tuple[int, int]]
         A tuple of (sim_frame shots, shot_pos) where shot_pos is the absolute position
         (kspace_frame, shot_idx) index of the kspace frame in the full trajectory.
     """

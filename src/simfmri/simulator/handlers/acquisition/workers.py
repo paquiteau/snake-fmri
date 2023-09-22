@@ -150,7 +150,7 @@ def acquire_noncartesian_mp(
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
     n_kspace_frame: int,
-    **kwargs,
+    **kwargs: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with non cartesian stuff."""
     test_traj = next(trajectory_gen)
