@@ -5,7 +5,7 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any, TypeVar
+from typing import Literal, Any, TypeVar, Mapping
 import copy
 import pickle
 import dataclasses
@@ -34,16 +34,16 @@ class SimulationParams:
     """Number of coil of the simulation."""
     rng: int = 19980408
     """Random number generator seed."""
-    extra_infos: dict[str, Any] = dataclasses.field(
+    extra_infos: Mapping[str, Any] = dataclasses.field(
         default_factory=lambda: dict(), repr=False
     )
     """Extra information, to add more information to the simulation"""
-    res: tuple[float, ...] = 1
-    """Resolution of the volume in mm"""
+    fov: tuple[float, ...] | float = 0.192
+    """Field of view of the volume in mm"""
 
     def __post_init__(self) -> None:
-        if isinstance(self.res, (float, int)):
-            self.res = (self.res,) * len(self.shape)
+        if isinstance(self.fov, float):
+            self.fov = (self.fov,) * len(self.shape)
 
 
 class SimulationData:
@@ -114,7 +114,7 @@ class SimulationData:
     def __init__(
         self,
         shape: AnyShape,
-        res: float | tuple[float],
+        fov: float | tuple[float],
         sim_tr: float,
         sim_time: float,
         n_coils: int = 1,
@@ -127,7 +127,7 @@ class SimulationData:
             extra_infos = dict()
         self._meta = SimulationParams(
             shape,
-            res=res,
+            fov=fov,
             n_frames=n_frames,
             sim_tr=sim_tr,
             n_coils=n_coils,
@@ -240,9 +240,14 @@ class SimulationData:
         return self._meta.n_frames
 
     @property
-    def res(self) -> int:
+    def fov(self) -> tuple[float]:
+        """Get the simulation FOV."""
+        return self._meta.fov
+
+    @property
+    def res(self) -> tuple[float]:
         """Get resolution."""
-        return self._meta.res
+        return tuple(f / s for f, s in zip(self.fov, self.shape))
 
     @property
     def sim_tr(self) -> float:
