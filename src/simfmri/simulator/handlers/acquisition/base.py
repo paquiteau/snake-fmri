@@ -70,7 +70,7 @@ class AcquisitionHandler(AbstractHandler):
         super().__init__()
         self.constant = constant
         self.smaps = smaps
-        self.is_cartesian = True
+        self.shot_time_ms = shot_time_ms
 
     def _acquire(
         self,
@@ -93,22 +93,26 @@ class AcquisitionHandler(AbstractHandler):
 
         test_traj = next(trajectory_generator)
         n_shot_traj = len(test_traj)
-        shot_time_ms = self._traj_params["shot_time_ms"]
-        if sim.sim_tr_ms % shot_time_ms != 0:
+        if sim.sim_tr_ms % self.shot_time_ms != 0:
             # find the closest shot time that divides the simulation time
             new_shot_time_ms = int(
-                sim.sim_tr_ms / ((sim.sim_tr_ms // shot_time_ms) + 1)
+                sim.sim_tr_ms / ((sim.sim_tr_ms // self.shot_time_ms) + 1)
             )
             self.log.warning(
-                f"shot time {shot_time_ms}ms does not divide sim tr {sim.sim_tr_ms}ms."
+                f"shot time {self.shot_time_ms}ms does not divide sim tr {sim.sim_tr_ms}ms."
                 f" Updating to {new_shot_time_ms}ms per shot"
             )
-            shot_time_ms = new_shot_time_ms
+            self.shot_time_ms = new_shot_time_ms
 
-        kframe_tr = n_shot_traj * shot_time_ms
+        kframe_tr = n_shot_traj * self.shot_time_ms
         self.log.debug("initial TR volume %i ms", kframe_tr)
 
-        n_shot_sim_frame = int(sim.sim_tr_ms / shot_time_ms)
+        n_shot_sim_frame = int(sim.sim_tr_ms / self.shot_time_ms)
+        if n_shot_sim_frame > n_shot_traj:
+            raise ValueError(
+                "Not enough shots in trajectory to allow multiple simframe per kspace."
+                "Increase number of shot per trajectory or use shorter time resolution."
+            )
         n_tot_shots = sim.n_frames * n_shot_sim_frame
         n_kspace_frame = int(np.ceil(n_tot_shots / n_shot_traj))
 
@@ -183,22 +187,22 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         constant: bool = False,
         smaps: bool = True,
     ):
-        super().__init__(constant, smaps)
+        super().__init__(constant=constant, shot_time_ms=shot_time_ms, smaps=smaps)
         self._traj_params = {
             "acs": acs,
             "accel": accel,
             "accel_axis": accel_axis,
             "direction": direction,
             "pdf": pdf,
-            "shot_time_ms": shot_time_ms,
         }
 
     def _handle(self, sim: SimDataType) -> SimDataType:
-        self._traj_params["shape"] = sim.shape
         self._traj_params["rng"] = validate_rng(sim.rng)
         return self._acquire(
             sim,
-            trajectory_generator=trajectory_generator(vds_factory, **self._traj_params),
+            trajectory_generator=trajectory_generator(
+                vds_factory, sim.shape, **self._traj_params
+            ),
         )
 
 
@@ -280,7 +284,9 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         shot_time_ms: int = 20,
         **kwargs: Mapping(str, Any),
     ) -> None:
-        super().__init__(constant=angle == "constant", **kwargs)
+        super().__init__(
+            constant=angle == "constant", shot_time_ms=shot_time_ms, **kwargs
+        )
 
         self._traj_params = {
             "n_shots": n_shots,
@@ -294,13 +300,12 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         self._angle = angle
 
     def _handle(self, sim: SimDataType) -> SimDataType:
-        self._traj_params["dim"] = len(sim.shape)
         sim.extra_infos["operator"] = self._backend
 
         return self._acquire(
             sim,
             trajectory_generator=rotate_trajectory(
-                trajectory_generator(radial_factory, **self._traj_params),
+                trajectory_generator(radial_factory, sim.shape, **self._traj_params),
                 self._angle,
             ),
         )

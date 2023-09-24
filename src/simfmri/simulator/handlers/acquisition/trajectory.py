@@ -80,18 +80,18 @@ def vds_factory(
 
 
 def radial_factory(
+    shape: AnyShape,
     n_shots: int,
     n_points: int,
-    dim: Literal[2, 3] = 2,
     expansion: str | None = None,
     n_repeat: int = 0,
     **kwargs: Mapping[str, Any],
 ) -> np.ndarray:
     """Create a radial sampling trajectory."""
-    if dim == 2:
+    if len(shape) == 2:
         traj_points = initialize_2D_radial(n_shots, n_points)
 
-    elif dim == 3:
+    elif len(shape) == 3:
         if expansion is None:
             raise ValueError("Expansion should be provided for 3D radial sampling.")
         if n_repeat is None:
@@ -161,7 +161,9 @@ ROTATE_ANGLES = {
 
 
 def trajectory_generator(
-    traj_factory: TrajectoryFactoryProtocol, **kwargs: Mapping[str, Any]
+    traj_factory: TrajectoryFactoryProtocol,
+    shape: AnyShape,
+    **kwargs: Mapping[str, Any],
 ) -> Generator[np.ndarray, None, None]:
     """Generate a trajectory.
 
@@ -181,11 +183,11 @@ def trajectory_generator(
     """
     if kwargs.pop("constant", False):
         logger.debug("constant trajectory")
-        traj = traj_factory(**kwargs)
+        traj = traj_factory(shape, **kwargs)
         while True:
             yield traj
     while True:
-        yield traj_factory(**kwargs)
+        yield traj_factory(shape, **kwargs)
 
 
 def rotate_trajectory(
