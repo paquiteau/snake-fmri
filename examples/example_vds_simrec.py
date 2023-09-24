@@ -18,6 +18,8 @@ from fmri.visualisation import mosaic
 # Create The simulation
 # ---------------------
 # We create a simple simulation with 4 coils and a 64x64 image.
+# ``lazy=True`` means that the data will be generated on the fly when needed.
+# This is useful to avoid storing large data in memory.
 
 sim = SimulationData(
     (64, 64), sim_tr=0.1, sim_time=300, fov=0.192, n_coils=4, rng=42, lazy=True
@@ -108,17 +110,10 @@ def plot_ts_roi(arr, sim, roi_idx, ax=None, center=False, **kwargs):
     arr_ = np.abs(arr) if np.iscomplexobj(arr) else arr
     arr_ = arr_[:, sim.roi]
 
-    if roi_idx is None:
-        ts = np.mean(arr_, axis=-1)
-        if center:
-            mean_val = np.mean(ts, axis=0)
-            ts -= mean_val
-            ts_plot = ax.plot(time_samples, ts, **kwargs)
-    else:
-        ts = arr_[:, roi_idx]
-        if center:
-            ts -= np.mean(ts, axis=0)
-        ax.plot(time_samples, ts, **kwargs)
+    ts = arr_[:, roi_idx] if roi_idx is not None else np.mean(arr_, axis=-1)
+    if center:
+        ts -= np.mean(ts, axis=0)
+    ax.plot(time_samples, ts, **kwargs)
     return ax
 
 
@@ -137,3 +132,19 @@ def plot_ts_roi_many(arr_dict, sim, roi_idx, ax=None, center=False, **kwargs):
     ax.legend(loc="center left", bbox_to_anchor=(1, 0.5), borderaxespad=0.0)
 
     return ax
+
+
+# %%
+# Time serie of the ROI
+# ~~~~~~~~~~~~~~~~~~~~~
+#
+
+fig, ax = plt.subplots()
+ax.set_title("Time serie of the ROI")
+plot_ts_roi_many(
+    {"acquired": sim.data_acq, "zero-filled": adj_data, "sequential": seq_data},
+    sim,
+    roi_idx=0,
+    ax=ax,
+    center=True,
+)
