@@ -119,42 +119,6 @@ class ActivationHandler(AbstractHandler):
             h_old = h
         return h
 
-    @classmethod
-    def from_block_design(
-        cls,
-        block_on: float,
-        block_off: float,
-        duration: float,
-        offset: float = 0,
-        event_name: str = "block_on",
-        **kwargs: None,
-    ) -> ActivationHandler:
-        """Create a activation handler from a block design.
-
-        Parameters
-        ----------
-        block_on
-            in seconds, the amount of time the stimuli is on
-        block_off
-            in seconds, the amount of time the stimuli is off (rest) after the on state.
-        duration
-            in seconds, the total amount of the experiments.
-        offset
-            in seconds, the starting point of the experiment.
-        event_name
-            name of the block event, default="block_on"
-
-        See Also
-        --------
-        simfmri.utils.activations.block_design
-            The helper function to create the block desing.
-        """
-        return cls(
-            block_design(block_on, block_off, duration, offset, event_name),
-            roi=None,
-            **kwargs,
-        )
-
     def _handle(self, sim: SimDataType) -> SimDataType:
         if self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
@@ -190,6 +154,46 @@ class ActivationHandler(AbstractHandler):
 
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
+
+
+class ActivationBlockHandler(ActivationHandler):
+    """Create a activation handler from a block design.
+
+    Parameters
+    ----------
+    block_on
+        in seconds, the amount of time the stimuli is on
+    block_off
+        in seconds, the amount of time the stimuli is off (rest) after the on state.
+    duration
+        in seconds, the total amount of the experiments.
+    offset
+        in seconds, the starting point of the experiment.
+    event_name
+        name of the block event, default="block_on"
+
+    See Also
+    --------
+    simfmri.utils.activations.block_design
+        The helper function to create the block desing.
+    """
+
+    name = "activation-block"
+
+    def __init__(
+        cls,
+        block_on: float,
+        block_off: float,
+        duration: float,
+        offset: float = 0,
+        event_name: str = "block_on",
+        **kwargs: None,
+    ) -> ActivationHandler:
+        super().__init__(
+            block_design(block_on, block_off, duration, offset, event_name),
+            roi=None,
+            **kwargs,
+        )
 
 
 def lazy_apply_regressor(
