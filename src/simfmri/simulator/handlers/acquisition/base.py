@@ -144,6 +144,65 @@ class AcquisitionHandler(AbstractHandler):
         return sim
 
 
+class GenericAcquisitionHandler(AcquisitionHandler):
+    """
+    Generic Acquisition Handler to generate k-space data.
+
+    Parameters
+    ----------
+    traj_factory: TrajectoryFactoryProtocol
+        The factory to create the trajectory. This factory should return the trajectory
+        for a single volume. The first argument is the volume shape of the simuluation,
+        the other arguments are given as kwargs from ``traj_params``.
+    traj_params: Mapping[str, Any]
+        The parameters to pass to the trajectory factory.
+    shot_time_ms: int
+        Time to acquire a single shot in ms.
+    traj_generator: TrajectoryGeneratorType
+    constant: bool, default True
+        If true, the trajectory is generated once and used for all frames.
+        Otherwise, it is regenerated at each frame.
+    smaps: bool, default True
+        If true, apply sensitivity maps to the data.
+
+    Notes
+    -----
+    The trajectory factory is responsible to generate the trajectory for a single kspace
+    frame. This factory is called by the trajectory generator, which order generation of
+    trajectory, and applies transformation if wanted.
+
+
+    """
+
+    name = "acquisition-generic"
+
+    def __init__(
+        self,
+        trajectory_factory: TrajectoryFactoryProtocol,
+        traj_params: Mapping[str, Any],
+        shot_time_ms: int,
+        traj_generator: TrajectoryGeneratorType | None = None,
+        cartesian: bool = True,
+        smaps: bool = True,
+        constant: bool = True,
+    ):
+        self.acquire_mp = staticmethod(
+            acq_cartesian if self.cartesian else acq_noncartesian
+        )
+        self.traj_factory = trajectory_factory
+        self.traj_generator = traj_generator or trajectory_generator
+        self.shot_time_ms = shot_time_ms
+        self._traj_params = traj_params
+
+    def _handle(self, sim: SimDataType) -> SimDataType:
+        return self._acquire(
+            sim,
+            trajectory_generator=self.traj_generator(
+                self.traj_factory, sim.shape, **self._traj_params
+            ),
+        )
+
+
 class VDSAcquisitionHandler(AcquisitionHandler):
     """
     Variable Density Sampling Acquisition Handler to generate k-space data.
