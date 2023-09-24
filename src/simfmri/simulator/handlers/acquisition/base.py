@@ -16,13 +16,14 @@ from .trajectory import (
     vds_factory,
     radial_factory,
     stack_spiral_factory,
+    TrajectoryFactoryProtocol,
     TrajectoryGeneratorType,
     trajectory_generator,
     rotate_trajectory,
 )
 
 from ._coils import get_smaps
-from .workers import acquire_cartesian_mp, acquire_noncartesian_mp
+from .workers import acq_cartesian, acq_noncartesian
 
 
 SimGeneratorType = Generator[np.ndarray, None, None]
@@ -63,9 +64,9 @@ class AcquisitionHandler(AbstractHandler):
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
 
-    acquire_mp = staticmethod(acquire_cartesian_mp)
+    acquire_mp = staticmethod(acq_cartesian)
 
-    def __init__(self, constant: bool, smaps: bool):
+    def __init__(self, constant: bool, smaps: bool, shot_time_ms: int):
         super().__init__()
         self.constant = constant
         self.smaps = smaps
@@ -234,7 +235,7 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
 
-    acquire_mp = staticmethod(acquire_noncartesian_mp)
+    acquire_mp = staticmethod(acq_noncartesian)
 
     # TODO: add other trajectories sampling and refactor.
     def __init__(

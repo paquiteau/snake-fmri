@@ -29,12 +29,12 @@ def handler(
 H = handler
 
 
-def list_handlers():
+def list_handlers() -> list[str]:
     """List all available handlers."""
     return list(AVAILABLE_HANDLERS.keys())
 
 
-def get_handler(name):
+def get_handler(name: str) -> AbstractHandler:
     """Get a handler from its name."""
     return AVAILABLE_HANDLERS[name]
 

@@ -56,7 +56,7 @@ def _run_cartesian(
         kmask[k, ...] |= m
 
 
-def _run_non_cartesian(
+def _run_noncartesian(
     sim: SimDataType,
     kdata: np.ndarray,
     kmask: np.ndarray,
@@ -93,7 +93,7 @@ def _run_non_cartesian(
         kmask[k, s * L : (s + 1) * L] = shot_batch[i]
 
 
-def _acquire_mp(
+def _acquire(
     sim: SimDataType,
     trajectory_gen: TrajectoryGeneratorType,
     runner: Callable,
@@ -122,7 +122,7 @@ def _acquire_mp(
     return kdata, kmask
 
 
-def acquire_cartesian_mp(
+def acq_cartesian(
     sim: SimDataType,
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
@@ -132,7 +132,7 @@ def acquire_cartesian_mp(
     kdata_info = ((n_kspace_frame, sim.n_coils, *sim.shape), np.complex64)
     kmask_info = ((n_kspace_frame, *sim.shape), np.int8)
 
-    kdata, kmask = _acquire_mp(
+    kdata, kmask = _acquire(
         sim,
         trajectory_gen,
         _run_cartesian,
@@ -145,7 +145,7 @@ def acquire_cartesian_mp(
     return kdata, kmask
 
 
-def acquire_noncartesian_mp(
+def acq_noncartesian(
     sim: SimDataType,
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
@@ -169,10 +169,10 @@ def acquire_noncartesian_mp(
     if nufft_backend == "stacked":
         kwargs["z_index"] = "auto"
     logger.debug("extra kwargs %s", kwargs)
-    kdata, kmask = _acquire_mp(
+    kdata, kmask = _acquire(
         sim,
         trajectory_gen,
-        _run_non_cartesian,
+        _run_noncartesian,
         n_shot_sim_frame,
         n_kspace_frame,
         kdata_info,
