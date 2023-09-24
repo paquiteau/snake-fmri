@@ -3,13 +3,13 @@ Custom Phantom and ROI
 ======================
 
 In this example we are going to show the different way to generate phantom data, using the BIG phantom.
-This phantom is more realistic than the Shepp-Logan Phantom.
+This phantom is more realistic than the Shepp-Logan Phantom, but is a 2D phantom.
 """
 
 import matplotlib.pyplot as plt
 from simfmri.utils.phantom import generate_phantom, raster_phantom
 
-#%%
+# %%
 # Rasterisation vs Generation
 # ---------------------------
 # The phantom can be rasterize at any given dimension.
@@ -49,7 +49,7 @@ cut_axs.set_title("Cross section")
 cut_axs.set_xlabel("readout dimension")
 
 
-#%%
+# %%
 # Showing the ROI
 # ---------------
 #
