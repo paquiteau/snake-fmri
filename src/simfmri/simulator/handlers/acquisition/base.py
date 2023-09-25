@@ -125,6 +125,7 @@ class AcquisitionHandler(AbstractHandler):
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
+        sim.extra_infos["n_shot_per_frame"] = n_shot_traj
 
         kspace_data, kspace_mask = self.acquire_mp(
             sim,
