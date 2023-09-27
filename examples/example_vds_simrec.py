@@ -70,7 +70,7 @@ fig2.suptitle("kspace mask")
 
 adj_data = ZeroFilledReconstructor().reconstruct(sim)
 
-fig3 = mosaic(abs(adj_data), samples=0.1)
+fig3 = mosaic(abs(adj_data), samples=0.1, axis=0)
 
 # %%
 # Sequential Reconstruction
@@ -79,7 +79,7 @@ fig3 = mosaic(abs(adj_data), samples=0.1)
 seq_data = SequentialReconstructor(max_iter_per_frame=20, threshold="sure").reconstruct(
     sim
 )
-fig4 = mosaic(abs(seq_data), samples=0.1)
+fig4 = mosaic(abs(seq_data), samples=0.1, axis=0)
 
 # %%
 # LowRank + Sparse Reconstruction
@@ -88,7 +88,7 @@ lr_s = LowRankPlusSparseReconstructor(
     lambda_l=0.1, lambda_s="sure", algorithm="otazo_raw", max_iter=20
 ).reconstruct(sim)
 
-fig5 = mosaic(abs(lr_s), samples=0.1)
+fig5 = mosaic(abs(lr_s), samples=0.1, axis=0)
 plt.show()
 
 
