@@ -183,19 +183,25 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
     max_iter
         maximal number of interation.
     """
-
+ 
     def __init__(
         self,
         lambda_l: float = 0.1,
         lambda_s: float | Literal["sure"] = 1,
         algorithm: str = "otazo",
         max_iter: int = 20,
+        time_linear_op = None,
+        time_prox_op = None,
+        space_prox_op = None
     ):
         super().__init__()
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
         self.algorithm = algorithm
+        self.time_linear_op = time_linear_op
+        self.time_prox_op = time_prox_op
+        self.space_prox_op = space_prox_op
 
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
@@ -203,36 +209,43 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
     def setup(self, sim: SimDataType) -> None:
         """Set up the reconstructor."""
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
-        from fmri.operators.time_op import TimeFourier
         from fmri.operators.utils import sure_est, sigma_mad
-        from fmri.operators.svt import FlattenSVT
         from fmri.operators.utils import InTransformSparseThreshold
+        from fmri.operators.time_op import TimeFourier
+        from fmri.operators.proximity import ProxTV1d
+        from fmri.operators.svt import FlattenSVT
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(sim, repeat=False)
-        time_linear_op = TimeFourier(time_axis=0)
-        space_prox_op = FlattenSVT(
-            self.lambda_l, initial_rank=10, thresh_type="soft-rel"
-        )
+
+        if self.time_prox_op is None and self.time_linear_op is None:
+            self.time_linear_op = TimeFourier(time_axis=0)
+        elif self.time_prox_op is None and self.time_linear_op is not None:
+            self.lambda_time = lambda_time
+            self.time_prox_op = InTransformSparseThreshold(self.time_linear_op,
+                                            lambda_time, thresh_type="soft")
+        elif self.time_prox_op is not None and self.time_linear_op is None:
+            self.time_prox_op = self.time_prox_op
+        if self.space_prox_op is None:
+            self.space_prox_op = FlattenSVT(self.lambda_l, initial_rank=10, thresh_type="soft-rel")
+
 
         if self.lambda_s == "sure":
             adj_data = self.fourier_op.adj_op(sim.kspace_data)
             sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
-            tf = time_linear_op.op(adj_data).reshape(len(adj_data), -1)
+            tf = self.time_linear_op.op(adj_data).reshape(len(adj_data), -1)
             for i in range(len(sure_thresh)):
                 sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(tf[:, i])
 
             self.lambda_s = np.median(sure_thresh) / 2
             logger.info(f"SURE threshold: {self.lambda_s:.4e}")
 
-        time_prox_op = InTransformSparseThreshold(
-            time_linear_op, self.lambda_s, thresh_type="soft"
-        )
+        
 
         self.reconstructor = LowRankPlusSparseReconstructor(
             self.fourier_op,
-            space_prox_op=space_prox_op,
-            time_prox_op=time_prox_op,
+            space_prox_op=self.space_prox_op,
+            time_prox_op=self.time_prox_op,
             cost="auto",
         )
 
