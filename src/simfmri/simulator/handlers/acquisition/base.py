@@ -307,8 +307,9 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         constant: bool = False,
         smaps: bool = True,
         backend: str = "finufft",
+        shot_time_ms: int = 50,
     ):
-        super().__init__(constant, smaps)
+        super().__init__(constant=constant, smaps=smaps, shot_time_ms=shot_time_ms)
         self._backend = backend
 
 
@@ -404,7 +405,6 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         acsz: float | int,
         accelz: int,
         directionz: Literal["center-out", "random"],
-        shot_time_ms: int = 50,
         n_samples: int = 3000,
         nb_revolutions: int = 10,
         in_out: bool = True,
@@ -417,7 +417,6 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             "accelz": accelz,
             "directionz": directionz,
             "pdfz": pdfz,
-            "shot_time_ms": shot_time_ms,
             "n_samples": n_samples,
             "nb_revolutions": nb_revolutions,
             "in_out": in_out,
@@ -436,11 +435,10 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         )
 
         tobs = DEFAULT_RASTER_TIME_MS * self._traj_params["n_samples"]
-        shot_time = self._traj_params["shot_time_ms"]
-        if tobs > shot_time - 20:
+        if tobs > self.shot_time_ms - 20:
             self.log.warning(
                 f"The simulated trajectory takes {tobs}ms to run, "
-                f" in a {shot_time}ms shot."
+                f" in a {self.shot_time_ms}ms shot."
             )
 
         test_traj = stack_spiral_factory(**self._traj_params)
