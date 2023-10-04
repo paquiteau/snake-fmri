@@ -54,7 +54,7 @@ dependencies = [ # Optional
 [project.optional-dependencies] # Optional
 dev = ["black", "isort"]
 test = ["pytest", "pytest-black", "pytest-cov", "pytest-sugar", "pytest-xdist"]
-doc = ["sphinx", "pydata-sphinx-theme", "sphinx-gallery", "matplotlib"]
+doc = ["sphinx-book-theme", "myst_nb", "numpydoc"]
 # List URLs that are relevant to your project
 # This field corresponds to the "Project-URL" and "Home-Page" metadata fields:
 [project.urls]  # Optional
@@ -77,7 +77,11 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where=["src"]
 
+
 [tool.setuptools_scm]
+write_to = "src/simfmri/_version.py"
+version_scheme = "python-simplified-semver"
+local_scheme="no-local-version"
 
 [tool.coverage.report]
 precision = 2
