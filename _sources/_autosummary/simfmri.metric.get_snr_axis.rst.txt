@@ -1,6 +1,0 @@
-simfmri.metric.get\_snr\_axis
-=============================
-
-.. currentmodule:: simfmri.metric
-
-.. autofunction:: get_snr_axis

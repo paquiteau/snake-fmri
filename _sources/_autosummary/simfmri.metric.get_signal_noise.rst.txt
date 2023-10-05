@@ -1,6 +1,0 @@
-simfmri.metric.get\_signal\_noise
-=================================
-
-.. currentmodule:: simfmri.metric
-
-.. autofunction:: get_signal_noise

@@ -1,6 +1,0 @@
-simfmri.utils.phantom.big.inside\_bezier\_region
-================================================
-
-.. currentmodule:: simfmri.utils.phantom.big
-
-.. autofunction:: inside_bezier_region

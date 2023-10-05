@@ -1,6 +1,0 @@
-simfmri\_runner.main.main\_app
-==============================
-
-.. currentmodule:: simfmri_runner.main
-
-.. autofunction:: main_app

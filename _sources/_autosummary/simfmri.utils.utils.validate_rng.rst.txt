@@ -1,6 +1,0 @@
-simfmri.utils.utils.validate\_rng
-=================================
-
-.. currentmodule:: simfmri.utils.utils
-
-.. autofunction:: validate_rng

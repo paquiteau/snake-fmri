@@ -1,6 +1,0 @@
-simfmri.glm.compute\_stats
-==========================
-
-.. currentmodule:: simfmri.glm
-
-.. autofunction:: compute_stats

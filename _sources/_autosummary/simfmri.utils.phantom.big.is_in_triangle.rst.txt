@@ -1,6 +1,0 @@
-simfmri.utils.phantom.big.is\_in\_triangle
-==========================================
-
-.. currentmodule:: simfmri.utils.phantom.big
-
-.. autofunction:: is_in_triangle

@@ -1,6 +1,0 @@
-simfmri.utils.phantom.big.generate\_phantom
-===========================================
-
-.. currentmodule:: simfmri.utils.phantom.big
-
-.. autofunction:: generate_phantom

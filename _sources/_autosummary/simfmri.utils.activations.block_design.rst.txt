@@ -1,6 +1,0 @@
-simfmri.utils.activations.block\_design
-=======================================
-
-.. currentmodule:: simfmri.utils.activations
-
-.. autofunction:: block_design

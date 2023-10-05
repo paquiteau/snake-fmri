@@ -1,6 +1,0 @@
-simfmri.glm.append\_stats\_df
-=============================
-
-.. currentmodule:: simfmri.glm
-
-.. autofunction:: append_stats_df

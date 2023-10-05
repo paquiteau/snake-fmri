@@ -1,6 +1,0 @@
-simfmri.utils.phantom.shepp\_logan.idx\_in\_ellipse
-===================================================
-
-.. currentmodule:: simfmri.utils.phantom.shepp_logan
-
-.. autofunction:: idx_in_ellipse

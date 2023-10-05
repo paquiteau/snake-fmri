@@ -1,0 +1,624 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>Comparison with other Simulators &#8212; SNAKE-fMRI Documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=ac02cc09edc035673794" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/togglebutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/copybutton.css" />
+    <link rel="stylesheet" type="text/css" href="_static/mystnb.4510f1fc1dee50b3e5859aac5469c37c29e427902b24a333a5f9fcb2f0b3ac41.css" />
+    <link rel="stylesheet" type="text/css" href="_static/sphinx-thebe.css" />
+    <link rel="stylesheet" type="text/css" href="_static/design-style.4045f2051d55cab465a707391d5b2007.min.css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=ac02cc09edc035673794"></script>
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/clipboard.min.js"></script>
+    <script src="_static/copybutton.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>let toggleHintShow = 'Click to show';</script>
+    <script>let toggleHintHide = 'Click to hide';</script>
+    <script>let toggleOpenOnPrint = 'true';</script>
+    <script src="_static/togglebutton.js"></script>
+    <script>var togglebuttonSelector = '.toggle, .admonition.dropdown';</script>
+    <script src="_static/design-tabs.js"></script>
+    <script>const THEBE_JS_URL = "https://unpkg.com/thebe@0.8.2/lib/index.js"
+const thebe_selector = ".thebe,.cell"
+const thebe_selector_input = "pre"
+const thebe_selector_output = ".output, .cell_output"
+</script>
+    <script async="async" src="_static/sphinx-thebe.js"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'snake-vs-other';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="simfmri.simulation" href="_api/simfmri.simulation.html" />
+    <link rel="prev" title="Simulation Framework" href="sim-framework.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search this book..."
+         aria-label="Search this book..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+  
+
+<a class="navbar-brand logo" href="index.html">
+  
+  
+  
+  
+    
+    
+      
+    
+    
+    <img src="_static/logo-snake_light.svg" class="logo__image only-light" alt="Logo image"/>
+    <script>document.write(`<img src="_static/logo-snake_light.svg" class="logo__image only-dark" alt="Logo image"/>`);</script>
+  
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        
+        <ul class="nav bd-sidenav bd-sidenav__home-link">
+            <li class="toctree-l1">
+                <a class="reference internal" href="index.html">
+                    SNAKE-fMRI Documentation
+                </a>
+            </li>
+        </ul>
+        <p aria-level="2" class="caption" role="heading"><span class="caption-text">User Guides</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="user_guide/installation.html">Installation Guide for Snake fMRI</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Explanations</span></p>
+<ul class="current nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="FAQ.html">Frequently Asked Questions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sim-framework.html">Simulation Framework</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Comparison with other Simulators</a></li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">API References</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="_api/simfmri.simulation.html"><code class="docutils literal notranslate"><span class="pre">simfmri.simulation</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.simulation.lazy.html">simfmri.simulation.lazy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.simulation.simulation.html">simfmri.simulation.simulation</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_api/simfmri.handlers.html"><code class="docutils literal notranslate"><span class="pre">simfmri.handlers</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2 has-children"><a class="reference internal" href="_api/simfmri.handlers.acquisition.html"><code class="docutils literal notranslate"><span class="pre">simfmri.handlers.acquisition</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-3" name="toctree-checkbox-3" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-3"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.acquisition._coils.html">simfmri.handlers.acquisition._coils</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.acquisition.base.html">simfmri.handlers.acquisition.base</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.acquisition.cartesian_sampling.html">simfmri.handlers.acquisition.cartesian_sampling</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.acquisition.trajectory.html">simfmri.handlers.acquisition.trajectory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.acquisition.workers.html">simfmri.handlers.acquisition.workers</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="_api/simfmri.handlers.activation.html"><code class="docutils literal notranslate"><span class="pre">simfmri.handlers.activation</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-4" name="toctree-checkbox-4" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-4"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.activation._block.html">simfmri.handlers.activation._block</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.activation.activation.html">simfmri.handlers.activation.activation</a></li>
+</ul>
+</li>
+<li class="toctree-l2 has-children"><a class="reference internal" href="_api/simfmri.handlers.phantom.html"><code class="docutils literal notranslate"><span class="pre">simfmri.handlers.phantom</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-5" name="toctree-checkbox-5" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-5"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.phantom._big.html">simfmri.handlers.phantom._big</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.phantom._brainweb.html">simfmri.handlers.phantom._brainweb</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.phantom._shepp_logan.html">simfmri.handlers.phantom._shepp_logan</a></li>
+<li class="toctree-l3"><a class="reference internal" href="_api/simfmri.handlers.phantom.phantom.html">simfmri.handlers.phantom.phantom</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.handlers.base.html">simfmri.handlers.base</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.handlers.loader.html">simfmri.handlers.loader</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.handlers.noise.html">simfmri.handlers.noise</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_api/simfmri.runner.html"><code class="docutils literal notranslate"><span class="pre">simfmri.runner</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-6" name="toctree-checkbox-6" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-6"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.runner.factory.html">simfmri.runner.factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.runner.reconstructor.html">simfmri.runner.reconstructor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.runner.sweeper.html">simfmri.runner.sweeper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.runner.utils.html">simfmri.runner.utils</a></li>
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="_api/simfmri.cli.html"><code class="docutils literal notranslate"><span class="pre">simfmri.cli</span></code></a><input class="toctree-checkbox" id="toctree-checkbox-7" name="toctree-checkbox-7" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-7"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.cli.eval_recon.html">simfmri.cli.eval_recon</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.cli.generate_dataset.html">simfmri.cli.generate_dataset</a></li>
+<li class="toctree-l2"><a class="reference internal" href="_api/simfmri.cli.main.html">simfmri.cli.main</a></li>
+</ul>
+</li>
+</ul>
+<p aria-level="2" class="caption" role="heading"><span class="caption-text">Extras</span></p>
+<ul class="nav bd-sidenav">
+<li class="toctree-l1"><a class="reference internal" href="citation.html">Citing SNAKE-fMRI</a></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="related-projects.html">Related Projects</a><input class="toctree-checkbox" id="toctree-checkbox-8" name="toctree-checkbox-8" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-8"><i class="fa-solid fa-chevron-down"></i></label><ul>
+<li class="toctree-l2"><a class="reference external" href="https://mind-inria.github.io/mri-nufft">mri-nufft</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://cea-cosmic.github.io/pysap">PySAP</a></li>
+<li class="toctree-l2"><a class="reference external" href="https://cea-cosmic.github.io/modopt">ModOpt</a></li>
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-source-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Source repositories">
+    <i class="fab fa-github"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="https://github.com/executablebooks/jupyter-book" target="_blank"
+   class="btn btn-sm btn-source-repository-button dropdown-item"
+   title="Source repository"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fab fa-github"></i>
+  </span>
+<span class="btn__text-container">Repository</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li><a href="https://github.com/executablebooks/jupyter-book/issues/new?title=Issue%20on%20page%20%2Fsnake-vs-other.html&body=Your%20issue%20content%20here." target="_blank"
+   class="btn btn-sm btn-source-issues-button dropdown-item"
+   title="Open an issue"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-lightbulb"></i>
+  </span>
+<span class="btn__text-container">Open issue</span>
+</a>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/snake-vs-other.md" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.md</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>Comparison with other Simulators</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fmri-simulators">fMRI Simulators</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fmrisim-neurorsim">fMRISim / NeuroRSim</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#possum">POSSUM</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simtb">SimTB</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <section id="comparison-with-other-simulators">
+<span id="snake-vs-other"></span><h1>Comparison with other Simulators<a class="headerlink" href="#comparison-with-other-simulators" title="Permalink to this heading">#</a></h1>
+<p>The complexity of fMRI data poses challenges in creating a common data-generating process. A comprehensive review of fMRI simulation studies, as noted in Welvaert et al. <span id="id1">[<a class="reference internal" href="#id8" title="Marijke Welvaert and Yves Rosseel. A Review of fMRI Simulation Studies. PLOS ONE, 9(7):e101953, 2014. URL: https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0101953, doi:10.1371/journal.pone.0101953.">5</a>]</span>, revealed that the absence of a standardized data generation approach hampers progress. The review emphasized the need for improved experimental design reporting and a deeper understanding of fMRI data acquisition processes. The current landscape of fMRI simulation software mainly consists of</p>
+<section id="fmri-simulators">
+<h2>fMRI Simulators<a class="headerlink" href="#fmri-simulators" title="Permalink to this heading">#</a></h2>
+<section id="fmrisim-neurorsim">
+<h3>fMRISim / NeuroRSim<a class="headerlink" href="#fmrisim-neurorsim" title="Permalink to this heading">#</a></h3>
+<p>Among existing fMRI simulation tools, several offer distinct advantages and limitations.
+fMRIsim presented by Ellis et al. <span id="id2">[<a class="reference internal" href="#id9" title="Cameron T. Ellis, Christopher Baldassano, Anna C. Schapiro, Ming Bo Cai, and Jonathan D. Cohen. Facilitating open-science with realistic fMRI simulation: validation and application. PeerJ, 8:e8564, 2020. URL: https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7035870/, arXiv:32117629, doi:10.7717/peerj.8564.">2</a>]</span>, is a Python package that enables standardized and realistic fMRI data simulation.
+It assists in evaluating complex experimental designs and optimizing statistical power.
+However, it mainly focuses on single-subject simulations and requires manual parameter setting or estimation from real data.
+It was inspired by a parent R package neuroRsim <span id="id3">[<a class="reference internal" href="#id12" title="Marijke Welvaert, Joke Durnez, Beatrijs Moerkerke, Geert Berdoolaege, and Yves Rosseel. neuRosim: An R Package for Generating fMRI Data. Journal of Statistical Software, 44:1–18, 2011. URL: https://doi.org/10.18637/jss.v044.i10, doi:10.18637/jss.v044.i10.">4</a>]</span>.
+Nevertheless, it primarily deals with magnitude data in additive settings, which might restrict its applicability for specific simulations.</p>
+</section>
+<section id="possum">
+<h3>POSSUM<a class="headerlink" href="#possum" title="Permalink to this heading">#</a></h3>
+<p>The POSSUM simulator, as outlined by Drobnjak et al. <span id="id4">[<a class="reference internal" href="#id10" title="Ivana Drobnjak, David Gavaghan, Endre Süli, Joe Pitt-Francis, and Mark Jenkinson. Development of a functional magnetic resonance imaging simulator for modeling realistic rigid-body motion artifacts. Magnetic Resonance in Medicine, 56(2):364–380, 2006. URL: https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.20939, doi:10.1002/mrm.20939.">1</a>]</span>, offers a comprehensive approach by modeling various artifacts encountered in fMRI experiments.
+POSSUM accurately simulates these artifacts using Bloch equations and a geometric definition of the brain.
+However, it has a computational cost, lengthy simulation times, and limited trajectory options.</p>
+</section>
+<section id="simtb">
+<h3>SimTB<a class="headerlink" href="#simtb" title="Permalink to this heading">#</a></h3>
+<p>SimTB, introduced by Erhardt et al. <span id="id5">[<a class="reference internal" href="#id11" title="Erik B. Erhardt, Elena A. Allen, Yonghua Wei, Tom Eichele, and Vince D. Calhoun. SimTB, a simulation toolbox for fMRI data under a model of spatiotemporal separability. NeuroImage, 59(4):4160–4167, 2012. URL: https://www.sciencedirect.com/science/article/pii/S105381191101370X, doi:10.1016/j.neuroimage.2011.11.088.">3</a>]</span>, is a MATLAB toolbox specializing in simulating fMRI datasets under a model of spatiotemporal separability.
+It offers extensive customization options, including spatial sources, experimental paradigms, tissue-specific properties, noise, and head movement.
+SimTB is equipped with both a graphical user interface and scripting capabilities.</p>
+</section>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Permalink to this heading">#</a></h2>
+<div class="docutils container" id="id6">
+<div class="citation" id="id10" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id4">1</a><span class="fn-bracket">]</span></span>
+<p>Ivana Drobnjak, David Gavaghan, Endre Süli, Joe Pitt-Francis, and Mark Jenkinson. Development of a functional magnetic resonance imaging simulator for modeling realistic rigid-body motion artifacts. <em>Magnetic Resonance in Medicine</em>, 56(2):364–380, 2006. URL: <a class="reference external" href="https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.20939">https://onlinelibrary.wiley.com/doi/abs/10.1002/mrm.20939</a>, <a class="reference external" href="https://doi.org/10.1002/mrm.20939">doi:10.1002/mrm.20939</a>.</p>
+</div>
+<div class="citation" id="id9" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
+<p>Cameron T. Ellis, Christopher Baldassano, Anna C. Schapiro, Ming Bo Cai, and Jonathan D. Cohen. Facilitating open-science with realistic fMRI simulation: validation and application. <em>PeerJ</em>, 8:e8564, 2020. URL: <a class="reference external" href="https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7035870/">https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7035870/</a>, <a class="reference external" href="https://arxiv.org/abs/32117629">arXiv:32117629</a>, <a class="reference external" href="https://doi.org/10.7717/peerj.8564">doi:10.7717/peerj.8564</a>.</p>
+</div>
+<div class="citation" id="id11" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id5">3</a><span class="fn-bracket">]</span></span>
+<p>Erik B. Erhardt, Elena A. Allen, Yonghua Wei, Tom Eichele, and Vince D. Calhoun. SimTB, a simulation toolbox for fMRI data under a model of spatiotemporal separability. <em>NeuroImage</em>, 59(4):4160–4167, 2012. URL: <a class="reference external" href="https://www.sciencedirect.com/science/article/pii/S105381191101370X">https://www.sciencedirect.com/science/article/pii/S105381191101370X</a>, <a class="reference external" href="https://doi.org/10.1016/j.neuroimage.2011.11.088">doi:10.1016/j.neuroimage.2011.11.088</a>.</p>
+</div>
+<div class="citation" id="id12" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id3">4</a><span class="fn-bracket">]</span></span>
+<p>Marijke Welvaert, Joke Durnez, Beatrijs Moerkerke, Geert Berdoolaege, and Yves Rosseel. neuRosim: An R Package for Generating fMRI Data. <em>Journal of Statistical Software</em>, 44:1–18, 2011. URL: <a class="reference external" href="https://doi.org/10.18637/jss.v044.i10">https://doi.org/10.18637/jss.v044.i10</a>, <a class="reference external" href="https://doi.org/10.18637/jss.v044.i10">doi:10.18637/jss.v044.i10</a>.</p>
+</div>
+<div class="citation" id="id8" role="doc-biblioentry">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">5</a><span class="fn-bracket">]</span></span>
+<p>Marijke Welvaert and Yves Rosseel. A Review of fMRI Simulation Studies. <em>PLOS ONE</em>, 9(7):e101953, 2014. URL: <a class="reference external" href="https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0101953">https://journals.plos.org/plosone/article?id=10.1371/journal.pone.0101953</a>, <a class="reference external" href="https://doi.org/10.1371/journal.pone.0101953">doi:10.1371/journal.pone.0101953</a>.</p>
+</div>
+</div>
+</div>
+</section>
+</section>
+
+    <script type="text/x-thebe-config">
+    {
+        requestKernel: true,
+        binderOptions: {
+            repo: "binder-examples/jupyter-stacks-datascience",
+            ref: "master",
+        },
+        codeMirrorConfig: {
+            theme: "abcdef",
+            mode: "python"
+        },
+        kernelOptions: {
+            name: "python3",
+            path: "./."
+        },
+        predefinedOutput: true
+    }
+    </script>
+    <script>kernelName = 'python3'</script>
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  <!-- Previous / next buttons -->
+<div class="prev-next-area">
+    <a class="left-prev"
+       href="sim-framework.html"
+       title="previous page">
+      <i class="fa-solid fa-angle-left"></i>
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">previous</p>
+        <p class="prev-next-title">Simulation Framework</p>
+      </div>
+    </a>
+    <a class="right-next"
+       href="_api/simfmri.simulation.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title"><code class="docutils literal notranslate"><span class="pre">simfmri.simulation</span></code></p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#fmri-simulators">fMRI Simulators</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#fmrisim-neurorsim">fMRISim / NeuroRSim</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#possum">POSSUM</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#simtb">SimTB</a></li>
+</ul>
+</li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#references">References</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Pierre-Antoine Comby
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  <p class="copyright">
+    
+      © Copyright 2022.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=ac02cc09edc035673794"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=ac02cc09edc035673794"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>

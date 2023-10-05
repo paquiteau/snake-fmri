@@ -1,6 +1,0 @@
-simfmri.utils.phantom.shepp\_logan.mr\_ellipsoid\_parameters
-============================================================
-
-.. currentmodule:: simfmri.utils.phantom.shepp_logan
-
-.. autofunction:: mr_ellipsoid_parameters

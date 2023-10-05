@@ -1,6 +1,0 @@
-simfmri.utils.utils.cplx\_type
-==============================
-
-.. currentmodule:: simfmri.utils.utils
-
-.. autofunction:: cplx_type

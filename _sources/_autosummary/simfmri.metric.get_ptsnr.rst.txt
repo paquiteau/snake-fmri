@@ -1,6 +1,0 @@
-simfmri.metric.get\_ptsnr
-=========================
-
-.. currentmodule:: simfmri.metric
-
-.. autofunction:: get_ptsnr
