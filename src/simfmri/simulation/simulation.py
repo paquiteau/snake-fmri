@@ -5,23 +5,21 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any, TypeVar, Mapping
+from typing import Literal, Any, Mapping
 import copy
 import pickle
 import dataclasses
 
 import numpy as np
-from numpy.typing import DTypeLike, NDArray
+from numpy.typing import DTypeLike
 from simfmri.utils import AnyShape, cplx_type
 from .lazy import LazySimArray
 
-__all__ = ["SimulationData", "SimulationParams", "LazySimArray", "SimDataType"]
-
-DataArray = NDArray[np.float64 | np.complex128]
+__all__ = ["SimData", "SimParams"]
 
 
 @dataclasses.dataclass
-class SimulationParams:
+class SimParams:
     """Simulation metadata."""
 
     shape: AnyShape
@@ -46,7 +44,7 @@ class SimulationParams:
             self.fov = (self.fov,) * len(self.shape)
 
 
-class SimulationData:
+class SimData:
     """Data container for a simulation.
 
     Parameters
@@ -101,16 +99,6 @@ class SimulationData:
         If n_coils > 1 , describes the sensitivity maps of each coil.
     """
 
-    static_vol: DataArray
-    data_ref: DataArray
-    roi: DataArray
-    _data_acq: DataArray
-    data_rec: DataArray
-    kspace_data: DataArray
-    kspace_mask: DataArray
-    kspace_location: DataArray
-    smaps: DataArray | None
-
     def __init__(
         self,
         shape: AnyShape,
@@ -125,7 +113,7 @@ class SimulationData:
         n_frames = int(sim_time / sim_tr)
         if extra_infos is None:
             extra_infos = dict()
-        self._meta = SimulationParams(
+        self._meta = SimParams(
             shape,
             fov=fov,
             n_frames=n_frames,
@@ -148,9 +136,7 @@ class SimulationData:
         self.lazy = lazy
 
     @classmethod
-    def from_params(
-        cls, sim_meta: SimulationParams, in_place: bool = False
-    ) -> SimDataType:
+    def from_params(cls, sim_meta: SimParams, in_place: bool = False) -> SimData:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -161,17 +147,17 @@ class SimulationData:
         in_place
             If True, the underlying _meta attribute is set to sim_meta.
         """
-        if isinstance(sim_meta, SimulationParams):
+        if isinstance(sim_meta, SimParams):
             obj = cls(**dataclasses.asdict(sim_meta))
         else:
             obj = cls(**dict(sim_meta))
-        if in_place and isinstance(sim_meta, SimulationParams):
+        if in_place and isinstance(sim_meta, SimParams):
             obj._meta = sim_meta
 
         return obj
 
     @classmethod
-    def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimDataType:
+    def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimData:
         """Load a simulation from file.
 
         Parameters
@@ -182,7 +168,7 @@ class SimulationData:
             The dtype
         """
         with open(filename, "rb") as f:
-            obj: SimDataType = pickle.load(f)
+            obj: SimData = pickle.load(f)
         if obj.is_valid():
             for attr in obj.__dict__:
                 val = getattr(obj, attr)
@@ -208,7 +194,7 @@ class SimulationData:
         with open(filename, "wb") as f:
             pickle.dump(self, f)
 
-    def copy(self) -> SimDataType:
+    def copy(self) -> SimData:
         """Return a deep copy of the Simulation."""
         return copy.deepcopy(self)
 
@@ -294,14 +280,14 @@ class SimulationData:
         return self._meta.rng
 
     @property
-    def meta(self) -> SimulationParams:
+    def params(self) -> SimParams:
         """Get meta Parameters."""
         return self._meta
 
-    @meta.setter
-    def meta(self, value: SimulationParams) -> None:
-        if not isinstance(value, SimulationParams):
-            raise ValueError("meta must be a SimulationParams object")
+    @params.setter
+    def params(self, value: SimParams) -> None:
+        if not isinstance(value, SimParams):
+            raise ValueError("params must be a SimulationParams object")
         self._meta = value
 
     def is_valid(self) -> bool:
@@ -346,7 +332,7 @@ class SimulationData:
             raise ValueError("unit must be MB or GB")
 
     def __str__(self) -> str:
-        ret = "SimulationData: \n"
+        ret = "SimData: \n"
         ret += f"{self._meta}\n"
 
         for array_name in [
@@ -370,6 +356,3 @@ class SimulationData:
             else:
                 ret += f" {k}: {v}\n"
         return ret
-
-
-SimDataType = TypeVar("SimDataType", bound=SimulationData)

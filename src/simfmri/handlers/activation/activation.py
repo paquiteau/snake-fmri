@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import compute_regressor  # type: ignore
 
-from simfmri.simulator.simulation import SimDataType
+from simfmri.simulator.simulation import SimData
 
 from ..base import AbstractHandler
 from ._block import block_design
@@ -119,7 +119,7 @@ class ActivationHandler(AbstractHandler):
             h_old = h
         return h
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         if self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
         if sim.roi is None:

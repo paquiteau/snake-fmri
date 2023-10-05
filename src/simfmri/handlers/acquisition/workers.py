@@ -10,7 +10,7 @@ from mrinufft import get_operator
 from fmri.operators.fourier import FFT_Sense
 from tqdm.auto import tqdm
 
-from simfmri.simulator.simulation import SimDataType
+from simfmri.simulator.simulation import SimData
 
 from .trajectory import TrajectoryGeneratorType, kspace_bulk_shot
 
@@ -31,7 +31,7 @@ def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
 
 
 def _run_cartesian(
-    sim: SimDataType,
+    sim: SimData,
     kdata: np.ndarray,
     kmask: np.ndarray,
     sim_frame_idx: int,
@@ -57,7 +57,7 @@ def _run_cartesian(
 
 
 def _run_noncartesian(
-    sim: SimDataType,
+    sim: SimData,
     kdata: np.ndarray,
     kmask: np.ndarray,
     sim_frame_idx: int,
@@ -94,7 +94,7 @@ def _run_noncartesian(
 
 
 def _acquire(
-    sim: SimDataType,
+    sim: SimData,
     trajectory_gen: TrajectoryGeneratorType,
     runner: Callable,
     n_shot_sim_frame: int,
@@ -123,7 +123,7 @@ def _acquire(
 
 
 def acq_cartesian(
-    sim: SimDataType,
+    sim: SimData,
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
     n_kspace_frame: int,
@@ -146,7 +146,7 @@ def acq_cartesian(
 
 
 def acq_noncartesian(
-    sim: SimDataType,
+    sim: SimData,
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
     n_kspace_frame: int,

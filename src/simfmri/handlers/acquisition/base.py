@@ -9,7 +9,7 @@ import numpy as np
 
 
 from simfmri.simulator.handlers.base import AbstractHandler
-from simfmri.simulator.simulation import SimDataType
+from simfmri.simulator.simulation import SimData
 from simfmri.utils import validate_rng
 
 from .trajectory import (
@@ -47,7 +47,7 @@ class AcquisitionHandler(AbstractHandler):
 
     Notes
     -----
-    The simulated data is sampled at the `SimulationData.sim_tr` interval, whereas the
+    The simulated data is sampled at the `SimData.sim_tr` interval, whereas the
     sampling mask is sampled at the update_time interval. This mean that the sampling
     mask can be more precise than the simulated data. In this case, the simulated data
     is interpolated to create a extra point. Every point in the mask that have the same
@@ -74,7 +74,7 @@ class AcquisitionHandler(AbstractHandler):
 
     def _acquire(
         self,
-        sim: SimDataType,
+        sim: SimData,
         trajectory_generator: TrajectoryGeneratorType,
         **kwargs: Mapping[str, Any],
     ) -> np.ndarray:
@@ -195,7 +195,7 @@ class GenericAcquisitionHandler(AcquisitionHandler):
         self.shot_time_ms = shot_time_ms
         self._traj_params = traj_params
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
             sim,
             trajectory_generator=self.traj_generator(
@@ -256,7 +256,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
             "pdf": pdf,
         }
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         self._traj_params["rng"] = validate_rng(sim.rng)
         return self._acquire(
             sim,
@@ -284,7 +284,7 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
 
     Notes
     -----
-    The simulated data is sampled at the `SimulationData.sim_tr` interval, whereas each
+    The simulated data is sampled at the `SimData.sim_tr` interval, whereas each
     shot is sampled at the update_time interval.
     Typically you want `update_time` to be equal or be a multiple of to the time of the
     acquisition of one shot, and ideally equal to `sim_tr`.
@@ -360,7 +360,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
 
         self._angle = angle
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         sim.extra_infos["operator"] = self._backend
 
         return self._acquire(
@@ -422,7 +422,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             "in_out": in_out,
         }
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         self._traj_params["shape"] = sim.shape
         self._traj_params["rng"] = validate_rng(sim.rng)
 

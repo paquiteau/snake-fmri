@@ -4,7 +4,7 @@ This module declares the various noise models availables.
 """
 from __future__ import annotations
 from .base import AbstractHandler
-from ..simulation import SimDataType, LazySimArray
+from ..simulation import SimData, LazySimArray
 
 from simfmri.utils import validate_rng
 
@@ -33,11 +33,11 @@ class NoiseHandler(AbstractHandler):
 
         self._snr = snr
 
-    def _callback_fun(self, old_sim: SimDataType, new_sim: SimDataType) -> None:
+    def _callback_fun(self, old_sim: SimData, new_sim: SimData) -> None:
         # TODO compute the SNR and print it.
         pass
 
-    def _handle(self, sim: SimDataType) -> SimDataType:
+    def _handle(self, sim: SimData) -> SimData:
         if self._snr == 0:
             return sim
         else:
@@ -51,7 +51,7 @@ class NoiseHandler(AbstractHandler):
         sim.extra_infos["input_snr"] = self._snr
         return sim
 
-    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, noise_std: float) -> None:
         """Add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
@@ -64,7 +64,7 @@ class NoiseHandler(AbstractHandler):
         """
         raise NotImplementedError
 
-    def _add_noise_lazy(self, sim: SimDataType, noise_std: float) -> None:
+    def _add_noise_lazy(self, sim: SimData, noise_std: float) -> None:
         """Lazily add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
@@ -83,7 +83,7 @@ class GaussianNoiseHandler(NoiseHandler):
 
     name = "noise-gaussian"
 
-    def _add_noise(self, sim: SimDataType, rng_seed: int, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
         if np.iscomplexobj(sim.data_ref):
             noise_std /= np.sqrt(2)
@@ -104,9 +104,7 @@ class GaussianNoiseHandler(NoiseHandler):
 
         sim.data_acq = sim.data_ref + noise
 
-    def _add_noise_lazy(
-        self, sim: SimDataType, rng_seed: int, noise_std: float
-    ) -> None:
+    def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
 
         def _add_noise(
@@ -142,7 +140,7 @@ class RicianNoiseHandler(NoiseHandler):
 
     name = "noise-rician"
 
-    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
             raise ValueError(
                 "The Rice distribution is only applicable to real-valued data."
@@ -158,7 +156,7 @@ class KspaceNoiseHandler(NoiseHandler):
 
     name = "noise-kspace"
 
-    def _add_noise(self, sim: SimDataType, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, noise_std: float) -> None:
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 
