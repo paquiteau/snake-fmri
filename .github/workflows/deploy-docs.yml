@@ -33,7 +33,8 @@ jobs:
     # Build the book
     - name: Build the book
       run: |
-        ./docs/build_docs.sh
+        cd docs
+        ./build_docs.sh
 
     # Push the book's HTML to github-pages
     - name: GitHub Pages action
