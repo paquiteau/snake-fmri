@@ -13,11 +13,16 @@ from hydra.core.config_store import ConfigStore
 from hydra.core.plugins import Plugins
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
-from simfmri.runner.metric import get_ptsnr, get_snr
-from simfmri.simulation import SimData, SimData
+from simfmri.analysis.metric import get_ptsnr, get_snr
+from simfmri.simulation import SimData
 
-from ..sweeper import DatasetSweeper
-from ..utils import keyval_fmt, log_kwargs, product_dict, setup_warning_logger
+from simfmri.runner.sweeper import DatasetSweeper
+from simfmri.runner.utils import (
+    keyval_fmt,
+    log_kwargs,
+    product_dict,
+    setup_warning_logger,
+)
 
 # HACK: We get hydra to see the custom sweeper.
 # The sweeper is not a plugin, but we can still register it as one.

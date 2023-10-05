@@ -222,7 +222,7 @@ class TextureAdderHandler(AbstractHandler):
 
     name = "phantom-texture"
 
-    def __init__(self, var_texture: float = 0.001, rng: RngType = None):
+    def __init__(self, var_texture: float = 0.001):
         super().__init__()
         self._var_texture = var_texture
 

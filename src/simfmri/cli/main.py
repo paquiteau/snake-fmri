@@ -7,7 +7,7 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.runner.stats import contrast_zscore, get_scores
+from simfmri.analysis.stats import contrast_zscore, get_scores
 from simfmri.runner.utils import save_data
 
 log = logging.getLogger(__name__)
