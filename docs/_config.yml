@@ -34,10 +34,7 @@ html:
 sphinx:
   extra_extensions:
     - numpydoc
-#    - sphinx.ext.napoleon
-    - autoapi.extension
     - sphinx_copybutton
-    - sphinx.ext.autosummary
     - sphinx.ext.autodoc
     - sphinx.ext.intersphinx
   config:
@@ -53,16 +50,10 @@ sphinx:
       pandas: ["https://pandas.pydata.org/pandas-docs/stable", null]
     autodoc_member_order: bysource
     add_module_names: false
+    autoclass_content: "both"
     autodoc_mock_imports: ["fmri"]
-    autoapi_dirs:
-      - "../src/simfmri"
-    autoapi_root: "api"
-    autoapi_add_toctree_entry: false
-    autoapi_keep_files: false
-    autoapi_options:
-      - "members"
-      - "undoc-members"
-      - "show-inheritance"
-      - "special-members"
-      - "imported-members"
-    autoapi_python_class_content: "both"
+    autodoc_default_options: {"ignore-module-all": true}
+   # templates_path: ["_templates"]
+    exclude_patterns:
+      - "_build"
+      - "_templates"

@@ -8,25 +8,29 @@ parts:
     chapters:
       - file: user_guide/installation
 
-  - caption: Interfaces
+
+  - caption: Explanations
     chapters:
-      - file: api/simfmri/index
-        title: API References
+      - file: FAQ
+      - file: sim-framework
+      - file: snake-vs-other
 
-  # - caption: Explanations
-  #   chapters:
-  #     - file: FAQ
-  #     - file: sim-framework
-  #     - file: snake-vs-other
+  - caption: API References
+    chapters:
+      - file: _api/simfmri.simulation.rst
+      - file: _api/simfmri.handlers.rst
+      - file: _api/simfmri.runner.rst
+      - file: _api/simfmri.cli.rst
+      - file: _api/simfmri.analysis.rst
 
-  # - caption: Extras
-  #   chapters:
-  #     - file: citation
-  #     - file: related-projects
-  #       sections:
-  #       - url: https://mind-inria.github.io/mri-nufft
-  #         title: mri-nufft
-  #       - url: https://cea-cosmic.github.io/pysap
-  #         title: PySAP
-  #       - url: https://cea-cosmic.github.io/modopt
-  #         title: ModOpt
+  - caption: Extras
+    chapters:
+      - file: citation
+      - file: related-projects
+        sections:
+        - url: https://mind-inria.github.io/mri-nufft
+          title: mri-nufft
+        - url: https://cea-cosmic.github.io/pysap
+          title: PySAP
+        - url: https://cea-cosmic.github.io/modopt
+          title: ModOpt
