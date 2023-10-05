@@ -25,17 +25,9 @@ class NoiseHandler(AbstractHandler):
         If True, a callback function is setup to return the computed snr.
     """
 
-    def __init__(self, verbose: bool = True, snr: float = 0):
+    def __init__(self, snr: float = 0):
         super().__init__()
-        self._verbose = verbose
-        if self._verbose:
-            self.add_callback(self._callback_fun)
-
         self._snr = snr
-
-    def _callback_fun(self, old_sim: SimData, new_sim: SimData) -> None:
-        # TODO compute the SNR and print it.
-        pass
 
     def _handle(self, sim: SimData) -> SimData:
         if self._snr == 0:
