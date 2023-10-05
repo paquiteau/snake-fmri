@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import compute_regressor  # type: ignore
 
-from simfmri.simulator.simulation import SimData
+from simfmri.simulation.simulation import SimData
 
 from ..base import AbstractHandler
 from ._block import block_design

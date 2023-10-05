@@ -8,8 +8,8 @@ from collections.abc import Generator
 import numpy as np
 
 
-from simfmri.simulator.handlers.base import AbstractHandler
-from simfmri.simulator.simulation import SimData
+from ..base import AbstractHandler
+from simfmri.simulation import SimData
 from simfmri.utils import validate_rng
 
 from .trajectory import (

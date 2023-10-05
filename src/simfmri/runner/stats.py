@@ -18,7 +18,7 @@ from nilearn.glm import compute_contrast, expression_to_contrast_vector
 from nilearn.glm.thresholding import fdr_threshold
 from scipy.stats import norm
 
-from simfmri.simulator import SimData
+from simfmri.simulation import SimData
 
 logger = logging.getLogger(__name__)
 

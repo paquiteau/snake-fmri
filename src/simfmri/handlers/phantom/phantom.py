@@ -5,7 +5,7 @@ import numpy as np
 
 from brainweb_dl import get_mri
 
-from simfmri.simulator.simulation import SimData, LazySimArray
+from simfmri.simulation import SimData, LazySimArray
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
@@ -123,7 +123,7 @@ class RoiDefinerHandler(AbstractHandler):
     def __init__(self, roi_data: list[dict] | dict = None, rng: RngType = None):
         super().__init__()
         if roi_data is None:
-            roi_data = files("simfmri.simulator.handlers.phantom").joinpath(
+            roi_data = files("simfmri.handlers.phantom").joinpath(
                 "big_phantom_roi.json"
             )
         self.roi_data = roi_data

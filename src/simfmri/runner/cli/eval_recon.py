@@ -14,7 +14,7 @@ from hydra.core.plugins import Plugins
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 from simfmri.runner.metric import get_ptsnr, get_snr
-from simfmri.simulator import SimData, SimData
+from simfmri.simulation import SimData, SimData
 
 from ..sweeper import DatasetSweeper
 from ..utils import keyval_fmt, log_kwargs, product_dict, setup_warning_logger

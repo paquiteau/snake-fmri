@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 from mrinufft.operators import get_operator
-from simfmri.simulator import SimData
+from simfmri.simulation import SimData
 
 from fmri.operators.fourier import FFT_Sense, RepeatOperator
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase

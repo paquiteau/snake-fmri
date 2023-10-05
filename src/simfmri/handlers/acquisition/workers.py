@@ -10,7 +10,7 @@ from mrinufft import get_operator
 from fmri.operators.fourier import FFT_Sense
 from tqdm.auto import tqdm
 
-from simfmri.simulator.simulation import SimData
+from simfmri.simulation import SimData
 
 from .trajectory import TrajectoryGeneratorType, kspace_bulk_shot
 

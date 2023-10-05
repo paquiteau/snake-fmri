@@ -17,16 +17,16 @@ from omegaconf import OmegaConf
 # In order to have easy reproducible simulation, the configuration can be extracted to
 # an external file, using the YAML syntax.
 # We then leverage hydra's instantiate method to do the heavy lifting for us by creating
-# all the required building block for the simulator.
+# all the required building block for the.simulation.
 #
 # For instance to create a 2D+T
 
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
-_target_: simfmri.simulator.SimDataFactory
+_target_: simfmri.simulation.SimDataFactory
 checkpoints: false
 sim_params:
-  _target_: simfmri.simulator.SimulationParams
+  _target_: simfmri.simulation.SimulationParams
   n_frames: 100
   shape: [128, 128, 128]
   sim_tr: 1.0
@@ -34,13 +34,13 @@ sim_params:
 
 handlers:
   generator:
-    _target_: simfmri.simulator.SheppLoganGeneratorHandler
+    _target_: simfmri.simulation.SheppLoganGeneratorHandler
   slicer:
-    _target_: simfmri.simulator.SlicerHandler
+    _target_: simfmri.simulation.SlicerHandler
     axis: 0
     index: 58
   activation:
-    _target_: simfmri.simulator.ActivationHandler.from_block_design
+    _target_: simfmri.simulation.ActivationHandler.from_block_design
     event_name: block_on
     block_on: 3
     block_off: 3
@@ -60,7 +60,7 @@ handlers:
 #
 
 # %%
-# Launching the simulator
+# Launching the.simulation
 # -----------------------
 #
 # Thanks to the detailled configuration it is as simple as:

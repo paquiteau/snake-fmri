@@ -5,7 +5,7 @@ import os
 import itertools
 import numpy as np
 from collections.abc import Iterator
-from simfmri.simulator import SimData
+from simfmri.simulation import SimData
 import logging
 
 

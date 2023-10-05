@@ -1,14 +1,14 @@
-"""Example of scenarios for the simulator."""
+"""Example of scenarios for the.simulation."""
 
 from typing import Mapping
 
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.simulator.handlers import (
+from simfmri.handlers import (
     AbstractHandler,
 )
-from simfmri.simulator.simulation import SimData
+from simfmri.simulation import SimData
 
 
 class SimDataFactory:
