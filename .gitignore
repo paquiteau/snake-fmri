@@ -1,7 +1,7 @@
 # general things to ignore
 *build/
 dist/
-docs/_autosummary
+**/_autosummary*
 docs/auto_examples/
 *.egg-info/
 *.egg
@@ -13,9 +13,11 @@ __pycache__/
 .tox
 .cache
 
+_version.py
 # hydra
 outputs/
 multirun/
 # personal stuff
 scripts/
 datasets/
+benchmark/

@@ -23,7 +23,7 @@ from omegaconf import OmegaConf
 
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
-_target_: simfmri.simulator.SimulationDataFactory
+_target_: simfmri.simulator.SimDataFactory
 checkpoints: false
 sim_params:
   _target_: simfmri.simulator.SimulationParams

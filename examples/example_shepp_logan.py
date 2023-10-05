@@ -7,7 +7,7 @@ In this example we are going to simulate a 3D phantom and add a simple activatio
 
 import matplotlib.pyplot as plt
 
-from simfmri.simulator import SimulationData
+from simfmri.simulator import SimData
 from simfmri.simulator import (
     SheppLoganGeneratorHandler,
     ActivationHandler,
@@ -30,10 +30,10 @@ accel = 2
 snr = 100
 
 # %%
-# This data is used to createa the main SimulationData object, which gather
+# This data is used to createa the main SimData object, which gather
 # all the data related to this simulation
 
-sim_data = SimulationData(shape=shape, n_frames=n_frames, sim_tr=1, n_coils=1)
+sim_data = SimData(shape=shape, n_frames=n_frames, sim_tr=1, n_coils=1)
 
 print(sim_data)
 

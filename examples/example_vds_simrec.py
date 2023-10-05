@@ -6,7 +6,7 @@ This example shows how to simulate and reconstruct a simple 2D vds simulation.
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from simfmri.simulator import H, SimulationData, list_handlers
+from simfmri.simulator import H, SimData, list_handlers
 from simfmri.runner.reconstructor import (
     ZeroFilledReconstructor,
     SequentialReconstructor,
@@ -21,7 +21,7 @@ from fmri.visualisation import mosaic
 # ``lazy=True`` means that the data will be generated on the fly when needed.
 # This is useful to avoid storing large data in memory.
 
-sim = SimulationData(
+sim = SimData(
     (64, 64), sim_tr=0.1, sim_time=300, fov=0.192, n_coils=4, rng=42, lazy=True
 )
 
