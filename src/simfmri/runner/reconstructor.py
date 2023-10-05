@@ -9,7 +9,7 @@ import logging
 
 import numpy as np
 from mrinufft.operators import get_operator
-from simfmri.simulator import SimDataType
+from simfmri.simulator import SimData
 
 from fmri.operators.fourier import FFT_Sense, RepeatOperator
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_fourier_operator(
-    sim: SimDataType, repeat: bool = False, **kwargs: None
+    sim: SimData, repeat: bool = False, **kwargs: None
 ) -> RepeatOperator | CartesianSpaceFourier:
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
@@ -72,11 +72,11 @@ class BenchmarkReconstructor:
         self.reconstructor = None
         self.fourier_op = None
 
-    def setup(self, sim: SimDataType) -> None:
+    def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
         logger.info(f"Setup reconstructor {self.__class__.__name__}")
 
-    def reconstruct(self, sim: SimDataType) -> np.ndarray:
+    def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct data."""
         raise NotImplementedError()
 
@@ -90,11 +90,11 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
     def __str__(self):
         return "ZeroFilled"
 
-    def setup(self, sim: SimDataType) -> None:
+    def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
         self.reconstructor = get_fourier_operator(sim)
 
-    def reconstruct(self, sim: SimDataType) -> np.ndarray:
+    def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
         if self.reconstructor is None:
             self.setup(sim)
@@ -127,7 +127,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         self.wavelet = wavelet
         self.threshold = threshold
 
-    def setup(self, sim: SimDataType) -> None:
+    def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
         from mri.operators.linear.wavelet import WaveletN
         from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
@@ -157,7 +157,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         )
 
     def reconstruct(
-        self, sim: SimDataType, fourier_op: SpaceFourierBase | None = None
+        self, sim: SimData, fourier_op: SpaceFourierBase | None = None
     ) -> np.ndarray:
         """Reconstruct with Sequential."""
         if fourier_op is not None:
@@ -183,16 +183,16 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
     max_iter
         maximal number of interation.
     """
- 
+
     def __init__(
         self,
         lambda_l: float = 0.1,
         lambda_s: float | Literal["sure"] = 1,
         algorithm: str = "otazo",
         max_iter: int = 20,
-        time_linear_op = None,
-        time_prox_op = None,
-        space_prox_op = None
+        time_linear_op=None,
+        time_prox_op=None,
+        space_prox_op=None,
     ):
         super().__init__()
         self.lambda_l = lambda_l
@@ -206,7 +206,7 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
 
-    def setup(self, sim: SimDataType) -> None:
+    def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from fmri.operators.utils import sure_est, sigma_mad
@@ -222,13 +222,15 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
             self.time_linear_op = TimeFourier(time_axis=0)
         elif self.time_prox_op is None and self.time_linear_op is not None:
             self.lambda_time = lambda_time
-            self.time_prox_op = InTransformSparseThreshold(self.time_linear_op,
-                                            lambda_time, thresh_type="soft")
+            self.time_prox_op = InTransformSparseThreshold(
+                self.time_linear_op, lambda_time, thresh_type="soft"
+            )
         elif self.time_prox_op is not None and self.time_linear_op is None:
             self.time_prox_op = self.time_prox_op
         if self.space_prox_op is None:
-            self.space_prox_op = FlattenSVT(self.lambda_l, initial_rank=10, thresh_type="soft-rel")
-
+            self.space_prox_op = FlattenSVT(
+                self.lambda_l, initial_rank=10, thresh_type="soft-rel"
+            )
 
         if self.lambda_s == "sure":
             adj_data = self.fourier_op.adj_op(sim.kspace_data)
@@ -240,8 +242,6 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
             self.lambda_s = np.median(sure_thresh) / 2
             logger.info(f"SURE threshold: {self.lambda_s:.4e}")
 
-        
-
         self.reconstructor = LowRankPlusSparseReconstructor(
             self.fourier_op,
             space_prox_op=self.space_prox_op,
@@ -250,7 +250,7 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
         )
 
     def reconstruct(
-        self, sim: SimDataType, fourier_op: SpaceFourierBase | None = None
+        self, sim: SimData, fourier_op: SpaceFourierBase | None = None
     ) -> np.ndarray:
         """Reconstruct using LowRank+Sparse Method."""
         if fourier_op is not None:
@@ -292,7 +292,7 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
             f"Denoiser_{self.patch_shape}-{self.patch_overlap}-{self.recombination[0]}"
         )
 
-    def reconstruct(self, sim: SimDataType) -> np.ndarray:
+    def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct using a simple adjoint and denoiser."""
         from denoiser.denoise import optimal_thresholding
 

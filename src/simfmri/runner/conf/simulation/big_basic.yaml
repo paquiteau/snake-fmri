@@ -1,6 +1,6 @@
 
 ### Simulation using the BIG defined phantom with activation.
-_target_: simfmri.runner.factory.SimulationDataFactory
+_target_: simfmri.runner.factory.SimDataFactory
 checkpoints: false
 sim_params:
   sim_tr: 0.1

@@ -5,9 +5,9 @@ import pytest
 
 def test_simulation_params():
     """Test the simulation params."""
-    from simfmri.simulator import SimulationParams
+    from simfmri.simulator import SimParams
 
-    sim_params = SimulationParams(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
+    sim_params = SimParams(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
     assert sim_params.shape == (48, 48, 32)
     assert sim_params.n_frames == 12
     assert sim_params.sim_tr == 1.0
@@ -18,9 +18,9 @@ def test_simulation_params():
 
 def test_simulation_data():
     """Test the simulation data."""
-    from simfmri.simulator import SimulationData
+    from simfmri.simulator import SimData
 
-    sim_data = SimulationData(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
+    sim_data = SimData(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
     assert sim_data.shape == (48, 48, 32)
     assert sim_data.n_frames == 12
     assert sim_data.sim_tr == 1.0

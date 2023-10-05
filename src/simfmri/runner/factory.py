@@ -8,10 +8,10 @@ from omegaconf import DictConfig, OmegaConf
 from simfmri.simulator.handlers import (
     AbstractHandler,
 )
-from simfmri.simulator.simulation import SimulationData
+from simfmri.simulator.simulation import SimData
 
 
-class SimulationDataFactory:
+class SimDataFactory:
     """Simulation Factory.
 
     The Simulation data is generated throught the `simulate` function.
@@ -41,9 +41,9 @@ class SimulationDataFactory:
         else:
             self.handlers = handlers
 
-    def simulate(self) -> SimulationData:
+    def simulate(self) -> SimData:
         """Build the simulation data."""
-        sim = SimulationData(**self.sim_params)
+        sim = SimData(**self.sim_params)
 
         for idx, handler in enumerate(self.handlers):
             sim = handler.handle(sim)

@@ -39,7 +39,7 @@ def contrast_zscore(
     ----------
     image : np.ndarray
         4D image data.
-    sim : SimulationData
+    sim : SimData
         Simulation data object.
     contrast_name : str
         Contrast name.

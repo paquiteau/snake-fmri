@@ -1,5 +1,5 @@
 ### Simulation for a Shepp Logan phantom with activation.
-_target_: simfmri.runner.factory.SimulationDataFactory
+_target_: simfmri.runner.factory.SimDataFactory
 checkpoints: false
 sim_params:
   n_frames: 300
