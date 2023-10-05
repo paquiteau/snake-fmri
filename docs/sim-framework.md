@@ -1,4 +1,6 @@
-# Design Choices and Assumptions
+(sim_framework)=
+
+# Simulation Framework
 
 ## Modular Approach 
 
@@ -28,11 +30,12 @@ This approximation is also made at the reconstruction step, allowing one to use 
 
 
 :::{figure-md} fig-acq
-<img src="../figs/acquisition2.svg" alt="acquisition" width="70%">
+<img src="images/acquisition2.svg" alt="acquisition" width="70%">
 
-*Acquisition setup*: the high resolution simulation is sampled per shot to create a full kspace frame. Note that the displayed case is overly simplified (2D only, and 7 shot per kspace frame)
+*Acquisition setup*: The high resolution simulation is sampled per shot to create a full kspace frame. Note that the displayed case is overly simplified (2D only, and 7 shot per kspace frame)
 :::
 
 The characteristic time for a shot in a T2* MR Sequence used for fMRI is in the order of 25 to 50 ms, which is well below the period of significant physiological signals such as breathing and heartbeat (roughly 1s) or the hemodynamic response (20 to 30s).
 Thus, simulating and acquiring a complete volume for each shot is already a faithful approximation of the acquisition process in fMRI.
 In practice, the simulation resolution time can also be relaxed as a multiple of a few shot times (for instance, a simulation time of 100 ms for four shots of 25 ms), and the shots are acquired simultaneously, reducing the memory and computational cost of the simulation. The acquisition process is represented in {figure-md:numref}`fig-acq`
+

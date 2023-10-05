@@ -1,0 +1,32 @@
+# Table of contents
+# Learn more at https://jupyterbook.org/customize/toc.html
+
+format: jb-book
+root: index
+parts:
+  - caption: User Guides
+    chapters:
+      - file: user_guide/installation
+
+  - caption: Interfaces
+    chapters:
+      - file: api/simfmri/index
+        title: API References
+
+  # - caption: Explanations
+  #   chapters:
+  #     - file: FAQ
+  #     - file: sim-framework
+  #     - file: snake-vs-other
+
+  # - caption: Extras
+  #   chapters:
+  #     - file: citation
+  #     - file: related-projects
+  #       sections:
+  #       - url: https://mind-inria.github.io/mri-nufft
+  #         title: mri-nufft
+  #       - url: https://cea-cosmic.github.io/pysap
+  #         title: PySAP
+  #       - url: https://cea-cosmic.github.io/modopt
+  #         title: ModOpt

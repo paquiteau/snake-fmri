@@ -1,6 +1,4 @@
-
 # Frequently Asked Questions
-
 
 ## Why the name SNAKE-fMRI? 
 
@@ -19,3 +17,4 @@ TBA
 
 ## It would be nice if <...> , could you do it ? 
 TBA
+

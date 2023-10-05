@@ -1,0 +1,68 @@
+# Book settings
+# Learn more at https://jupyterbook.org/customize/config.html
+
+title: SNAKE-fMRI Documentation
+author: Pierre-Antoine Comby
+logo: images/logos/logo-snake_light.svg
+
+# Force re-execution of notebooks on each build.
+# See https://jupyterbook.org/content/execute.html
+execute:
+  execute_notebooks: force
+
+# Define the name of the latex output file for PDF builds
+latex:
+  latex_documents:
+    targetname: book.tex
+
+# Add a bibtex file so that we can create citations
+bibtex_bibfiles:
+  - references.bib
+
+# Information about where the book exists on the web
+repository:
+  url: https://github.com/executablebooks/jupyter-book  # Online location of your book
+  path_to_book: docs  # Optional path to your book, relative to the repository root
+  branch: master  # Which branch of the repository should be used when creating links (optional)
+
+# Add GitHub buttons to your book
+# See https://jupyterbook.org/customize/config.html#add-a-link-to-your-repository
+html:
+  use_issues_button: true
+  use_repository_button: true
+
+sphinx:
+  extra_extensions:
+    - numpydoc
+#    - sphinx.ext.napoleon
+    - autoapi.extension
+    - sphinx_copybutton
+    - sphinx.ext.autosummary
+    - sphinx.ext.autodoc
+    - sphinx.ext.intersphinx
+  config:
+    bibtex_reference_style: label
+    bibtex_bibfiles: ["references.bib"]
+    myst_enable_extensions:
+      - colon_fence
+      - deflist
+    intersphinx_mapping:
+      python: ["https://docs.python.org/3/", null]
+      matplotlib: ["https://matplotlib.org/stable", null]
+      numpy: ["https://numpy.org/doc/stable/", null]
+      pandas: ["https://pandas.pydata.org/pandas-docs/stable", null]
+    autodoc_member_order: bysource
+    add_module_names: false
+    autodoc_mock_imports: ["fmri"]
+    autoapi_dirs:
+      - "../src/simfmri"
+    autoapi_root: "api"
+    autoapi_add_toctree_entry: false
+    autoapi_keep_files: false
+    autoapi_options:
+      - "members"
+      - "undoc-members"
+      - "show-inheritance"
+      - "special-members"
+      - "imported-members"
+    autoapi_python_class_content: "both"
