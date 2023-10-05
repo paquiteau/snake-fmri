@@ -6,12 +6,17 @@ on:
     branches:
     - main
     - master
-    # If your git repository has the Jupyter Book within some-subfolder next to
-    # unrelated files, you can make this run only if a file within that specific
-    # folder has been modified.
-    #
-    # paths:
-    # - some-subfolder/**
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
 
 # This job installs dependencies, builds the book, and pushes it to `gh-pages`
 jobs:
