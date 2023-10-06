@@ -136,7 +136,7 @@ class SimData:
         self.lazy = lazy
 
     @classmethod
-    def from_params(cls, sim_meta: SimParams, in_place: bool = False) -> SimData:
+    def from_params(cls, sim_params: SimParams, in_place: bool = False) -> SimData:
         """Create a Simulation from its meta parameters.
 
         Parameters
@@ -147,12 +147,12 @@ class SimData:
         in_place
             If True, the underlying _meta attribute is set to sim_meta.
         """
-        if isinstance(sim_meta, SimParams):
-            obj = cls(**dataclasses.asdict(sim_meta))
+        if isinstance(sim_params, SimParams):
+            obj = cls(**dataclasses.asdict(sim_params))
         else:
-            obj = cls(**dict(sim_meta))
-        if in_place and isinstance(sim_meta, SimParams):
-            obj._meta = sim_meta
+            obj = cls(**dict(sim_params))
+        if in_place and isinstance(sim_params, SimParams):
+            obj._meta = sim_params
 
         return obj
 
