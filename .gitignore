@@ -21,3 +21,8 @@ multirun/
 scripts/
 datasets/
 benchmark/
+
+# jupyter crap
+#
+*.ipynb
+**/.ipynb_checkpoints/
