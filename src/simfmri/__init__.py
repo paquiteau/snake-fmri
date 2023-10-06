@@ -4,7 +4,6 @@ from .simulation import SimData, SimParams
 
 
 from .handlers import (
-    AVAILABLE_HANDLERS,
     H,
     handler,
     get_handler,
@@ -14,7 +13,7 @@ from .handlers import (
 
 __all__ = [
     "SimData",
-    "SimParams" "AVAILABLE_HANDLERS",
+    "SimParams",
     "H",
     "handler",
     "get_handler",

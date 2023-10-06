@@ -1,45 +1,68 @@
 """Base Handler Interface."""
 from __future__ import annotations
+from dataclasses import fields
+import inspect
+import functools
 import time
 import copy
+import os
 import logging
-from abc import ABC, abstractmethod
-from typing import Callable, Any, Iterable, Mapping
+from abc import ABCMeta, abstractmethod
+from typing import Callable, Any, Iterable, Mapping, IO
 
-from ..simulation import SimData
+import yaml
+
+from ..simulation import SimData, SimParams
 
 
 CallbackType = Callable[[SimData, SimData], Any]
 
 
-AVAILABLE_HANDLERS: Mapping[str, AbstractHandler] = {}
+class MetaHandler(ABCMeta):
+    """A Metaclass for Handlers.
+
+    This metaclass does 3 things:
+    - Register all the handlers that have a ``name`` class attribute
+    - Save the call to init ( for conversion to config string ) in a `_init_params`
+      attribute.
+    - Add a _callback = [] attribute, to store possible callbacks
+
+    """
+
+    registry = {}
+
+    def __new__(meta, name, bases, namespace, **class_dict):  # noqa
+        """Create new Handler class."""
+        cls = super().__new__(meta, name, bases, namespace, **class_dict)
+        cls_init = cls.__init__
+
+        @functools.wraps(cls_init)
+        def wrap_init(self, *args, **kwargs):  # noqa
+            try:
+                input_params = inspect.getcallargs(cls_init, self, *args, **kwargs)
+            except TypeError as e:
+                # re raising from original call
+                cls_init(self, *args, **kwargs)
+                raise e
+            cls_init(self, *args, **kwargs)
+            input_params.pop(list(input_params.keys())[0])
+            self._init_params = input_params
+            self._callbacks = []
+
+        cls.__init__ = wrap_init
+
+        if handler_name := getattr(cls, "name", None):
+            meta.registry[handler_name] = cls
+
+        return cls
+
+    @property
+    def log(cls) -> logging.Logger:
+        """Get a logger."""
+        return logging.getLogger(f"simulation.handlers.{cls.__name__}")
 
 
-def handler(
-    name: str, *args: Iterable[Any], **kwargs: Mapping[str, Any]
-) -> AbstractHandler | type(AbstractHandler):
-    """Create a handler from its name."""
-    if args or kwargs:
-        return AVAILABLE_HANDLERS[name](*args, **kwargs)
-    else:
-        return AVAILABLE_HANDLERS[name]
-
-
-# short alias
-H = handler
-
-
-def list_handlers() -> list[str]:
-    """List all available handlers."""
-    return list(AVAILABLE_HANDLERS.keys())
-
-
-def get_handler(name: str) -> type(AbstractHandler):
-    """Get a handler from its name."""
-    return AVAILABLE_HANDLERS[name]
-
-
-class AbstractHandler(ABC):
+class AbstractHandler(metaclass=MetaHandler):
     """Handler Interface.
 
     An Handler is designed to modify a Simulation data object.
@@ -58,13 +81,6 @@ class AbstractHandler(ABC):
 
     """
 
-    def __init__(self) -> None:
-        self._callbacks = []
-
-    def __init_subclass__(cls):
-        if getattr(cls, "name", None) is not None:
-            AVAILABLE_HANDLERS[cls.name] = cls
-
     def __rshift__(self, other: AbstractHandler | HandlerChain):
         """Perform self >> other."""
         if isinstance(other, AbstractHandler):
@@ -82,8 +98,19 @@ class AbstractHandler(ABC):
         """Short-hand for handle operation."""
         return self.handle(sim)
 
+    def to_yaml(self) -> str:
+        """Show the yaml config associated with the handler."""
+        if not self._init_params:
+            return self.name
+        else:
+            return yaml.dump({self.name: self._init_params})
+
     def __str__(self) -> str:
-        return self.__class__.__name__
+        ret = ""
+        for k, v in self._init_params.items():
+            ret += f"{k}={v},"
+        ret = f"H[{self.name}]({ret})"
+        return ret
 
     def _run_callbacks(self, old_sim: SimData, new_sim: SimData) -> None:
         """Run the different callbacks.
@@ -154,14 +181,21 @@ class AbstractHandler(ABC):
             self._run_callbacks(old_sim, new_sim)
         return new_sim
 
-    @property
-    def log(self) -> logging.Logger:
-        """Log the current action."""
-        return logging.getLogger(f"simulation.{self.__class__.__name__}")
-
     @abstractmethod
     def _handle(self, sim: SimData) -> SimData:
         pass
+
+
+class DummyHandler(AbstractHandler):
+    """A Handler that does nothing."""
+
+    name = "identity"
+
+    def __init__(self):
+        pass
+
+    def _handle(self, sim: SimData) -> SimData:
+        return sim
 
 
 class HandlerChain:
@@ -230,6 +264,11 @@ class HandlerChain:
             return self.__call__(other)
         return NotImplemented
 
+    def __eq__(self, other: HandlerChain):
+        if not isinstance(other, HandlerChain):
+            return NotImplemented
+        return self._handlers == other._handlers
+
     def __call__(self, sim: SimData):
         """Apply the handler chain to the simulation.
 
@@ -259,8 +298,60 @@ class HandlerChain:
 
     def __repr__(self):
         """Represent a simulation."""
-        ret = ""
+        ret = "Handler Chain: "
         for h in self._handlers:
-            ret += f"{h.name}({id(h)}) >> "
+            ret += f"{h} >> "
         ret = ret[:-3]
         return ret
+
+    def to_yaml(
+        self, filename: os.PathLike = None, sim: SimData | SimParams = None
+    ) -> None | str:
+        """Convert a Chain of handler to a yaml representation."""
+        conf = dict()
+        if sim:
+            conf["sim_params"] = {
+                f.name: getattr(sim, f.name)
+                for f in fields(SimParams)
+                if f.name != "extra_infos"
+            }
+        conf["handlers"] = []
+        for h in self._handlers:
+            conf["handlers"].append({h.name: h._init_params})
+
+        return yaml.dump(conf, filename)
+
+    @classmethod
+    def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
+        """Convert a yaml config to a chain of handlers."""
+        conf = yaml.safe_load(stream)
+        sim = None
+        if getattr(conf, "sim_params", None):
+            sim = SimData(**conf["sim_params"])
+        try:
+            handlers_conf = conf["handlers"]
+        except KeyError as e:
+            raise ValueError(
+                "A handler config file should have a  `handlers` section "
+            ) from e
+
+        handlers = []
+        for hconf in handlers_conf:
+            name, conf = list(hconf.items())[0]
+            handlers.append(MetaHandler.registry[name](**conf))
+        return HandlerChain(*handlers), sim
+
+
+# short alias
+H = MetaHandler.registry
+handler = H
+
+
+def list_handlers() -> list[str]:
+    """List all available handlers."""
+    return list(MetaHandler.registry.keys())
+
+
+def get_handler(name: str) -> type(AbstractHandler):
+    """Get a handler from its name."""
+    return MetaHandler.registry[name]
