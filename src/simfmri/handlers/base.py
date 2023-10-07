@@ -56,11 +56,6 @@ class MetaHandler(ABCMeta):
 
         return cls
 
-    @property
-    def log(cls) -> logging.Logger:
-        """Get a logger."""
-        return logging.getLogger(f"simulation.handlers.{cls.__name__}")
-
 
 class AbstractHandler(metaclass=MetaHandler):
     """Handler Interface.
@@ -180,6 +175,11 @@ class AbstractHandler(metaclass=MetaHandler):
         if self._callbacks:
             self._run_callbacks(old_sim, new_sim)
         return new_sim
+
+    @property
+    def log(self) -> logging.Logger:
+        """Get a logger."""
+        return logging.getLogger(f"simulation.handlers.{self.__class__.__name__}")
 
     @abstractmethod
     def _handle(self, sim: SimData) -> SimData:
