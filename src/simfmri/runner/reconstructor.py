@@ -129,15 +129,15 @@ class SequentialReconstructor(BenchmarkReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        from mri.operators.linear.wavelet import WaveletN
-        from mri.operators.proximity.weighted import AutoWeightedSparseThreshold
+        from fmri.operators.wavelet import WaveletTransform
+        from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(sim, repeat=True)
 
-        space_linear_op = WaveletN(
-            self.wavelet, nb_scale=3, dim=len(sim.shape), padding="periodization"
+        space_linear_op = WaveletTransform(
+            self.wavelet, shape=sim.shape, level=3, mode="periodization"
         )
         space_linear_op.op(np.zeros_like(sim.data_ref[0]))
 
@@ -193,15 +193,18 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
         time_linear_op=None,
         time_prox_op=None,
         space_prox_op=None,
+        fourier_op=None,
     ):
         super().__init__()
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
         self.algorithm = algorithm
+
         self.time_linear_op = time_linear_op
         self.time_prox_op = time_prox_op
         self.space_prox_op = space_prox_op
+        self.fourier_op = fourier_op
 
     def __str__(self):
         return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
@@ -210,27 +213,15 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
         """Set up the reconstructor."""
         from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
         from fmri.operators.utils import sure_est, sigma_mad
-        from fmri.operators.utils import InTransformSparseThreshold
+        from fmri.operators.proximity import InTransformSparseThreshold
         from fmri.operators.time_op import TimeFourier
-        from fmri.operators.proximity import ProxTV1d
         from fmri.operators.svt import FlattenSVT
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(sim, repeat=False)
 
-        if self.time_prox_op is None and self.time_linear_op is None:
+        if self.time_linear_op is None:
             self.time_linear_op = TimeFourier(time_axis=0)
-        elif self.time_prox_op is None and self.time_linear_op is not None:
-            self.lambda_time = lambda_time
-            self.time_prox_op = InTransformSparseThreshold(
-                self.time_linear_op, lambda_time, thresh_type="soft"
-            )
-        elif self.time_prox_op is not None and self.time_linear_op is None:
-            self.time_prox_op = self.time_prox_op
-        if self.space_prox_op is None:
-            self.space_prox_op = FlattenSVT(
-                self.lambda_l, initial_rank=10, thresh_type="soft-rel"
-            )
 
         if self.lambda_s == "sure":
             adj_data = self.fourier_op.adj_op(sim.kspace_data)
@@ -241,6 +232,16 @@ class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
 
             self.lambda_s = np.median(sure_thresh) / 2
             logger.info(f"SURE threshold: {self.lambda_s:.4e}")
+
+        if self.time_prox_op is None and self.time_linear_op is not None:
+            self.time_prox_op = InTransformSparseThreshold(
+                self.time_linear_op, self.lambda_s, thresh_type="soft"
+            )
+
+        if self.space_prox_op is None:
+            self.space_prox_op = FlattenSVT(
+                self.lambda_l, initial_rank=10, thresh_type="soft-rel"
+            )
 
         self.reconstructor = LowRankPlusSparseReconstructor(
             self.fourier_op,
