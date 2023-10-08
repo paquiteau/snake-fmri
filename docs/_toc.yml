@@ -7,7 +7,9 @@ parts:
   - caption: User Guides
     chapters:
       - file: user_guide/installation
-
+  - caption: Advanced Guides
+    chapters:
+      - file: advanded_guide/understanding_handlers
 
   - caption: Explanations
     chapters:
