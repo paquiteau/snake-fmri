@@ -186,7 +186,7 @@ def aggregate_results(results_files: list[str]) -> str:
     results_proc = pd.json_normalize([json.load(open(r)) for r in results_files])
     df = pd.DataFrame(results_proc)
     # Some light preprocessing.
-    df["config.reconstruction._target_"] = df["config.reconstruction._target_"].apply(
+    df["config.reconstruction._target_"] = df["config.reconstructor._target_"].apply(
         lambda x: x.split(".")[-1].replace("Reconstructor", "")
     )
     df.to_parquet("results_gathered.gzip")
