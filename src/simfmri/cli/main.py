@@ -7,30 +7,30 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
+from simfmri.handlers import HandlerChain
 from simfmri.analysis.stats import contrast_zscore, get_scores
-from simfmri.runner.utils import save_data
+from .utils import save_data
 
 log = logging.getLogger(__name__)
 
 
-@hydra.main(version_base=None, config_path="../conf", config_name="config")
+@hydra.main(version_base=None, config_path="../../conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
     if cfg.dry_mode:
         print(cfg)
         return None
 
-    # 1. Setup
-    simulation_factory = hydra.utils.instantiate(cfg.simulation)
-    reconstructor = hydra.utils.instantiate(cfg.reconstruction)
-
     log.debug(OmegaConf.to_yaml(cfg))
+    OmegaConf.resolve(cfg)
     logging.captureWarnings(True)
 
     # 2. Run
     with PerfLogger(log, name="Simulation"):
-        sim = simulation_factory.simulate()
+        simulator, sim = HandlerChain.from_conf(cfg.simulation)
+        sim = simulator(sim)
 
+    reconstructor = hydra.utils.instantiate(cfg.reconstructor)
     with PerfLogger(log, name="Reconstruction"):
         reconstructor.setup(sim)
         data_test = reconstructor.reconstruct(sim)
