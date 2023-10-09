@@ -5,16 +5,22 @@
 ## Modular Approach 
 
 Simfmri has a modular approach for the simulation of fMRI Data, leveraging object-oriented programming.
-A core simulation object will be modified and enriched by so-called /handlers/ each responsible for a specific part of the model (for instance, defining the anatomical base volume from a phantom or adding noise to a time series).
-As shown in Figure XX and example YY, those handlers can be chained to produce complex behaviors from simple operations.
-Defining your handler is also made easy, as shown in [[Create your custom handler]].
-Once the simulation has been done, It can be passed down to a reconstruction and analysis
+A core simulation object will be modified and enriched by so-called *handlers* each responsible for a specific part of the model (for instance, defining the anatomical base volume from a phantom or adding noise to a time series). 
+
+
+Those handlers can be chained to produce complex behaviors from simple operations. See {doc}`../advanced_guide/understanding_handlers` for more details.
+
+:::{tip} 
+The combination of a :meth:`SimData` object and handlers can be interpreted as a state machine. 
+:::
+
+Defining your handler is also made easy, as shown in {doc}`../advanced_guide/custom_handler.md`. 
+Once the simulation has been done, It can be passed down to a reconstructor and the results can then undergo a rudimentary analysis. 
 
 <!-- #+name: block-chain -->
 <!-- #+caption: Modular design of the simulator. Each handler manages a particular aspect of the fMRI signal acquisition. TO IMPROVE. -->
 <!-- #+attr_latex: :float multicolumn -->
 <!-- [[./figs/handlers_chain.pdf]] -->
-
 
 ## Acquisition Model
 
