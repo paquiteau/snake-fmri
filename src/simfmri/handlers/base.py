@@ -8,7 +8,7 @@ import copy
 import os
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Any, Iterable, Mapping, IO
+from typing import Callable, Any, Mapping, IO
 
 import yaml
 

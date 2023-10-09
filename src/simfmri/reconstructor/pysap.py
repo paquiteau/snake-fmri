@@ -12,6 +12,8 @@ import numpy as np
 
 from fmri.operators.fourier import FFT_Sense, RepeatOperator
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
+from modopt.opt.linear import LinearParent
+from modopt.opt.proximity import ProximityParent
 from mrinufft.operators import get_operator
 
 from .base import BaseReconstructor
@@ -174,10 +176,10 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         lambda_s: float | Literal["sure"] = 1,
         algorithm: str = "otazo",
         max_iter: int = 20,
-        time_linear_op=None,
-        time_prox_op=None,
-        space_prox_op=None,
-        fourier_op=None,
+        time_linear_op: LinearParent = None,
+        time_prox_op: ProximityParent = None,
+        space_prox_op: ProximityParent = None,
+        fourier_op: SpaceFourierBase = None,
     ):
         super().__init__()
         self.lambda_l = lambda_l

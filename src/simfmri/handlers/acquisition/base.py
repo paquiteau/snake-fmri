@@ -101,8 +101,9 @@ class AcquisitionHandler(AbstractHandler):
                 sim.sim_tr_ms / ((sim.sim_tr_ms // self.shot_time_ms) + 1)
             )
             self.log.warning(
-                f"shot time {self.shot_time_ms}ms does not divide sim tr {sim.sim_tr_ms}ms."
-                f" Updating to {new_shot_time_ms}ms per shot"
+                f"shot time {self.shot_time_ms} (ms) does not divide"
+                f"sim tr {sim.sim_tr_ms} (ms)."
+                f" Updating to {new_shot_time_ms} (ms) per shot."
             )
             self.shot_time_ms = new_shot_time_ms
 
