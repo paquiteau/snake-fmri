@@ -41,8 +41,6 @@ def main_app(cfg: DictConfig) -> None:
         stats = get_scores(
             zscore,
             sim.roi,
-            alphas=cfg.stats.alpha,
-            height_control=cfg.stats.height_control,
         )
 
     # 3. Clean up and saving

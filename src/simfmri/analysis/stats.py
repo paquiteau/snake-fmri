@@ -2,15 +2,7 @@
 import logging
 from typing import Literal
 
-from sklearn.metrics import (
-    roc_auc_score,
-    roc_curve,
-    accuracy_score,
-    jaccard_score,
-    precision_score,
-    recall_score,
-    f1_score,
-)
+from sklearn.metrics import roc_curve
 import numpy as np
 
 from nilearn.glm.first_level import make_first_level_design_matrix, run_glm
@@ -108,8 +100,6 @@ def get_thresh_map(
 def get_scores(
     contrast: np.ndarray,
     ground_truth: np.ndarray,
-    alphas: list[float],
-    height_control: HeightControl = "fpr",
 ) -> dict[str, float]:
     """Get sklearn metrics scores.
 
@@ -127,22 +117,17 @@ def get_scores(
         Dictionary of scores (accuracy, precision, recall, f1, jaccard)
 
     """
-    gt_f = ground_truth.flatten()
     stats = {}
-    stats = {"accuracy": [], "precision": [], "recall": [], "f1": [], "jaccard": []}
-    for alpha in alphas:
-        thresh_mapf = get_thresh_map(
-            contrast, alpha=alpha, height_control=height_control
-        ).flatten()
-        stats["accuracy"].append(accuracy_score(gt_f, thresh_mapf))
-        stats["precision"].append(precision_score(gt_f, thresh_mapf))
-        stats["recall"].append(recall_score(gt_f, thresh_mapf))
-        stats["f1"].append(f1_score(gt_f, thresh_mapf))
-        stats["jaccard"].append(jaccard_score(gt_f, thresh_mapf))
-    stats["alphas"] = list(alphas)
-    stats["roc_auc"] = roc_auc_score(gt_f, contrast.flatten())
+    gt_f = ground_truth.flatten()
+    P = np.sum(gt_f)
+    N = gt_f.size - P
+
     fpr, tpr, thresholds = roc_curve(gt_f, contrast.flatten())
-    stats["roc_fpr"] = list(fpr)
-    stats["roc_tpr"] = list(tpr)
-    stats["roc_thresh"] = list(thresholds)
+    stats["fpr"] = list(fpr)
+    stats["tpr"] = list(tpr)
+    stats["tresh"] = list(thresholds)
+    stats["tp"] = list(int(tpr * P))
+    stats["fp"] = list(int(fpr * N))
+    stats["tn"] = list(int(N * (1 - fpr)))
+    stats["fn"] = list(int(P * (1 - tpr)))
     return stats
