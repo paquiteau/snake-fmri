@@ -93,6 +93,8 @@ class AcquisitionHandler(AbstractHandler):
 
         test_traj = next(trajectory_generator)
         n_shot_traj = len(test_traj)
+
+        self.log.info(f"full trajectory has {n_shot_traj} shots")
         if sim.sim_tr_ms % self.shot_time_ms != 0:
             # find the closest shot time that divides the simulation time
             new_shot_time_ms = int(

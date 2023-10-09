@@ -247,7 +247,6 @@ def kspace_bulk_shot(
     """
     shots = next(traj_generator)
     shot_idx = 0
-    logger.info(f"full trajectory has {len(shots)} shots")
     kframe = 0
     for sim_frame_idx in range(n_sim_frame):
         if shot_idx + n_batch <= len(shots):
