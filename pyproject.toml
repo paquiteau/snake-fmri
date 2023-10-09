@@ -64,9 +64,9 @@ doc = ["jupyter-book", "numpydoc"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-simfmri-main ="simfmri.runner.cli.main:main_app"
-simfmri-data ="simfmrmi.runner.cli.generate_dataset:generate_data"
-simfmri-rec="simfmri.runner.cli.eval_recon:eval_recon"
+simfmri-main ="simfmri.cli.main:main_app"
+simfmri-data ="simfmrmi.cli.generate_dataset:generate_data"
+simfmri-rec="simfmri.cli.eval_recon:eval_recon"
 
 
 [build-system]
