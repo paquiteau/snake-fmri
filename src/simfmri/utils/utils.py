@@ -23,8 +23,8 @@ def validate_rng(rng: RngType = None) -> np.random.Generator:
 def cplx_type(dtype: DTypeLike) -> DTypeLike:
     """Return the complex dtype with the same precision as a real one.
 
-    Example
-    -------
+    Examples
+    --------
     >>> cplx_type(np.float32)
     np.complex64
     """
