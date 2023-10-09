@@ -1,5 +1,0 @@
-_target_: simfmri.runner.reconstructor.LowRankPlusSparseReconstructor
-
-lambda_l: 0.01
-lambda_s: sure
-algorithm: pogm

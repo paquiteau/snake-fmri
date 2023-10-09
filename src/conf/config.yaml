@@ -1,0 +1,23 @@
+defaults:
+  - _self_
+  - simulation: big_basic
+  - reconstructor: zero_filled
+  - stats: stat_default
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+dry_mode: false
+save: false
+# save:
+#   data: "mini"
+#   compress: true
+
+hydra:
+  job:
+    chdir: true
+
+  callbacks:
+    gather_files:
+      _target_: hydra_callbacks.MultiRunGatherer
+    latest_run:
+      _target_: hydra_callbacks.LatestRunLink

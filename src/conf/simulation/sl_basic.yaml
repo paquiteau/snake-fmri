@@ -1,0 +1,28 @@
+checkpoints: false
+sim_params:
+  n_frames: 300
+  shape: [128, 128, 128]
+  sim_tr: 0.2
+  n_coils: 1
+  lazy: true
+
+h andlers:
+  - phantom-shepp_logan:
+      roi_index: 10
+  - activation-block:
+    block_on: 20
+    block_off: 10
+    duration: ${simulation.sim_params.n_frames}
+    offset: 0
+  - phantom-slicer:
+    axis: 0
+    index: 58
+  - noise-gaussian:
+    snr: 1000
+  - acquisition-vds:
+    acs: 24
+    shot_time_ms: 50
+    accel: 4
+    accel_axis: 1
+    constant: true
+    gen_smaps: false
