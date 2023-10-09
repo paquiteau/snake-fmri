@@ -8,11 +8,14 @@ from typing import Literal
 import logging
 
 import numpy as np
-from mrinufft.operators import get_operator
-from simfmri.simulation import SimData
+
 
 from fmri.operators.fourier import FFT_Sense, RepeatOperator
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
+from mrinufft.operators import get_operator
+
+from .base import BaseReconstructor
+from simfmri.simulation import SimData
 
 logger = logging.getLogger(__name__)
 
@@ -65,26 +68,7 @@ def get_fourier_operator(
     )
 
 
-class BenchmarkReconstructor:
-    """Represents the interface required to be benchmark-able."""
-
-    def __init__(self):
-        self.reconstructor = None
-        self.fourier_op = None
-
-    def setup(self, sim: SimData) -> None:
-        """Set up the reconstructor."""
-        logger.info(f"Setup reconstructor {self.__class__.__name__}")
-
-    def reconstruct(self, sim: SimData) -> np.ndarray:
-        """Reconstruct data."""
-        raise NotImplementedError()
-
-    def __str__(self):
-        raise NotImplementedError()
-
-
-class ZeroFilledReconstructor(BenchmarkReconstructor):
+class ZeroFilledReconstructor(BaseReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
     def __str__(self):
@@ -101,7 +85,7 @@ class ZeroFilledReconstructor(BenchmarkReconstructor):
         return self.reconstructor.adj_op(sim.kspace_data)
 
 
-class SequentialReconstructor(BenchmarkReconstructor):
+class SequentialReconstructor(BaseReconstructor):
     """Use a sequential Reconstruction.
 
     Parameters
@@ -171,7 +155,7 @@ class SequentialReconstructor(BenchmarkReconstructor):
         return seq_rec
 
 
-class LowRankPlusSparseReconstructor(BenchmarkReconstructor):
+class LowRankPlusSparseReconstructor(BaseReconstructor):
     """Low Rank + Sparse Benchmark reconstructor.
 
     Parameters
