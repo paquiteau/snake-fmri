@@ -43,6 +43,7 @@ sphinx:
     myst_enable_extensions:
       - colon_fence
       - deflist
+    nb_kernel_rgx_aliases: {".*": "python3"}
     intersphinx_mapping:
       python: ["https://docs.python.org/3/", null]
       matplotlib: ["https://matplotlib.org/stable", null]
