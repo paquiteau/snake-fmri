@@ -12,6 +12,31 @@ import numpy as np
 import scipy.stats as sps
 
 
+def _lazy_add_noise(
+    data: np.ndarray,
+    noise_std: float,
+    root_seed: int,
+    frame_idx: int = None,
+) -> np.ndarray:
+    """Add noise to data."""
+    rng = np.random.default_rng([frame_idx, root_seed])
+    if data.dtype in [np.complex128, np.complex64]:
+        noise_std /= np.sqrt(2)
+    noise = noise_std * rng.standard_normal(data.shape, dtype=abs(data[:][0]).dtype)
+    noise = noise.astype(data.dtype)
+
+    if data.dtype in [np.complex128, np.complex64]:
+        noise += (
+            1j
+            * noise_std
+            * rng.standard_normal(
+                data.shape,
+                dtype=abs(data[:][0]).dtype,
+            )
+        )
+    return data + noise
+
+
 class NoiseHandler(AbstractHandler):
     """Add noise to the data.
 
@@ -99,32 +124,7 @@ class GaussianNoiseHandler(NoiseHandler):
     def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
 
-        def _add_noise(
-            data: np.ndarray,
-            noise_std: float,
-            root_seed: int,
-            frame_idx: int = None,
-        ) -> np.ndarray:
-            rng = np.random.default_rng([frame_idx, root_seed])
-            if data.dtype in [np.complex128, np.complex64]:
-                noise_std /= np.sqrt(2)
-            noise = noise_std * rng.standard_normal(
-                data.shape, dtype=abs(data[:][0]).dtype
-            )
-            noise = noise.astype(data.dtype)
-
-            if data.dtype in [np.complex128, np.complex64]:
-                noise += (
-                    1j
-                    * noise_std
-                    * rng.standard_normal(
-                        data.shape,
-                        dtype=abs(data[:][0]).dtype,
-                    )
-                )
-            return data + noise
-
-        sim.data_acq.apply(_add_noise, noise_std, rng_seed)
+        sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
 
 
 class RicianNoiseHandler(NoiseHandler):
