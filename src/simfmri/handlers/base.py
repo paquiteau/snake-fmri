@@ -325,6 +325,11 @@ class HandlerChain:
     def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
         """Convert a yaml config to a chain of handlers."""
         conf = yaml.safe_load(stream)
+        return cls.from_conf(conf)
+
+    @classmethod
+    def from_conf(cls, conf: Mapping[str, Any]) -> tuple[HandlerChain, SimData]:
+        """Load a chain of handler from a configuration."""
         sim = None
         if getattr(conf, "sim_params", None):
             sim = SimData(**conf["sim_params"])
@@ -337,8 +342,8 @@ class HandlerChain:
 
         handlers = []
         for hconf in handlers_conf:
-            name, conf = list(hconf.items())[0]
-            handlers.append(MetaHandler.registry[name](**conf))
+            name, hhconf = list(hconf.items())[0]
+            handlers.append(MetaHandler.registry[name](**hhconf))
         return HandlerChain(*handlers), sim
 
 
