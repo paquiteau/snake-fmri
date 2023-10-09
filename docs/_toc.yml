@@ -20,7 +20,7 @@ parts:
     chapters:
       - file: _api/simfmri.simulation.rst
       - file: _api/simfmri.handlers.rst
-      - file: _api/simfmri.runner.rst
+      - file: _api/simfmri.reconstructor.rst
       - file: _api/simfmri.cli.rst
       - file: _api/simfmri.analysis.rst
 
