@@ -183,7 +183,15 @@ def aggregate_results(results_files: list[str]) -> str:
     """Aggregate all the .json results files into a single parquet file."""
     import pandas as pd
 
-    results_proc = pd.json_normalize([json.load(open(r)) for r in results_files])
+    results = []
+    for r in results_files:
+        data = json.load(open(r))
+        if isinstance(data, list):
+            results.extend(data)
+        else:
+            results.append(data)
+
+    results_proc = pd.json_normalize(results)
     df = pd.DataFrame(results_proc)
     # Some light preprocessing.
     df.to_parquet("results_gathered.gzip")

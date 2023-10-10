@@ -51,12 +51,14 @@ def main_app(cfg: DictConfig) -> None:
             stats = get_scores(zscore, sim.roi)
 
         np.save(f"data_rec_{rec}.npy", data_test)
+        np.save(f"data_zscore_{rec}.npy", zscore)
         results.append(
             {
                 "sim_params": OmegaConf.to_container(cfg.simulation.sim_params),
                 "handlers": OmegaConf.to_container(cfg.simulation.handlers),
                 "reconstructor": str(rec),
                 "stats": stats,
+                "data_zscore": os.path.join(os.getcwd(), f"data_zscore_{rec}.npy"),
                 "data_rec": os.path.join(os.getcwd(), f"data_rec_{rec}.npy"),
                 "sim_data": os.path.join(os.getcwd(), "simulation.pkl"),
             }
