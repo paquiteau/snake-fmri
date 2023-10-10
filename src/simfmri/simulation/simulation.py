@@ -9,11 +9,14 @@ from typing import Literal, Any, Mapping
 import copy
 import pickle
 import dataclasses
+import logging
 
 import numpy as np
 from numpy.typing import DTypeLike
 from simfmri.utils import AnyShape, cplx_type
 from .lazy import LazySimArray
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["SimData", "SimParams"]
 
@@ -294,18 +297,15 @@ class SimData:
         """Check if the attributes are coherent to each other."""
         if self.data_ref is not None:
             if self.data_ref.shape != (self.n_frames, *self.shape):
+                logger.warn("self.data_ref.shape != (self.n_frames, *self.shape)")
                 return False
             if self.data_acq.shape != self.data_ref.shape:
+                logger.warn("self.data_acq.shape != self.data_ref.shape")
                 return False
 
-        if self.smaps:
+        if self.smaps is not None:
             if self.smaps.shape != (self.n_coils, *self.shape):
-                return False
-        if self.kspace_data is not None:
-            if self.kspace_data.shape[0] != self.n_frames:
-                return False
-        if self.kspace_data is not None and self.smaps is not None:
-            if self.kspace_data.shape[1] != self.n_coils:
+                logger.warn("self.smaps.shape != (self.n_coils, *self.shape)")
                 return False
         # TODO: add test on the mask
 
