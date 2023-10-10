@@ -73,8 +73,10 @@ def get_fourier_operator(
 class ZeroFilledReconstructor(BaseReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
+    name = "adjoint"
+
     def __str__(self):
-        return "ZeroFilled"
+        return "Adjoint"
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -99,6 +101,8 @@ class SequentialReconstructor(BaseReconstructor):
     threshold
         Threshold value for the wavelet regularisation.
     """
+
+    name = "sequential"
 
     def __init__(
         self,
@@ -170,6 +174,8 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         maximal number of interation.
     """
 
+    name = "lr+f"
+
     def __init__(
         self,
         lambda_l: float = 0.1,
@@ -193,7 +199,9 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         self.fourier_op = fourier_op
 
     def __str__(self):
-        return f"LRS-{self.lr_thresh:.2e}-{self.sparse_thresh:.2e}"
+        if isinstance(self.lambda_s, float):
+            return f"LRS-{self.lambda_l:.2e}-{self.lambda_s:.2e}"
+        return f"LRS-{self.lambda_l:.2e}-{self.lambda_s}"
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -253,6 +261,15 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         return M
 
 
+class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor):
+    ...
+
+
+class LowRankPlusWaveletReconstructor(LowRankPlusSparseReconstructor):
+    ...
+    # SURE threhsold estimated properly with the AutoWeighted Sparse Threhsold.
+
+
 class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
     """
     Reconstructor using a simple adjoint and a denoiser.
@@ -266,6 +283,8 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
     TODO Add support for different denoising methods.
 
     """
+
+    name = "adjoint+denoised"
 
     def __init__(
         self, patch_shape: int, patch_overlap: int, recombination: str = "weighted"
@@ -292,6 +311,3 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
             recombination=self.recombination,
         )
         return np.moveaxis(llr_denoise[0], -1, 0)
-
-
-# TODO: PnP

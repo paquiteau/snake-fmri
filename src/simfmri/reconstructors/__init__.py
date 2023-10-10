@@ -1,6 +1,6 @@
 """Reconstructor interfaces for the simulator."""
 
-from .base import BaseReconstructor
+from .base import BaseReconstructor, RECONSTRUCTORS
 
 from .pysap import (
     SequentialReconstructor,
@@ -9,6 +9,7 @@ from .pysap import (
 )
 
 __all__ = [
+    "RECONSTRUCTOR",
     "BaseReconstructor",
     "SequentialReconstructor",
     "ZeroFilledReconstructor",

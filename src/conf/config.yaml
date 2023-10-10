@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - simulation: big_basic
-  - reconstructor: zero_filled
+  - reconstructors: zero_filled
   - stats: stat_default
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog

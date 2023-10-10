@@ -1,0 +1,9 @@
+- adjoint: {}
+- sequential:
+    max_iter_per_frame: 30
+    optimizer: pogm
+    threshold: "sure"
+- lr+f:
+    lambda_l: 0.01
+    lambda_s: sure
+    algorithm: pogm
