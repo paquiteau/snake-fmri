@@ -118,7 +118,7 @@ def get_scores(
 
     """
     stats = {}
-    gt_f = ground_truth.flatten()
+    gt_f = ground_truth.flatten() >= 0.5
     P = np.sum(gt_f)
     N = gt_f.size - P
 
