@@ -22,9 +22,8 @@ handlers:
     shot_time_ms: 50
     n_samples: 8000
     nb_revolutions: 100
-    accel: 4
     acsz: 0.125
-    accelz: 2
+    accelz: 4
     constant: false
     directionz: center-out
     backend: "finufft"
