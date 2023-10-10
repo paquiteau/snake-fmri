@@ -7,7 +7,10 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
+from simfmri.simulation import SimData
 from simfmri.handlers import HandlerChain
+from simfmri.reconstructors import RECONSTRUCTORS
+
 from simfmri.analysis.stats import contrast_zscore, get_scores
 from .utils import save_data
 
@@ -30,33 +33,38 @@ def main_app(cfg: DictConfig) -> None:
         simulator, sim = HandlerChain.from_conf(cfg.simulation)
         sim = simulator(sim)
 
-    reconstructor = hydra.utils.instantiate(cfg.reconstructor)
-    with PerfLogger(log, name="Reconstruction"):
-        reconstructor.setup(sim)
-        data_test = reconstructor.reconstruct(sim)
+    reconstructors = hydra.utils.instantiate(cfg.reconstructors)
+    if len(reconstructors) > 1:
+        sim.save("simulation.pkl")
+    results = []
+    for reconf in reconstructors:
+        name = list(reconf.keys())[0]
+        rec = RECONSTRUCTORS[name](**reconf[name])
+        if len(reconstructors) > 1:
+            sim = SimData.load_from_file("simulation.pkl", np.float32)
+        with PerfLogger(log, name="Reconstruction " + str(rec)):
+            rec.setup(sim)
+            data_test = rec.reconstruct(sim)
 
-    log.debug("Current simulation state: %s", sim)
-    with PerfLogger(log, name="Estimation"):
-        zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
-        stats = get_scores(
-            zscore,
-            sim.roi,
+        log.debug("Current simulation state: %s", sim)
+        with PerfLogger(log, name="Analysis " + str(rec)):
+            zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
+            stats = get_scores(zscore, sim.roi)
+
+        np.save(f"data_rec_{rec}.npy", data_test)
+        results.append(
+            {
+                "sim_params": OmegaConf.to_container(cfg.simulation.sim_params),
+                "handlers": OmegaConf.to_container(cfg.simulation.handlers),
+                "reconstructor": str(rec),
+                "stats": stats,
+                "data_rec": os.path.join(os.getcwd(), f"data_rec_{rec}.npy"),
+                "sim_data": os.path.join(os.getcwd(), "simulation.pkl"),
+            }
         )
 
     # 3. Clean up and saving
     with PerfLogger(log, name="Cleanup"):
-        sim.extra_infos["zscore"] = zscore
-        sim.extra_infos["stats"] = stats
-        sim.extra_infos["data_test"] = np.squeeze(data_test)
-
-        results = {"stats": stats, "config": OmegaConf.to_container(cfg)}
-        if cfg.save and cfg.save.data:
-            filename = save_data(cfg.save.data, cfg.save.compress, sim, log)
-            if isinstance(filename, str):
-                results["data"] = os.path.join(os.getcwd(), filename)
-            elif isinstance(filename, list):
-                results["data"] = [os.path.join(os.getcwd(), f) for f in filename]
-
         with open("results.json", "w") as f:
             json.dump(results, f)
 
