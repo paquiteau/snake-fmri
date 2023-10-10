@@ -1,0 +1,30 @@
+sim_params:
+  sim_tr: 0.1
+  sim_time: 300
+  shape: [160, 192, 160] # [54, 64, 54]
+  fov: [0.181,0.217,0.181]
+  n_coils: 8
+  rng: 19980408
+  lazy: false
+
+handlers:
+  phantom-brainweb:
+    subject_id: 5
+  activation-block:
+    event_name: block_on
+    block_on: 20
+    block_off: 15
+    duration: 300
+    bold_strength: 0.02
+  noise-gaussian:
+    snr: 1000
+  acquisition-sos:
+    shot_time_ms: 50
+    n_samples: 8000
+    nb_revolutions: 100
+    accel: 4
+    acsz: 0.125
+    accelz: 2
+    constant: false
+    directionz: center-out
+    backend: "finufft"
