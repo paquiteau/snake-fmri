@@ -26,3 +26,6 @@ benchmark/
 #
 *.ipynb
 **/.ipynb_checkpoints/
+
+# Docs
+docs/_api/
