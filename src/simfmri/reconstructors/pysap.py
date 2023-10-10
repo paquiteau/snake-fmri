@@ -32,10 +32,13 @@ def get_fourier_operator(
 
     density = True
     if backend := sim.extra_infos.get("operator", None):
+        logger.info(f"fourier backend is {backend}")
         if "stacked-" in backend:
             nufft_backend = backend.replace("stacked-", "")
             frame_ops = []
             Ns = sim.extra_infos["traj_params"]["n_samples"]
+            logger.info(f"{nufft_backend}, {Ns} points in shots")
+
             with warnings.catch_warnings():
                 warnings.filterwarnings(
                     "ignore", "Samples .*", category=UserWarning, module="mrinufft"
