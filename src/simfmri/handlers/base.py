@@ -341,9 +341,8 @@ class HandlerChain:
             ) from e
 
         handlers = []
-        for hconf in handlers_conf:
-            name, hhconf = list(hconf.items())[0]
-            handlers.append(MetaHandler.registry[name](**hhconf))
+        for h_name, h_conf in handlers_conf.items():
+            handlers.append(MetaHandler.registry[h_name](**h_conf))
         return HandlerChain(*handlers), sim
 
 
