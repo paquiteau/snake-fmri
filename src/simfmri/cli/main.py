@@ -12,7 +12,6 @@ from simfmri.handlers import HandlerChain
 from simfmri.reconstructors import RECONSTRUCTORS
 
 from simfmri.analysis.stats import contrast_zscore, get_scores
-from .utils import save_data
 
 log = logging.getLogger(__name__)
 
