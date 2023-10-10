@@ -429,7 +429,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         self._traj_params["shape"] = sim.shape
         self._traj_params["rng"] = validate_rng(sim.rng)
 
-        sim.extra_infos["operator"] = self._backend
+        sim.extra_infos["operator"] = "stacked-" + self._backend
 
         from mrinufft.trajectories.utils import (
             compute_gradients,
@@ -459,5 +459,5 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             # extra kwargs for the nufft operator
             op_backend="stacked",
             z_index="auto",
-            backend="finufft",
+            backend=self._backend,
         )

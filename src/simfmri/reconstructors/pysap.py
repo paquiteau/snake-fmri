@@ -6,7 +6,7 @@ and returns a reconstructed fMRI array.
 from __future__ import annotations
 from typing import Literal
 import logging
-
+import warnings
 import numpy as np
 
 
@@ -15,6 +15,8 @@ from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
 from mrinufft.operators import get_operator
+from mrinufft.operators.stacked import traj3d2stacked
+from mrinufft.trajectories.density import voronoi
 
 from .base import BaseReconstructor
 from simfmri.simulation import SimData
@@ -28,10 +30,40 @@ def get_fourier_operator(
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
 
+    density = True
     if backend := sim.extra_infos.get("operator", None):
+        if "stacked-" in backend:
+            nufft_backend = backend.replace("stacked-", "")
+            frame_ops = []
+            Ns = sim.extra_infos["traj_params"]["n_samples"]
+            with warnings.catch_warnings():
+                warnings.filterwarnings(
+                    "ignore", "Samples .*", category=UserWarning, module="mrinufft"
+                )
+                if nufft_backend == "finufft":
+                    density = voronoi(sim.kspace_mask[0][:Ns, :2])
+                for kf in range(sim.kspace_mask.shape[0]):
+                    traj2d, z_indexes = traj3d2stacked(
+                        sim.kspace_mask[kf], sim.shape[-1]
+                    )
+                    frame_ops.append(
+                        get_operator(
+                            "stacked",
+                            backend=nufft_backend,
+                            shape=sim.shape,
+                            z_index=np.int32(z_indexes),
+                            samples=traj2d,
+                            density=density,
+                            smaps=sim.smaps,
+                            n_coils=sim.n_coils,
+                            squeeze_dims=True,
+                        )
+                    )
+            return RepeatOperator(frame_ops)
+
         if "finufft" in backend:
             kwargs["squeeze_dims"] = True
-        kwargs["density"] = True
+        kwargs["density"] = density
 
         def _get_op(i: int = 0) -> SpaceFourierBase:
             return get_operator(backend)(
@@ -44,9 +76,9 @@ def get_fourier_operator(
 
         if sim.extra_infos["traj_constant"]:
             return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
-        else:
-            return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
-    elif repeat:
+        return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
+
+    if repeat:
         return RepeatOperator(
             [
                 FFT_Sense(
