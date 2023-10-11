@@ -34,13 +34,13 @@ def main_app(cfg: DictConfig) -> None:
 
     reconstructors = hydra.utils.instantiate(cfg.reconstructors)
     if len(reconstructors) > 1:
-        sim.save("simulation.pkl")
+        np.save("simulation.pkl", sim, allow_pickle=True)
     results = []
     for reconf in reconstructors:
         name = list(reconf.keys())[0]
         rec = RECONSTRUCTORS[name](**reconf[name])
         if len(reconstructors) > 1:
-            sim = SimData.load_from_file("simulation.pkl", np.float32)
+            sim = np.load("simulation.pkl", allow_pickle=True)
         with PerfLogger(log, name="Reconstruction " + str(rec)):
             rec.setup(sim)
             data_test = rec.reconstruct(sim)
