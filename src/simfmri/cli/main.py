@@ -3,11 +3,12 @@ import logging
 import json
 import os
 import hydra
+import pickle
+
 import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.simulation import SimData
 from simfmri.handlers import HandlerChain
 from simfmri.reconstructors import RECONSTRUCTORS
 
@@ -34,13 +35,15 @@ def main_app(cfg: DictConfig) -> None:
 
     reconstructors = hydra.utils.instantiate(cfg.reconstructors)
     if len(reconstructors) > 1:
-        np.save("simulation.pkl", sim, allow_pickle=True)
+        with open("simulation.pkl", "wb") as f:
+            pickle.dump(sim, f)  # direct pickling to avoid checkings
     results = []
     for reconf in reconstructors:
         name = list(reconf.keys())[0]
         rec = RECONSTRUCTORS[name](**reconf[name])
         if len(reconstructors) > 1:
-            sim = np.load("simulation.pkl", allow_pickle=True)
+            with open("simulation.pkl", "rb") as f:
+                sim = pickle.load(f)  # direct pickling to avoid checkings
         with PerfLogger(log, name="Reconstruction " + str(rec)):
             rec.setup(sim)
             data_test = rec.reconstruct(sim)

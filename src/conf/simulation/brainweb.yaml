@@ -1,11 +1,11 @@
 sim_params:
   sim_tr: 0.1
   sim_time: 300
-  shape: [160, 192, 160] # [54, 64, 54]
+  shape: [160, 192, 160]
   fov: [0.181,0.217,0.181]
   n_coils: 8
   rng: 19980408
-  lazy: false
+  lazy: true
 
 handlers:
   phantom-brainweb:
