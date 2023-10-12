@@ -136,7 +136,8 @@ class LazySimArray(Sequence):
         else:
             cur = self._base_array
         for op, args, kwargs in self._operations:
-            if "frame_idx" in op.__code__.co_varnames[: op.__code__.co_argcount]:
+            code = getattr(op, "__code__", None)
+            if code and "frame_idx" in code.co_varnames[: code.co_argcount]:
                 kwargs["frame_idx"] = frame_idx
             cur = op(cur, *args, **kwargs)
 
