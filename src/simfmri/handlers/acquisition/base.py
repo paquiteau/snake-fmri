@@ -431,26 +431,6 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
 
         sim.extra_infos["operator"] = "stacked-" + self._backend
 
-        from mrinufft.trajectories.utils import (
-            compute_gradients,
-            _check_gradient_constraints,
-            DEFAULT_RASTER_TIME_MS,
-        )
-
-        tobs = DEFAULT_RASTER_TIME_MS * self._traj_params["n_samples"]
-        if tobs > self.shot_time_ms - 20:
-            self.log.warning(
-                f"The simulated trajectory takes {tobs}ms to run, "
-                f" in a {self.shot_time_ms}ms shot."
-            )
-
-        test_traj = stack_spiral_factory(**self._traj_params)
-        grads, _, slews = compute_gradients(test_traj, resolution=sim.res[-1])
-        if not _check_gradient_constraints(grads, slews):
-            self.log.error("Trajectory does not respect gradient constraints.")
-
-        self._traj_params["constant"] = self.constant
-
         return self._acquire(
             sim,
             trajectory_generator=trajectory_generator(
