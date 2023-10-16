@@ -33,10 +33,11 @@ html:
 
 sphinx:
   extra_extensions:
-    - numpydoc
     - sphinx_copybutton
     - sphinx.ext.autodoc
+    - sphinx.ext.autosummary
     - sphinx.ext.intersphinx
+    - sphinx.ext.napoleon
   config:
     bibtex_reference_style: label
     bibtex_bibfiles: ["references.bib"]
@@ -50,12 +51,15 @@ sphinx:
       numpy: ["https://numpy.org/doc/stable/", null]
       pandas: ["https://pandas.pydata.org/pandas-docs/stable", null]
     autodoc_member_order: bysource
-    add_module_names: false
-    numpydoc_show_class_members: false
     autoclass_content: "both"
     autodoc_mock_imports: ["fmri"]
     autodoc_default_options: {"ignore-module-all": true}
-   # templates_path: ["_templates"]
+
+    napoleon_include_private_with_doc: True
+    napoleon_numpy_docstring: True
+    napoleon_use_admonition_for_references: True
+
+    templates_path: ["_templates"]
     exclude_patterns:
       - "_build"
       - "_templates"

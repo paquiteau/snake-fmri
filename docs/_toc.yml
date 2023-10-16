@@ -18,12 +18,13 @@ parts:
 
   - caption: API References
     chapters:
-      - file: _api/simfmri.simulation.rst
-      - file: _api/simfmri.handlers.rst
-      - file: _api/simfmri.reconstructor.rst
-      - file: _api/simfmri.cli.rst
-      - file: _api/simfmri.analysis.rst
-
+      - file: api.rst
+      # - file: _api/simfmri.simulation.rst
+      # - file: _api/simfmri.handlers.rst
+      # - file: _api/simfmri.reconstructor.rst
+      # - file: _api/simfmri.cli.rst
+      # - file: _api/simfmri.analysis.rst
+    
   - caption: Extras
     chapters:
       - file: citation

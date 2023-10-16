@@ -56,10 +56,13 @@ class AcquisitionHandler(AbstractHandler):
 
 
     The MRI acquisition is modelled as follows:
+
     .. math::
         s(t) = \int_{\Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) dx
+
     where :math:`\rho` is the object, :math:`k(t)` is the k-space trajectory.
     In practice:
+
     .. math::
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
