@@ -1,0 +1,4 @@
+- lr+f:
+    lambda_l: 0.01
+    lambda_s: sure
+    algorithm: pogm
