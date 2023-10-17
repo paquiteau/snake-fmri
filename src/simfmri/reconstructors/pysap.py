@@ -66,7 +66,7 @@ def get_fourier_operator(
     backend = sim.extra_infos.get("operator", None)
     logger.info(f"fourier backend is {backend}")
     if "stacked-" in backend:
-        return _get_stacked_operator()
+        return _get_stacked_operator(backend, sim)
 
     if "finufft" in backend:
         kwargs["squeeze_dims"] = True
