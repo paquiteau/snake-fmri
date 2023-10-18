@@ -1,9 +1,12 @@
 """Phantom Generation Handlers."""
 from importlib.resources import files
 import os
+
 import numpy as np
+from joblib.hashing import hash as jbhash
 
 from brainweb_dl import get_mri
+from brainweb_dl._brainweb import get_brainweb_dir
 
 from simfmri.simulation import SimData, LazySimArray
 from simfmri.utils import validate_rng
@@ -156,59 +159,121 @@ class BrainwebPhantomHandler(AbstractHandler):
     def __init__(
         self,
         subject_id: int,
-        brainweb_folder: os.PathLike = "~/.cache/brainweb",
+        brainweb_folder: os.PathLike | None = None,
         roi: int = 1,
+        bbox: tuple[int, int, int, int, int, int] = None,
+        force: bool = False,
     ):
         super().__init__()
-        self.subject_id = subject_id
+        self.sub_id = subject_id
         self.brainweb_folder = brainweb_folder
         self.roi = roi
+        self.bbox = bbox
+        self.force = force
 
     def _handle(self, sim: SimData) -> SimData:
-        from ._brainweb import (
-            get_indices_inside_ellipsoid,
-            BRAINWEB_OCCIPITAL_ROI,
-        )
+        # TODO hash and cache config with all the parameters of get_mri
+        # do this for both static_vol and roi.
+        # save to brainweb_folder
+        bw_dir = get_brainweb_dir(self.brainweb_folder)
 
-        sim.static_vol = get_mri(
-            self.subject_id,
-            brainweb_dir=self.brainweb_folder,
-            contrast="T2*",
-            rng=sim.rng or self.rng,
-            shape=sim.shape,
-        )
+        static_hash = jbhash(("static", self.sub_id, sim.shape, self.bbox, sim.rng))
+        roi_hash = jbhash(("roi", self.sub_id, sim.shape, self.bbox))
+
+        static_path = bw_dir / (static_hash + ".npy")
+        roi_path = bw_dir / (roi_hash + ".npy")
+
+        if os.path.exists(static_path) and not self.force:
+            static_vol = np.load(static_path)
+        else:
+            static_vol = self._make_static_vol(sim)
+            np.save(static_path, static_vol)
+
         if -1 in sim.shape:
             old_shape = sim.shape
-            sim._meta.shape = sim.static_vol.shape
+            sim._meta.shape = static_vol.shape
             self.log.warning(f"shape was implicit {old_shape}, it is now {sim.shape}.")
+
+        if os.path.exists(roi_path) and not self.force:
+            roi = np.load(roi_path)
+        else:
+            roi = self._make_roi(sim)
+            np.save(roi_path, roi)
+
+        sim.static_vol = static_vol
+        sim.roi = roi
 
         if sim.lazy:
             sim.data_ref = LazySimArray(sim.static_vol, sim.n_frames)
         else:
             sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
-        # 2 is the label for the gray matter
-        sim.roi = get_mri(
-            self.subject_id,
-            brainweb_dir=self.brainweb_folder,
-            contrast="fuzzy",
-            shape=sim.shape,
-        )[..., 2]
 
         self.log.debug(f"roi shape: {sim.roi.shape}")
         self.log.debug(f"data_ref shape: {sim.data_ref.shape}")
+        return sim
 
-        roi_zoom = np.array(sim.roi.shape) / np.array(BRAINWEB_OCCIPITAL_ROI["shape"])
+    def _make_static_vol(self, sim: SimData) -> np.ndarray:
+        return get_mri(
+            self.sub_id,
+            brainweb_dir=self.brainweb_folder,
+            contrast="T2*",
+            rng=sim.rng or self.rng,
+            shape=sim.shape,
+            bbox=self.bbox,
+        )
+
+    def _make_roi(self, sim: SimData) -> np.ndarray:
+        from ._brainweb import (
+            get_indices_inside_ellipsoid,
+            BRAINWEB_OCCIPITAL_ROI,
+        )
+
+        roi = get_mri(
+            self.sub_id,
+            brainweb_dir=self.brainweb_folder,
+            contrast="fuzzy",
+            shape=sim.shape,
+            bbox=self.bbox,
+        )[..., 2]
+
+        occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
+        print(occ_roi)
+        if self.bbox:
+            scaled_bbox = [0] * 6
+            for i in range(3):
+                scaled_bbox[2 * i] = (
+                    int(self.bbox[2 * i] * occ_roi["shape"][i])
+                    if self.bbox[2 * i]
+                    else 0
+                )
+                scaled_bbox[2 * i + 1] = (
+                    int(self.bbox[2 * i + 1] * occ_roi["shape"][i])
+                    if self.bbox[2 * i + 1]
+                    else occ_roi["shape"][i]
+                )
+                if scaled_bbox[2 * i + 1] < 0:
+                    scaled_bbox[2 * i + 1] += occ_roi["shape"][i]
+
+            # replace None value by boundaries (0 or value)
+            # and shift the box
+            occ_roi["shape"] = [
+                scaled_bbox[i + 1] - scaled_bbox[i] for i in range(0, 6, 2)
+            ]
+            occ_roi["center"] = [
+                c - b for c, b in zip(occ_roi["center"], scaled_bbox[::2])
+            ]
+        print(occ_roi)
+        roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])
 
         ellipsoid = get_indices_inside_ellipsoid(
-            sim.roi.shape,
-            center=np.array(BRAINWEB_OCCIPITAL_ROI["center"]) * roi_zoom,
-            semi_axes_lengths=np.array(BRAINWEB_OCCIPITAL_ROI["semi_axes_lengths"])
-            * roi_zoom,
-            euler_angles=np.array(BRAINWEB_OCCIPITAL_ROI["euler_angles"]),
+            roi.shape,
+            center=np.array(occ_roi["center"]) * roi_zoom,
+            semi_axes_lengths=np.array(occ_roi["semi_axes_lengths"]) * roi_zoom,
+            euler_angles=np.array(occ_roi["euler_angles"]),
         )
-        sim.roi[~ellipsoid] = 0
+        roi[~ellipsoid] = 0
 
-        return sim
+        return roi
 
 
 class TextureAdderHandler(AbstractHandler):
