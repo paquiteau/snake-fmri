@@ -80,6 +80,8 @@ class AbstractHandler(metaclass=MetaHandler):
         """Perform self >> other."""
         if isinstance(other, AbstractHandler):
             return HandlerChain(self, other)
+        if isinstance(other, SimData):
+            return self.handle(other)
         else:
             return NotImplemented
 
@@ -87,6 +89,8 @@ class AbstractHandler(metaclass=MetaHandler):
         """Perform self << other."""
         if isinstance(other, AbstractHandler):
             return HandlerChain(other, self)
+        if isinstance(other, SimData):
+            return self.handle(other)
         return NotImplemented
 
     def __call__(self, sim: SimData) -> SimData:
