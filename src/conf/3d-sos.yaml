@@ -5,11 +5,9 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-dry_mode: false
-save: false
-# save:
-#   data: "mini"
-#   compress: true
+cache_dir: null
+force_sim: false
+
 simulation:
   sim_params:
     sim_tr: 0.1

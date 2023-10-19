@@ -21,12 +21,7 @@ logger = logging.getLogger(__name__)
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
 def main_app(cfg: DictConfig) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
-    if cfg.dry_mode:
-        print(cfg)
-        return None
-
     logger.debug(OmegaConf.to_yaml(cfg))
-    OmegaConf.resolve(cfg)
     logging.captureWarnings(True)
 
     cache_dir = Path(cfg.cache_dir or os.getcwd())
@@ -35,11 +30,13 @@ def main_app(cfg: DictConfig) -> None:
     # 1. Simulate (use cache if available)
     with PerfLogger(logger, name="Simulation"):
         try:
+            if cfg.force_sim:
+                raise FileNotFoundError
             with open(sim_file, "rb") as f:
                 logger.info(f"Loading simulation from cache {sim_file}")
                 sim = pickle.load(f)
         except FileNotFoundError:
-            logger.warning(f"Failed to simulation from cache {sim_file}")
+            logger.warning(f"Failed to load simulation from cache {sim_file}")
             simulator, sim = HandlerChain.from_conf(cfg.simulation)
             sim = simulator(sim)
             del simulator
