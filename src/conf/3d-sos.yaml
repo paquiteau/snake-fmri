@@ -23,6 +23,7 @@ simulation:
   handlers:
     phantom-brainweb:
       subject_id: 5
+      bbox: [0.22,-0.14, 0.1, -0.08, null, null]
     activation-block:
       event_name: block_on
       block_on: 20
