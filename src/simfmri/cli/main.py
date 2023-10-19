@@ -32,6 +32,7 @@ def main_app(cfg: DictConfig) -> None:
     with PerfLogger(log, name="Simulation"):
         simulator, sim = HandlerChain.from_conf(cfg.simulation)
         sim = simulator(sim)
+    del simulator
 
     reconstructors = hydra.utils.instantiate(cfg.reconstructors)
     if len(reconstructors) > 1:
@@ -43,6 +44,7 @@ def main_app(cfg: DictConfig) -> None:
         rec = RECONSTRUCTORS[name](**reconf[name])
         if len(reconstructors) > 1:
             with open("simulation.pkl", "rb") as f:
+                del sim
                 sim = pickle.load(f)  # direct pickling to avoid checkings
         with PerfLogger(log, name="Reconstruction " + str(rec)):
             rec.setup(sim)
@@ -66,6 +68,9 @@ def main_app(cfg: DictConfig) -> None:
                 "sim_data": os.path.join(os.getcwd(), "simulation.pkl"),
             }
         )
+        del rec
+        del data_test
+        del zscore
 
     # 3. Clean up and saving
     with PerfLogger(log, name="Cleanup"):
