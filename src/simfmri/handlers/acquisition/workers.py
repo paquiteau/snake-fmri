@@ -160,10 +160,7 @@ def acq_noncartesian(
     kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
     kmask = np.zeros((n_kspace_frame, n_samples, dim), np.float32)
 
-    try:
-        nufft_backend = kwargs.pop("op_backend")
-    except KeyError:
-        nufft_backend = kwargs.pop("backend")
+    nufft_backend = kwargs.pop("backend")
     logger.debug("Using backend %s", nufft_backend)
     kwargs["nufft_backend"] = nufft_backend
     if nufft_backend == "stacked":
@@ -186,7 +183,8 @@ def acq_noncartesian(
     return kdata, kmask
 
 
-def work_generator(sim: SimData, kspace_bulk_gen: Generator):
+def work_generator(sim: SimData, kspace_bulk_gen: Generator) -> Generator[tuple]:
+    """Setup all the work."""
     for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
         sim_frame = np.complex64(sim.data_acq[sim_frame_idx])  # heavy to compute
         yield sim_frame, shot_batch, shot_pos

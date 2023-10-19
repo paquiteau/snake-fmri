@@ -39,6 +39,7 @@ simulation:
       n_samples: 8000
       constant: false
       directionz: center-out
+      backend: cufinufft
 
 
 hydra:
