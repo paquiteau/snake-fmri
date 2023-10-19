@@ -178,7 +178,9 @@ def acq_noncartesian(
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
     Parallel(n_jobs=-1, verbose=10)(
-        delayed(_single_worker)(sim_frame, smaps, shot_batch, shot_pos, op_kwargs)
+        delayed(_single_worker)(
+            sim_frame, smaps, shot_batch, shot_pos, kdata, kmask, op_kwargs
+        )
         for sim_frame, shot_batch, shot_pos in work_generator(sim, scheduler)
     )
     return kdata, kmask
