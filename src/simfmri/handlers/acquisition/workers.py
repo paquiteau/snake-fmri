@@ -179,7 +179,7 @@ def acq_noncartesian(
         delayed(_single_worker)(
             sim_frame, smaps, shot_batch, shot_pos, kdata, kmask, op_kwargs
         )
-        for sim_frame, shot_batch, shot_pos in work_generator(sim, scheduler)
+        for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
     )
     return kdata, kmask
 
