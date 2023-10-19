@@ -1,0 +1,55 @@
+defaults:
+  - _self_
+  - reconstructors: all
+  - stats: stat_default
+  - override hydra/job_logging: colorlog
+  - override hydra/hydra_logging: colorlog
+
+dry_mode: false
+save: false
+# save:
+#   data: "mini"
+#   compress: true
+simulation:
+  sim_params:
+    sim_tr: 0.1
+    sim_time: 300
+    shape: [128, 154, 128]
+    fov: [0.181,0.217,0.181]
+    n_coils: 8
+    rng: 19980408
+    lazy: true
+
+  handlers:
+    phantom-brainweb:
+      subject_id: 5
+    activation-block:
+      event_name: block_on
+      block_on: 20
+      block_off: 15
+      duration: 300
+      bold_strength: 0.02
+    noise-gaussian:
+      snr: 1000
+    acquisition-sos:
+      shot_time_ms: 50
+      acsz: 0.125
+      accelz: 4
+      n_samples: 8000
+      constant: false
+      direction: center-out
+
+
+hydra:
+  job:
+    chdir: true
+
+  callbacks:
+    gather_files:
+      _target_: hydra_callbacks.MultiRunGatherer
+      aggregator:
+        _partial_: true
+        _target_: simfmri.cli.utils.aggregate_results
+
+    latest_run:
+      _target_: hydra_callbacks.LatestRunLink
