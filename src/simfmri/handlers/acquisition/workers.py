@@ -169,6 +169,7 @@ def acq_noncartesian(
 
     smaps = sim.smaps
     op_kwargs = dict(
+        shape=sim.shape,
         n_coils=sim.n_coils,
         density=False,
         backend_name=nufft_backend,
