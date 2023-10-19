@@ -3,11 +3,11 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, Callable, Mapping
-
+from typing import Any, Callable, Mapping, Generator
+from joblib import Parallel, delayed
 import numpy as np
-from mrinufft import get_operator
 from fmri.operators.fourier import FFT_Sense
+from mrinufft import get_operator
 from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
@@ -157,8 +157,8 @@ def acq_noncartesian(
     n_samples = np.prod(test_traj.shape[:-1])
     dim = test_traj.shape[-1]
 
-    kdata_info = ((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
-    kmask_info = ((n_kspace_frame, n_samples, dim), np.float32)
+    kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
+    kmask = np.zeros((n_kspace_frame, n_samples, dim), np.float32)
 
     try:
         nufft_backend = kwargs.pop("op_backend")
@@ -169,15 +169,40 @@ def acq_noncartesian(
     if nufft_backend == "stacked":
         kwargs["z_index"] = "auto"
     logger.debug("extra kwargs %s", kwargs)
-    kdata, kmask = _acquire(
-        sim,
-        trajectory_gen,
-        _run_noncartesian,
-        n_shot_sim_frame,
-        n_kspace_frame,
-        kdata_info,
-        kmask_info,
-        **kwargs,
-    )
 
+    smaps = sim.smaps
+    op_kwargs = dict(
+        n_coils=sim.n_coils,
+        density=False,
+        backend_name=nufft_backend,
+    )
+    scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
+    Parallel(n_jobs=-1, verbose=10)(
+        delayed(_single_worker)(sim_frame, smaps, shot_batch, shot_pos, op_kwargs)
+        for sim_frame, shot_batch, shot_pos in work_generator(sim, scheduler)
+    )
     return kdata, kmask
+
+
+def work_generator(sim: SimData, kspace_bulk_gen: Generator):
+    for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
+        sim_frame = np.complex64(sim.data_acq[sim_frame_idx])  # heavy to compute
+        yield sim_frame, shot_batch, shot_pos
+
+
+def _single_worker(
+    sim_frame: np.ndarray,
+    smaps: np.ndarray,
+    shot_batch: np.ndarray,
+    shot_pos: tuple[int, int],
+    kdata: np.ndarray,
+    kmask: np.ndarray,
+    op_kwargs: Mapping[str, Any],
+) -> None:
+    fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
+    kspace = fourier_op.op(sim_frame)
+    L = shot_batch.shape[1]
+
+    for i, (k, s) in enumerate(shot_pos):
+        kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
+        kmask[k, s * L : (s + 1) * L] = shot_batch[i]
