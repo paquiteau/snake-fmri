@@ -1,20 +1,21 @@
 """Main script fot the reconstruction validation."""
-import logging
 import json
+import logging
 import os
-import hydra
 import pickle
+from pathlib import Path
 
+import hydra
 import numpy as np
 from hydra_callbacks import PerfLogger
+from joblib.hashing import hash as jb_hash
 from omegaconf import DictConfig, OmegaConf
 
+from simfmri.analysis.stats import contrast_zscore, get_scores
 from simfmri.handlers import HandlerChain
 from simfmri.reconstructors import RECONSTRUCTORS
 
-from simfmri.analysis.stats import contrast_zscore, get_scores
-
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
@@ -24,34 +25,44 @@ def main_app(cfg: DictConfig) -> None:
         print(cfg)
         return None
 
-    log.debug(OmegaConf.to_yaml(cfg))
+    logger.debug(OmegaConf.to_yaml(cfg))
     OmegaConf.resolve(cfg)
     logging.captureWarnings(True)
 
-    # 2. Run
-    with PerfLogger(log, name="Simulation"):
-        simulator, sim = HandlerChain.from_conf(cfg.simulation)
-        sim = simulator(sim)
-    del simulator
+    cache_dir = Path(cfg.cache_dir or os.getcwd())
+    hash_sim = jb_hash(OmegaConf.to_container(cfg.simulation))
+    sim_file = cache_dir / f"{hash_sim}.pkl"
+    # 1. Simulate (use cache if available)
+    with PerfLogger(logger, name="Simulation"):
+        try:
+            with open(sim_file, "rb") as f:
+                logger.info(f"Loading simulation from cache {sim_file}")
+                sim = pickle.load(f)
+        except FileNotFoundError:
+            logger.warning(f"Failed to simulation from cache {sim_file}")
+            simulator, sim = HandlerChain.from_conf(cfg.simulation)
+            sim = simulator(sim)
+            del simulator
+            with open(sim_file, "wb") as f:
+                pickle.dump(sim, f)
 
     reconstructors = hydra.utils.instantiate(cfg.reconstructors)
-    if len(reconstructors) > 1:
-        with open("simulation.pkl", "wb") as f:
-            pickle.dump(sim, f)  # direct pickling to avoid checkings
     results = []
+
+    # 2. Reconstruct and analyze
     for reconf in reconstructors:
         name = list(reconf.keys())[0]
         rec = RECONSTRUCTORS[name](**reconf[name])
         if len(reconstructors) > 1:
-            with open("simulation.pkl", "rb") as f:
+            with open(sim_file, "rb") as f:
                 del sim
                 sim = pickle.load(f)  # direct pickling to avoid checkings
-        with PerfLogger(log, name="Reconstruction " + str(rec)):
+        with PerfLogger(logger, name="Reconstruction " + str(rec)):
             rec.setup(sim)
             data_test = rec.reconstruct(sim)
 
-        log.debug("Current simulation state: %s", sim)
-        with PerfLogger(log, name="Analysis " + str(rec)):
+        logger.debug("Current simulation state: %s", sim)
+        with PerfLogger(logger, name="Analysis " + str(rec)):
             zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
             stats = get_scores(zscore, sim.roi)
 
@@ -73,11 +84,11 @@ def main_app(cfg: DictConfig) -> None:
         del zscore
 
     # 3. Clean up and saving
-    with PerfLogger(log, name="Cleanup"):
+    with PerfLogger(logger, name="Cleanup"):
         with open("results.json", "w") as f:
             json.dump(results, f)
 
-    log.info(PerfLogger.recap())
+    logger.info(PerfLogger.recap())
 
 
 if __name__ == "__main__":

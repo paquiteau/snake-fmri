@@ -8,6 +8,7 @@ defaults:
 
 dry_mode: false
 save: false
+cache_dir: null
 # save:
 #   data: "mini"
 #   compress: true
