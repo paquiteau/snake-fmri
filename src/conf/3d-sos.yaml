@@ -37,7 +37,7 @@ simulation:
       accelz: 4
       n_samples: 8000
       constant: false
-      direction: center-out
+      directionz: center-out
 
 
 hydra:
