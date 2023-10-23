@@ -2,11 +2,20 @@
 
 import numpy as np
 from scipy.stats import norm  # type: ignore
+from enum import Enum
 
 from typing import Sequence, Any, Literal
 from simfmri.utils import RngType, validate_rng, AnyShape
 
 SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
+
+
+class Direction(str, Enum):
+    """Direction of sampling."""
+
+    CENTER_OUT = "center-out"
+    RANDOM = "random"
+    TOP_DOWN = "top-down"
 
 
 def get_kspace_slice_loc(
@@ -15,7 +24,7 @@ def get_kspace_slice_loc(
     accel: int = 4,
     pdf: str = "gaussian",
     rng: RngType = None,
-    direction: Literal["center-out", "random"] = "center-out",
+    direction: Direction = "center-out",
 ) -> np.ndarray:
     """Get slice index at a random position.
 
@@ -72,10 +81,12 @@ def get_kspace_slice_loc(
 
     line_locs = np.array(sorted(center_indexes + sampled_in_border))
     # apply order of lines
-    if direction == "center-out":
+    if direction == Direction.CENTER_OUT:
         line_locs = flip2center(sorted(line_locs), dim_size // 2)
-    elif direction == "random":
+    elif direction == Direction.RANDOM:
         line_locs = rng.permutation(line_locs)
+    elif direction == Direction.TOP_DOWN:
+        line_locs = np.array(sorted(line_locs))
     elif direction is None:
         pass
     else:
