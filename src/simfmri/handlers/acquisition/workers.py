@@ -162,14 +162,13 @@ def acq_noncartesian(
     shm_kdata = shared_memory.SharedMemory(
         name="kdata",
         create=True,
-        size=np.prod((n_kspace_frame, sim.n_coils, n_samples))
-        * np.complex64().itemsize,
+        size=np.prod(kdata_infos[0]) * np.dtype(kdata_infos[1]).itemsize,
     )
     kmask_infos = ((n_kspace_frame, n_samples, dim), np.float32)
     shm_kmask = shared_memory.SharedMemory(
         name="kmask",
         create=True,
-        size=np.prod((n_kspace_frame, n_samples, dim)) * np.float32.itemsize,
+        size=np.prod(kmask_infos[0]) * np.dtype(kmask_infos[1]).itemsize,
     )
 
     nufft_backend = kwargs.pop("backend")
