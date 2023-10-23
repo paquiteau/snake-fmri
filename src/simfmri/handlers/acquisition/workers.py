@@ -193,16 +193,13 @@ def acq_noncartesian(
         for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
     )
 
-    kdata = (
-        np.frombuffer(shm_kdata.buf, dtype=np.complex64)
-        .reshape((n_kspace_frame, sim.n_coils, n_samples))
-        .copy()
-    )
-    kmask = (
-        np.frombuffer(shm_kmask.buf, dtype=np.float32)
-        .reshape((n_kspace_frame, n_samples, dim))
-        .copy()
-    )
+    kdata_ = np.ndarray(kdata_infos[0], buffer=shm_kdata.buf, dtype=kdata_infos[1])
+    kmask_ = np.ndarray(kmask_infos[0], buffer=shm_kmask.buf, dtype=kmask_infos[1])
+
+    kdata = np.copy(kdata_)
+    kmask = np.copy(kmask_)
+    del kdata_
+    del kmask_
 
     shm_kdata.close()
     shm_kmask.close()
@@ -236,11 +233,14 @@ def _single_worker(
     shm_kdata = shared_memory.SharedMemory(name="kdata", create=False)
     shm_kmask = shared_memory.SharedMemory(name="kmask", create=False)
 
-    kdata = np.frombuffer(shm_kdata.buf, dtype=kdata_infos[1]).reshape(kdata_infos[0])
-    kmask = np.frombuffer(shm_kmask.buf, dtype=kmask_infos[1]).reshape(kmask_infos[0])
-    for i, (k, s) in enumerate(shot_pos):
-        kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
-        kmask[k, s * L : (s + 1) * L] = shot_batch[i]
+    kdata_ = np.ndarray(kdata_infos[0], buffer=shm_kdata.buf, dtype=kdata_infos[1])
+    kmask_ = np.ndarray(kmask_infos[0], buffer=shm_kmask.buf, dtype=kmask_infos[1])
 
+    for i, (k, s) in enumerate(shot_pos):
+        kdata_[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
+        kmask_[k, s * L : (s + 1) * L] = shot_batch[i]
+
+    del kdata_
+    del kmask_
     shm_kdata.close()
     shm_kmask.close()
