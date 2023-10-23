@@ -193,6 +193,20 @@ class BrainwebPhantomHandler(AbstractHandler):
             old_shape = sim.shape
             sim._meta.shape = static_vol.shape
             self.log.warning(f"shape was implicit {old_shape}, it is now {sim.shape}.")
+        if self.bbox:
+            # update FOV
+            new_fov = [0.0] * 3
+            for i in range(3):
+                bmin = self.bbox[2 * i]
+                bmax = self.bbox[2 * i + 1]
+                bmin = bmin if bmin else 0
+                bmax = bmax if bmax else 1
+                bmax = 1 + bmax if bmax < 0 else bmax
+
+                new_fov[i] = sim.fov[i] * (bmax - bmin)
+
+            self.log.warning(f"sim.fov was  {sim.fov}, it is now {new_fov}.")
+            sim._meta.fov = tuple(new_fov)
 
         if os.path.exists(roi_path) and not self.force:
             roi = np.load(roi_path)
@@ -213,12 +227,15 @@ class BrainwebPhantomHandler(AbstractHandler):
         return sim
 
     def _make_static_vol(self, sim: SimData) -> np.ndarray:
+        shape = sim.shape
+        if shape == (-1, -1, -1):
+            shape = None
         return get_mri(
             self.sub_id,
             brainweb_dir=self.brainweb_folder,
             contrast="T2*",
             rng=sim.rng or self.rng,
-            shape=sim.shape,
+            shape=shape,
             bbox=self.bbox,
         )
 
@@ -237,8 +254,8 @@ class BrainwebPhantomHandler(AbstractHandler):
         )[..., 2]
 
         occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
-        print(occ_roi)
         if self.bbox:
+            self.log.debug("ROI shape was ", occ_roi)
             scaled_bbox = [0] * 6
             for i in range(3):
                 scaled_bbox[2 * i] = (
@@ -262,7 +279,7 @@ class BrainwebPhantomHandler(AbstractHandler):
             occ_roi["center"] = [
                 c - b for c, b in zip(occ_roi["center"], scaled_bbox[::2])
             ]
-        print(occ_roi)
+        self.log.debug("ROI shape is ", occ_roi)
         roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])
 
         ellipsoid = get_indices_inside_ellipsoid(
