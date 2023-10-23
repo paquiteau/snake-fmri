@@ -186,7 +186,7 @@ def acq_noncartesian(
         backend_name=nufft_backend,
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    Parallel(n_jobs=-1, mmap_mode="r")(
+    Parallel(n_jobs=-1, backend="multiprocessing", mmap_mode="r")(
         delayed(_single_worker)(
             sim_frame, smaps, shot_batch, shot_pos, op_kwargs, kdata_infos, kmask_infos
         )
@@ -194,12 +194,12 @@ def acq_noncartesian(
     )
 
     kdata = (
-        np.from_buffer(shm_kdata.buf, dtype=np.complex64)
+        np.frombuffer(shm_kdata.buf, dtype=np.complex64)
         .reshape((n_kspace_frame, sim.n_coils, n_samples))
         .copy()
     )
     kmask = (
-        np.from_buffer(shm_kmask.buf, dtype=np.float32)
+        np.frombuffer(shm_kmask.buf, dtype=np.float32)
         .reshape((n_kspace_frame, n_samples, dim))
         .copy()
     )
@@ -236,8 +236,11 @@ def _single_worker(
     shm_kdata = shared_memory.SharedMemory(name="kdata", create=False)
     shm_kmask = shared_memory.SharedMemory(name="kmask", create=False)
 
-    kdata = np.from_buffer(shm_kdata.buf, dtype=kdata_infos[1]).reshape(kdata_infos[0])
-    kmask = np.from_buffer(shm_kmask.buf, dtype=kmask_infos[1]).reshape(kmask_infos[0])
+    kdata = np.frombuffer(shm_kdata.buf, dtype=kdata_infos[1]).reshape(kdata_infos[0])
+    kmask = np.frombuffer(shm_kmask.buf, dtype=kmask_infos[1]).reshape(kmask_infos[0])
     for i, (k, s) in enumerate(shot_pos):
         kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
         kmask[k, s * L : (s + 1) * L] = shot_batch[i]
+
+    shm_kdata.close()
+    shm_kmask.close()
