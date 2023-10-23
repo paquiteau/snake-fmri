@@ -1,6 +1,7 @@
 """Multiprocessing module for the acquisition of data."""
 from __future__ import annotations
 
+from multiprocessing import shared_memory
 import logging
 import warnings
 from typing import Any, Callable, Mapping, Generator
@@ -157,8 +158,19 @@ def acq_noncartesian(
     n_samples = np.prod(test_traj.shape[:-1])
     dim = test_traj.shape[-1]
 
-    kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
-    kmask = np.zeros((n_kspace_frame, n_samples, dim), np.float32)
+    kdata_infos = ((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
+    shm_kdata = shared_memory.SharedMemory(
+        name="kdata",
+        create=True,
+        size=np.prod((n_kspace_frame, sim.n_coils, n_samples))
+        * np.complex64().itemsize,
+    )
+    kmask_infos = ((n_kspace_frame, n_samples, dim), np.float32)
+    shm_kmask = shared_memory.SharedMemory(
+        name="kmask",
+        create=True,
+        size=np.prod((n_kspace_frame, n_samples, dim)) * np.float32.itemsize,
+    )
 
     nufft_backend = kwargs.pop("backend")
     logger.debug("Using backend %s", nufft_backend)
@@ -175,12 +187,29 @@ def acq_noncartesian(
         backend_name=nufft_backend,
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    Parallel(n_jobs=-1, verbose=10, mmap_mode="r+")(
+    Parallel(n_jobs=-1, mmap_mode="r")(
         delayed(_single_worker)(
-            sim_frame, smaps, shot_batch, shot_pos, kdata, kmask, op_kwargs
+            sim_frame, smaps, shot_batch, shot_pos, op_kwargs, kdata_infos, kmask_infos
         )
         for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
     )
+
+    kdata = (
+        np.from_buffer(shm_kdata.buf, dtype=np.complex64)
+        .reshape((n_kspace_frame, sim.n_coils, n_samples))
+        .copy()
+    )
+    kmask = (
+        np.from_buffer(shm_kmask.buf, dtype=np.float32)
+        .reshape((n_kspace_frame, n_samples, dim))
+        .copy()
+    )
+
+    shm_kdata.close()
+    shm_kmask.close()
+    shm_kdata.unlink()
+    shm_kmask.unlink()
+
     return kdata, kmask
 
 
@@ -196,14 +225,20 @@ def _single_worker(
     smaps: np.ndarray,
     shot_batch: np.ndarray,
     shot_pos: tuple[int, int],
-    kdata: np.ndarray,
-    kmask: np.ndarray,
     op_kwargs: Mapping[str, Any],
+    kdata_infos: tuple[tuple[int], np.Dtype],
+    kmask_infos: tuple[tuple[int], np.Dtype],
 ) -> None:
+    """Perform a shot acquisition."""
     fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
     kspace = fourier_op.op(sim_frame)
     L = shot_batch.shape[1]
 
+    shm_kdata = shared_memory.SharedMemory(name="kdata", create=False)
+    shm_kmask = shared_memory.SharedMemory(name="kmask", create=False)
+
+    kdata = np.from_buffer(shm_kdata.buf, dtype=kdata_infos[1]).reshape(kdata_infos[0])
+    kmask = np.from_buffer(shm_kmask.buf, dtype=kmask_infos[1]).reshape(kmask_infos[0])
     for i, (k, s) in enumerate(shot_pos):
         kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
         kmask[k, s * L : (s + 1) * L] = shot_batch[i]
