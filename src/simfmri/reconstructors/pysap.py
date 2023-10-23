@@ -63,27 +63,27 @@ def get_fourier_operator(
     kwargs = kwargs.copy() if kwargs is not None else {}
 
     density = True
-    backend = sim.extra_infos.get("operator", None)
+    backend = sim.extra_infos.get("operator", "fft")
     logger.info(f"fourier backend is {backend}")
     if "stacked-" in backend:
         return _get_stacked_operator(backend, sim)
 
     if "finufft" in backend:
         kwargs["squeeze_dims"] = True
-    kwargs["density"] = density
+        kwargs["density"] = density
 
-    def _get_op(i: int = 0) -> SpaceFourierBase:
-        return get_operator(backend)(
-            sim.kspace_mask[i],
-            shape=sim.shape,
-            n_coils=sim.n_coils,
-            smaps=sim.smaps,
-            **kwargs,
-        )
+        def _get_op(i: int = 0) -> SpaceFourierBase:
+            return get_operator(backend)(
+                sim.kspace_mask[i],
+                shape=sim.shape,
+                n_coils=sim.n_coils,
+                smaps=sim.smaps,
+                **kwargs,
+            )
 
-    if sim.extra_infos["traj_constant"]:
-        return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
-    return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
+        if sim.extra_infos["traj_constant"]:
+            return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
+        return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
 
     if repeat:
         return RepeatOperator(
