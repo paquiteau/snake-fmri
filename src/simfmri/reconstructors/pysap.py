@@ -34,6 +34,7 @@ def _get_stacked_operator(backend: str, sim: SimData) -> RepeatOperator:
         warnings.filterwarnings(
             "ignore", "Samples .*", category=UserWarning, module="mrinufft"
         )
+        density = True
         if nufft_backend == "finufft":
             density = voronoi(sim.kspace_mask[0][:Ns, :2])
         kwargs = dict(
