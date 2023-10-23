@@ -2,12 +2,14 @@
 from __future__ import annotations
 from typing import Mapping, Any, TYPE_CHECKING
 
+import numpy as np
 import matplotlib.pyplot as plt
 
 if TYPE_CHECKING:
     from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
+    from simfmri.simulation import SimData
 
 from matplotlib.lines import Line2D
 from matplotlib.offsetbox import (
@@ -93,3 +95,95 @@ def table_legend(
     )
     artist = ax.add_artist(AnchoredOffsetbox(child=packer, **kwargs))
     return artist
+
+
+def plot_ts_roi(
+    arr: np.ndarray,
+    sim: SimData,
+    roi_idx: int,
+    ax: Axes | None = None,
+    center: bool = False,
+    **kwargs: Mapping[str, Any],
+) -> Axes:
+    """Plot a time series of a given ROI.
+
+    Parameters
+    ----------
+    arr: np.ndarray
+        Array to plot
+    sim: SimData
+        Simulation object
+    roi_idx: int
+        Index of the ROI voxel to plot.
+    ax: plt.Axes
+        Figure Axis
+    center: bool
+        If True, center the time series.
+    **kwargs: Mapping[str, any]
+        Extra arguments for the plot function.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+        ax.set_xlabel("time (s)")
+    N = len(arr)
+    time_samples = np.arange(N, dtype=np.float64)
+    time_samples *= (
+        sim.sim_tr if N == len(sim.data_ref) else sim.extra_infos["TR_ms"] / 1000
+    )
+
+    arr_ = np.abs(arr) if np.iscomplexobj(arr) else arr
+    arr_ = arr_[:, sim.roi > 0.5]
+
+    if roi_idx is None:
+        ts = np.mean(arr_, axis=-1)
+        if center:
+            mean_val = np.mean(ts, axis=0)
+            ts -= mean_val
+            ax.plot(time_samples, ts, **kwargs)
+    else:
+        ts = arr_[:, roi_idx]
+        if center:
+            ts -= np.mean(ts, axis=0)
+        ax.plot(time_samples, ts, **kwargs)
+    return ax
+
+
+def plot_ts_roi_many(
+    arr_dict: Mapping[str, np.ndarray],
+    sim: SimData,
+    roi_idx: int,
+    ax: Axes = None,
+    center: bool = False,
+    **kwargs: Mapping[str, Any],
+) -> Axes:
+    """Plot many time series of a given ROI.
+
+    Parameters
+    ----------
+    arr_dict: dict[str, np.ndarray]
+        Dictionary of arrays to plot. The key is the label.
+    sim: SimData
+        Simulation object
+    roi_idx: int
+        Index of the ROI voxel to plot.
+    ax: plt.Axes
+        Figure Axis
+    center: bool
+        If True, center the time series.
+    **kwargs: Mapping[str, any]
+        Extra arguments for the plot function.
+    """
+    if ax is None:
+        fig, ax = plt.subplots()
+    for label, arr in arr_dict.items():
+        if label == "acquired":
+            kwargs2 = kwargs.copy()
+            kwargs2["c"] = "gray"
+            kwargs2["alpha"] = 0.5
+            kwargs2["zorder"] = 0
+            plot_ts_roi(arr, sim, roi_idx, ax=ax, label=label, center=center, **kwargs2)
+        else:
+            plot_ts_roi(arr, sim, roi_idx, ax=ax, label=label, center=center, **kwargs)
+    ax.legend()
+
+    return ax
