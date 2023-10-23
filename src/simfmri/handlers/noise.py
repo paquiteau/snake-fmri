@@ -59,7 +59,7 @@ class NoiseHandler(AbstractHandler):
             return sim
         else:
             # SNR is defined as average(brain signal) / noise_std
-            noise_std = np.mean(abs(sim.static_vol > 0)) / self._snr
+            noise_std = np.mean(abs(sim.static_vol[sim.static_vol > 0])) / self._snr
         if sim.lazy:
             self._add_noise_lazy(sim, sim.rng, noise_std)
         else:
@@ -148,21 +148,37 @@ class KspaceNoiseHandler(NoiseHandler):
 
     name = "noise-kspace"
 
-    def _add_noise(self, sim: SimData, noise_std: float) -> None:
+    def _handle(self, sim: SimData) -> SimData:
+        if self._snr == 0:
+            return sim
+        else:
+            # SNR is defined as average(brain signal) / noise_std
+            noise_std = np.mean(abs(sim.static_vol > 0)) / self._snr
+        self._add_noise(sim, sim.rng, noise_std)
+
+        sim.extra_infos["input_snr"] = self._snr
+        return sim
+
+    def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
+        rng = validate_rng(rng_seed)
         if sim.kspace_data is None:
             raise ValueError("kspace data not initialized.")
 
         # Complex Value, so the std is spread.
         noise_std /= np.sqrt(2)
+        for kf in range(len(sim.kspace_data)):
+            kspace_noise = np.complex64(
+                rng.standard_normal(sim.kspace_data.shape[1:], dtype="float32")
+            )
+            kspace_noise += 1j * rng.standard_normal(
+                sim.kspace_data.shape[1:], dtype="float32"
+            )
+            kspace_noise *= noise_std
 
-        kspace_noise = np.complex64(
-            self._rng.standard_normal(sim.kspace_data.shape, dtype="float32")
-        )
-        kspace_noise += 1j * self._rng.standard_normal(
-            sim.kspace_data.shape, dtype="float32"
-        )
-        kspace_noise *= noise_std
-        if sim.n_coils > 1:
-            sim.kspace_data += kspace_noise * sim.kspace_mask[:, None, ...]
-        else:
-            sim.kspace_data += kspace_noise * sim.kspace_mask
+            if sim.extra_infos["traj_name"] == "vds":
+                if sim.n_coils > 1:
+                    sim.kspace_data[kf] += kspace_noise * sim.kspace_mask[kf, None, ...]
+                else:
+                    sim.kspace_data[kf] += kspace_noise * sim.kspace_mask[kf]
+            else:
+                sim.kspace_data[kf] += kspace_noise
