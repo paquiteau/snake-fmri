@@ -226,8 +226,16 @@ def _single_worker(
     kmask_infos: tuple[tuple[int], np.Dtype],
 ) -> None:
     """Perform a shot acquisition."""
-    fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
-    kspace = fourier_op.op(sim_frame)
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            "Samples will be rescaled to .*",
+            category=UserWarning,
+            module="mrinufft",
+        )
+        fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
+        kspace = fourier_op.op(sim_frame)
     L = shot_batch.shape[1]
 
     shm_kdata = shared_memory.SharedMemory(name="kdata", create=False)
