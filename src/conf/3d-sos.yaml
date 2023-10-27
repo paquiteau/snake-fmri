@@ -1,6 +1,5 @@
 defaults:
   - _self_
-  - reconstructors: all
   - stats: stat_default
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
@@ -38,6 +37,13 @@ simulation:
       constant: false
       directionz: center-out
       backend: cufinufft
+
+reconstructors:
+  - adjoint: {}
+  - sequential:
+      max_iter_per_frame: 30
+      optimizer: pogm
+      threshold: "sure"
 
 
 hydra:
