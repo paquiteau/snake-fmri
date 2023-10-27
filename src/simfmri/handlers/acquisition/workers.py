@@ -186,12 +186,19 @@ def acq_noncartesian(
         backend_name=nufft_backend,
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    Parallel(n_jobs=-1, backend="multiprocessing", mmap_mode="r")(
-        delayed(_single_worker)(
-            sim_frame, smaps, shot_batch, shot_pos, op_kwargs, kdata_infos, kmask_infos
+    with Parallel(n_jobs=-1, backend="loky", mmap_mode="r") as par:
+        par(
+            delayed(_single_worker)(
+                sim_frame,
+                smaps,
+                shot_batch,
+                shot_pos,
+                op_kwargs,
+                kdata_infos,
+                kmask_infos,
+            )
+            for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
         )
-        for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
-    )
 
     kdata_ = np.ndarray(kdata_infos[0], buffer=shm_kdata.buf, dtype=kdata_infos[1])
     kmask_ = np.ndarray(kmask_infos[0], buffer=shm_kmask.buf, dtype=kmask_infos[1])
