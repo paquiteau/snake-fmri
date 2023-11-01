@@ -1,5 +1,6 @@
 """Main script fot the reconstruction validation."""
 import json
+import gc
 import logging
 import os
 import pickle
@@ -43,9 +44,9 @@ def main_app(cfg: DictConfig) -> None:
             with open(sim_file, "wb") as f:
                 pickle.dump(sim, f)
 
+    gc.collect()
     reconstructors = hydra.utils.instantiate(cfg.reconstructors)
     results = []
-
     # 2. Reconstruct and analyze
     for reconf in reconstructors:
         name = list(reconf.keys())[0]
@@ -79,6 +80,7 @@ def main_app(cfg: DictConfig) -> None:
         del rec
         del data_test
         del zscore
+        gc.collect()
 
     # 3. Clean up and saving
     with PerfLogger(logger, name="Cleanup"):
