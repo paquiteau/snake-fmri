@@ -186,7 +186,9 @@ def acq_noncartesian(
         backend_name=nufft_backend,
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    with Parallel(n_jobs=-1, backend="loky", mmap_mode="r") as par:
+    with Parallel(
+        n_jobs=-2, backend="loky", mmap_mode="r", pre_dispatch="3n_jobs"
+    ) as par:
         par(
             delayed(_single_worker)(
                 sim_frame,
