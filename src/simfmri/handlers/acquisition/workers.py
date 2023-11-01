@@ -200,6 +200,10 @@ def acq_noncartesian(
             for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
         )
     del par
+    # cleanup joblib https://github.com/joblib/joblib/issues/945
+    from joblib.externals.loky import get_reusable_executor
+
+    get_reusable_executor().shutdown(wait=True)
 
     kdata_ = np.ndarray(kdata_infos[0], buffer=shm_kdata.buf, dtype=kdata_infos[1])
     kmask_ = np.ndarray(kmask_infos[0], buffer=shm_kmask.buf, dtype=kmask_infos[1])
