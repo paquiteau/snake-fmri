@@ -214,7 +214,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         maximal number of interation.
     """
 
-    name = "lr+f"
+    name = "lr_f"
 
     def __init__(
         self,
