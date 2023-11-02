@@ -4,7 +4,7 @@ defaults:
   - override hydra/job_logging: colorlog
   - override hydra/hydra_logging: colorlog
 
-cache_dir: null
+cache_dir: /volatile/pierre-antoine/simfmri/cache
 force_sim: false
 
 simulation:
@@ -13,7 +13,7 @@ simulation:
     sim_time: 300
     shape: [128, 154, 128]
     fov: [0.181,0.217,0.181]
-    n_coils: 8
+    n_coils: 32
     rng: 19980408
     lazy: true
 
@@ -39,12 +39,11 @@ simulation:
       backend: gpunufft
 
 reconstructors:
-  adjoint: {}
-  sequential:
-    max_iter_per_frame: 30
-    optimizer: pogm
-    threshold: "sure"
-
+  lr_f:
+    lambda_l: 0.01
+    lambda_s: sure
+    algorithm: pogm
+    max_iter: 25
 
 hydra:
   job:
