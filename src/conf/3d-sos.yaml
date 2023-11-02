@@ -39,11 +39,11 @@ simulation:
       backend: cufinufft
 
 reconstructors:
-  - adjoint: {}
-  - sequential:
-      max_iter_per_frame: 30
-      optimizer: pogm
-      threshold: "sure"
+  adjoint: {}
+  sequential:
+    max_iter_per_frame: 30
+    optimizer: pogm
+    threshold: "sure"
 
 
 hydra:
