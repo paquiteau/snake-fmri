@@ -14,7 +14,7 @@ from omegaconf import DictConfig, OmegaConf
 
 from simfmri.analysis.stats import contrast_zscore, get_scores
 from simfmri.handlers import HandlerChain
-from simfmri.reconstructors import RECONSTRUCTORS
+from simfmri.reconstructors import get_reconstructor
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +45,11 @@ def main_app(cfg: DictConfig) -> None:
                 pickle.dump(sim, f)
 
     gc.collect()
-    reconstructors = hydra.utils.instantiate(cfg.reconstructors)
+    reconstructors = OmegaConf.to_container(cfg.reconstructors)
     results = []
     # 2. Reconstruct and analyze
-    for reconf in reconstructors:
-        name = list(reconf.keys())[0]
-        rec = RECONSTRUCTORS[name](**reconf[name])
+    for rec_name, params in reconstructors.items():
+        rec = get_reconstructor(rec_name)(**params)
         if len(reconstructors) > 1:
             with open(sim_file, "rb") as f:
                 del sim
