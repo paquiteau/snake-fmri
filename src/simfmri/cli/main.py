@@ -46,14 +46,15 @@ def main_app(cfg: DictConfig) -> None:
 
     gc.collect()
     reconstructors = OmegaConf.to_container(cfg.reconstructors)
+    logger.debug("Reconstructors: %s", reconstructors)
     results = []
     # 2. Reconstruct and analyze
     for rec_name, params in reconstructors.items():
-        rec = get_reconstructor(rec_name)(**params)
         if len(reconstructors) > 1:
             with open(sim_file, "rb") as f:
-                del sim
                 sim = pickle.load(f)  # direct pickling to avoid checkings
+
+        rec = get_reconstructor(rec_name)(**params)
         with PerfLogger(logger, name="Reconstruction " + str(rec)):
             rec.setup(sim)
             data_test = rec.reconstruct(sim)
@@ -76,6 +77,7 @@ def main_app(cfg: DictConfig) -> None:
                 "sim_data": os.path.join(os.getcwd(), "simulation.pkl"),
             }
         )
+        del sim
         del rec
         del data_test
         del zscore
