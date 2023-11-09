@@ -3,7 +3,7 @@
 ## Why the name SNAKE-fMRI? 
 
 SNAKE-fMRI stands either for:
-- **S**imulator from **N**euro to **A**cquisition of **K**space **E**valuation **f**or **M**ethod and **R**econstruction of **I**mages
+- **S**imulator from **N**euro**A**ctivation to **K**space  **E**valuation **f**MRI for **M**ethodology and **R**econstruction of **I**mages
 - **S**NAKE is **N**ot **A** **K**space **E**mulator for **f**unctional **MRI**
 
 
