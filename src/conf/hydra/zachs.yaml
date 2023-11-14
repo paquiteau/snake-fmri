@@ -3,13 +3,13 @@ job:
   chdir: true
 
 run:
-  dir: /volatile/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+  dir: /neurospin/optimed/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
 sweep:
-  dir: /volatile/pierre-antoine/simfmri/multirun/extend-sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
+  dir: /neurospin/optimed/pierre-antoine/simfmri/multirun/extend-sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
   subdir: ${hydra.job.num}
 
 callbacks:
   latest_run:
     _target_: hydra_callbacks.LatestRunLink
-    run_base_dir: /volatile/pierre-antoine/simfmri/outputs/
-    multirun_base_dir: /volatile/pierre-antoine/simfmri/multirun/extend-sweep/
+    run_base_dir: /neurospin/optimed/pierre-antoine/simfmri/outputs/
+    multirun_base_dir: /neurospin/optimed/pierre-antoine/simfmri/multirun/extend-sweep/
