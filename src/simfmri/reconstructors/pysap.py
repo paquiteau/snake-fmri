@@ -44,6 +44,7 @@ def _get_stacked_operator(backend: str, sim: SimData) -> RepeatOperator:
             n_coils=sim.n_coils,
             squeeze_dims=True,
             backend_name=backend,
+            upsampfac=1.25,
         )
         if backend != "stacked-cufinufft":
             kwargs["backend_name"] = "stacked"
@@ -65,12 +66,12 @@ def get_fourier_operator(
 
     density = True
     backend = sim.extra_infos.get("operator", "fft")
-    logger.info(f"fourier backend is {backend}")
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
     elif backend == "stacked-gpunufft":
         backend = "gpunufft"
 
+    logger.info(f"fourier backend is {backend}")
     if "finufft" in backend:
         kwargs["squeeze_dims"] = True
         kwargs["density"] = density
