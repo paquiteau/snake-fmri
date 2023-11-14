@@ -259,9 +259,11 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(sim, repeat=False)
 
+        logger.debug(f"Space Fourier operator initialized")
         if self.time_linear_op is None:
             self.time_linear_op = TimeFourier(time_axis=0)
 
+        logger.debug(f"Time Fourier operator initialized")
         if self.lambda_s == "sure":
             adj_data = self.fourier_op.adj_op(sim.kspace_data)
             sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
@@ -277,10 +279,12 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
                 self.time_linear_op, self.lambda_s, thresh_type="soft"
             )
 
+        logger.debug(f"Prox Time  operator initialized")
         if self.space_prox_op is None:
             self.space_prox_op = FlattenSVT(
                 self.lambda_l, initial_rank=10, thresh_type="soft-rel"
             )
+        logger.debug(f"Prox Space operator initialized")
 
         self.reconstructor = LowRankPlusSparseReconstructor(
             self.fourier_op,
@@ -288,6 +292,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
             time_prox_op=self.time_prox_op,
             cost="auto",
         )
+        logger.debug(f"Reconstructor initialized")
 
     def reconstruct(
         self, sim: SimData, fourier_op: SpaceFourierBase | None = None
