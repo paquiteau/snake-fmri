@@ -386,19 +386,19 @@ def requires_field(
         old_handle = cls.handle
 
         @functools.wraps(old_handle)
-        def wrap_handle(self: AbstractHandler, sim: SimData) -> SimData:
-            if not hasattr(sim, field_name) and not callable(factory):
+        def wrap_handler(self: AbstractHandler, sim: SimData) -> SimData:
+            if getattr(sim, field_name, None) is None and not callable(factory):
                 msg = (
                     f"'{field_name}' is missing in simulation"
                     "and no way of computing it provided."
                 )
                 raise ValueError(msg)
-            if not hasattr(sim, field_name):
+            if getattr(sim, field_name, None) is None:
                 setattr(sim, field_name, factory(sim))
 
             return old_handle(self, sim)
 
-        cls.handler = wrap_handle
+        cls.handle = wrap_handler
 
         return cls
 
