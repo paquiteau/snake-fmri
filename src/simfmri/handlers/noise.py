@@ -37,7 +37,7 @@ def _lazy_add_noise(
     return data + noise
 
 
-class NoiseHandler(AbstractHandler):
+class BaseNoiseHandler(AbstractHandler):
     """Add noise to the data.
 
     Parameters
@@ -95,7 +95,7 @@ class NoiseHandler(AbstractHandler):
         raise NotImplementedError
 
 
-class GaussianNoiseHandler(NoiseHandler):
+class GaussianNoiseHandler(BaseNoiseHandler):
     """Add gaussian Noise to the data."""
 
     name = "noise-gaussian"
@@ -129,7 +129,7 @@ class GaussianNoiseHandler(NoiseHandler):
         sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
 
 
-class RicianNoiseHandler(NoiseHandler):
+class RicianNoiseHandler(BaseNoiseHandler):
     """Add rician noise to the data."""
 
     name = "noise-rician"
@@ -145,7 +145,7 @@ class RicianNoiseHandler(NoiseHandler):
         )
 
 
-class KspaceNoiseHandler(NoiseHandler):
+class KspaceNoiseHandler(BaseNoiseHandler):
     """Add gaussian in the kspace."""
 
     name = "noise-kspace"
