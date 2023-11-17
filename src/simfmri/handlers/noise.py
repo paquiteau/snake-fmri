@@ -37,7 +37,10 @@ def _lazy_add_noise(
     return data + noise
 
 
-@requires_field("data_acq", lambda sim: sim.data_ref.copy())
+require_data_acq = requires_field("data_acq", lambda sim: sim.data_ref.copy())
+
+
+@require_data_acq
 class BaseNoiseHandler(AbstractHandler):
     """Add noise to the data.
 
@@ -185,3 +188,71 @@ class KspaceNoiseHandler(BaseNoiseHandler):
                     sim.kspace_data[kf] += kspace_noise * sim.kspace_mask[kf]
             else:
                 sim.kspace_data[kf] += kspace_noise
+
+
+@require_data_acq
+class ScannerDriftHandler(AbstractHandler):
+    """Add Scanner Drift to the data.
+
+    Parameters
+    ----------
+    drift_model : {'polynomial', 'cosine', None},
+        string that specifies the desired drift model
+
+    frame_times : array of shape(n_scans),
+        list of values representing the desired TRs
+
+    order : int, optional,
+        order of the drift model (in case it is polynomial)
+
+    high_pass : float, optional,
+        high-pass frequency in case of a cosine model (in Hz)
+
+    See Also
+    --------
+    nilearn.glm.first_level.design_matrix._make_drift
+    """
+
+    def __init__(
+        self,
+        drift_model: str = "polynomial",
+        order: int = 1,
+        high_pass: float = None,
+        drift_intensities: float = 0.01,
+    ):
+        super().__init__()
+        self._drift_model = drift_model
+        if not isinstance(drift_intensities, np.ndarray):
+            if isinstance(drift_intensities, (int, float)):
+                drift_intensities = [drift_intensities] * order
+            drift_intensities = np.array([drift_intensities])
+        self._drift_intensities = drift_intensities
+        self._drift_order = order
+        self._drift_high_pass = high_pass
+
+    def _handle(self, sim: SimData) -> SimData:
+        # Nilearn does the heavy lifting for us
+        from nilearn.glm.first_level.design_matrix import _make_drift
+
+        if self._drift_model is None:
+            return sim
+        drift_matrix = _make_drift(
+            self._drift_model,
+            frame_times=np.linspace(0, sim.sim_time, sim.n_frames),
+            order=self._drift_order,
+            high_pass=self._drift_high_pass,
+        )
+        drift_matrix = drift_matrix[:, :-1]  # remove the intercept column
+
+        drift_intensity = np.linspace(1, 1 + self.drift_intensities, sim.n_frames)
+
+        timeseries = drift_intensity @ drift_matrix
+
+        if sim.lazy:
+            raise NotImplementedError(
+                "lazy is not compatible with scanner drift (for now)"
+            )
+        else:
+            sim.data_acq[sim.static_vol > 0] *= timeseries
+
+        return sim
