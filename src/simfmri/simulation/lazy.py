@@ -106,6 +106,10 @@ class LazySimArray(Sequence):
         """Get number of dimensions."""
         return len(self.shape) + 1
 
+    def copy(self) -> LazySimArray:
+        """Get a copy."""
+        return deepcopy(self)
+
     def __len__(self) -> int:
         """Get length."""
         return self._n_frames
