@@ -3,7 +3,7 @@
 This module declares the various noise models availables.
 """
 from __future__ import annotations
-from .base import AbstractHandler
+from .base import AbstractHandler, requires_field
 from ..simulation import SimData, LazySimArray
 
 from simfmri.utils import validate_rng
@@ -37,6 +37,7 @@ def _lazy_add_noise(
     return data + noise
 
 
+@requires_field("data_acq", lambda sim: sim.data_ref.copy())
 class BaseNoiseHandler(AbstractHandler):
     """Add noise to the data.
 
@@ -145,6 +146,8 @@ class RicianNoiseHandler(BaseNoiseHandler):
         )
 
 
+@requires_field("kspace_mask")
+@requires_field("kspace_data")
 class KspaceNoiseHandler(BaseNoiseHandler):
     """Add gaussian in the kspace."""
 
@@ -163,8 +166,6 @@ class KspaceNoiseHandler(BaseNoiseHandler):
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
-        if sim.kspace_data is None:
-            raise ValueError("kspace data not initialized.")
 
         # Complex Value, so the std is spread.
         noise_std /= np.sqrt(2)
