@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 
-from fmri.operators.fourier import FFT_Sense, RepeatOperator
+from fmri.operators.fourier import FFT_Sense, RepeatOperator, gpuNUFFTSpaceFourier
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
@@ -59,39 +59,45 @@ def _get_stacked_operator(backend: str, sim: SimData) -> RepeatOperator:
 
 
 def get_fourier_operator(
-    sim: SimData, repeat: bool = False, **kwargs: None
+    sim: SimData, cartesian_repeat: bool = False, **kwargs: None
 ) -> RepeatOperator | CartesianSpaceFourier:
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
 
     density = True
     backend = sim.extra_infos.get("operator", "fft")
+    logger.info(f"fourier backend is {backend}")
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
-    elif backend == "stacked-gpunufft":
-        backend = "gpunufft"
-
-    logger.info(f"fourier backend is {backend}")
-    if "finufft" in backend:
-        kwargs["squeeze_dims"] = True
-        kwargs["density"] = density
-    if backend == "gpunufft":
-        kwargs["density"] = True
-
-    def _get_op(i: int = 0) -> SpaceFourierBase:
-        return get_operator(backend)(
-            sim.kspace_mask[i],
-            shape=sim.shape,
+    elif "gpunufft" in backend:
+        return gpuNUFFTSpaceFourier(
+            sim.kspace_mask,
+            sim.shape,
+            n_frames=len(sim.kspace_data),
             n_coils=sim.n_coils,
             smaps=sim.smaps,
+            density=density,
             **kwargs,
         )
+    elif "nufft" in backend:
+        kwargs["squeeze_dims"] = True
+        kwargs["density"] = density
 
-    if sim.extra_infos["traj_constant"]:
-        return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
-    return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
+        def _get_op(i: int = 0) -> SpaceFourierBase:
+            return get_operator(backend)(
+                sim.kspace_mask[i],
+                shape=sim.shape,
+                n_coils=sim.n_coils,
+                smaps=sim.smaps,
+                **kwargs,
+            )
 
-    if repeat:
+        if sim.extra_infos["traj_constant"]:
+            return RepeatOperator([_get_op(0)] * len(sim.kspace_data))
+        return RepeatOperator([_get_op(i) for i in range(len(sim.kspace_data))])
+    # Regular cartesian Operators.
+
+    if cartesian_repeat:
         return RepeatOperator(
             [
                 FFT_Sense(
@@ -169,7 +175,7 @@ class SequentialReconstructor(BaseReconstructor):
         from modopt.opt.proximity import SparseThreshold
 
         if self.fourier_op is None:
-            self.fourier_op = get_fourier_operator(sim, repeat=True)
+            self.fourier_op = get_fourier_operator(sim, cartesian_repeat=True)
 
         space_linear_op = WaveletTransform(
             self.wavelet, shape=sim.shape, level=3, mode="periodization"
@@ -257,7 +263,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         from fmri.operators.svt import FlattenSVT
 
         if self.fourier_op is None:
-            self.fourier_op = get_fourier_operator(sim, repeat=False)
+            self.fourier_op = get_fourier_operator(sim, cartesian_repeat=False)
 
         logger.debug(f"Space Fourier operator initialized")
         if self.time_linear_op is None:
