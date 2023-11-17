@@ -108,7 +108,8 @@ class AbstractHandler(metaclass=MetaHandler):
         ret = ""
         for k, v in self._init_params.items():
             ret += f"{k}={v},"
-        ret = f"H[{self.name}]({ret})"
+        name = getattr(self, "name", self.__class__.__name__)
+        ret = f"H[{name}]({ret})"
         return ret
 
     def _run_callbacks(self, old_sim: SimData, new_sim: SimData) -> None:
