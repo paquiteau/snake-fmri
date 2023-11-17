@@ -101,6 +101,7 @@ class LazySimArray(Sequence):
         """Get dtype."""
         return self._base_array.dtype
 
+    @property
     def ndim(self) -> int:
         """Get number of dimensions."""
         return len(self.shape) + 1
