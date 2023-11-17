@@ -3,7 +3,7 @@
 This module declares the various noise models availables.
 """
 from __future__ import annotations
-from .base import AbstractHandler
+from .base import AbstractHandler, requires_field
 from ..simulation import SimData, LazySimArray
 
 from simfmri.utils import validate_rng
@@ -37,7 +37,11 @@ def _lazy_add_noise(
     return data + noise
 
 
-class NoiseHandler(AbstractHandler):
+require_data_acq = requires_field("data_acq", lambda sim: sim.data_ref.copy())
+
+
+@require_data_acq
+class BaseNoiseHandler(AbstractHandler):
     """Add noise to the data.
 
     Parameters
@@ -95,7 +99,7 @@ class NoiseHandler(AbstractHandler):
         raise NotImplementedError
 
 
-class GaussianNoiseHandler(NoiseHandler):
+class GaussianNoiseHandler(BaseNoiseHandler):
     """Add gaussian Noise to the data."""
 
     name = "noise-gaussian"
@@ -118,16 +122,18 @@ class GaussianNoiseHandler(NoiseHandler):
                     dtype=abs(sim.data_ref[:][0]).dtype,
                 )
             )
-
-        sim.data_acq = sim.data_ref + noise
+        if sim.data_acq is None:
+            sim.data_acq = sim.data_ref.copy()
+        sim.data_acq = sim.data_acq + noise
 
     def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
-        sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
+        if sim.data_acq is None:
+            sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
 
         sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
 
 
-class RicianNoiseHandler(NoiseHandler):
+class RicianNoiseHandler(BaseNoiseHandler):
     """Add rician noise to the data."""
 
     name = "noise-rician"
@@ -143,7 +149,9 @@ class RicianNoiseHandler(NoiseHandler):
         )
 
 
-class KspaceNoiseHandler(NoiseHandler):
+@requires_field("kspace_mask")
+@requires_field("kspace_data")
+class KspaceNoiseHandler(BaseNoiseHandler):
     """Add gaussian in the kspace."""
 
     name = "noise-kspace"
@@ -161,8 +169,6 @@ class KspaceNoiseHandler(NoiseHandler):
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
-        if sim.kspace_data is None:
-            raise ValueError("kspace data not initialized.")
 
         # Complex Value, so the std is spread.
         noise_std /= np.sqrt(2)
@@ -182,3 +188,71 @@ class KspaceNoiseHandler(NoiseHandler):
                     sim.kspace_data[kf] += kspace_noise * sim.kspace_mask[kf]
             else:
                 sim.kspace_data[kf] += kspace_noise
+
+
+@require_data_acq
+class ScannerDriftHandler(AbstractHandler):
+    """Add Scanner Drift to the data.
+
+    Parameters
+    ----------
+    drift_model : {'polynomial', 'cosine', None},
+        string that specifies the desired drift model
+
+    frame_times : array of shape(n_scans),
+        list of values representing the desired TRs
+
+    order : int, optional,
+        order of the drift model (in case it is polynomial)
+
+    high_pass : float, optional,
+        high-pass frequency in case of a cosine model (in Hz)
+
+    See Also
+    --------
+    nilearn.glm.first_level.design_matrix._make_drift
+    """
+
+    def __init__(
+        self,
+        drift_model: str = "polynomial",
+        order: int = 1,
+        high_pass: float = None,
+        drift_intensities: float = 0.01,
+    ):
+        super().__init__()
+        self._drift_model = drift_model
+        if not isinstance(drift_intensities, np.ndarray):
+            if isinstance(drift_intensities, (int, float)):
+                drift_intensities = [drift_intensities] * order
+            drift_intensities = np.array([drift_intensities])
+        self._drift_intensities = drift_intensities
+        self._drift_order = order
+        self._drift_high_pass = high_pass
+
+    def _handle(self, sim: SimData) -> SimData:
+        # Nilearn does the heavy lifting for us
+        from nilearn.glm.first_level.design_matrix import _make_drift
+
+        if self._drift_model is None:
+            return sim
+        drift_matrix = _make_drift(
+            self._drift_model,
+            frame_times=np.linspace(0, sim.sim_time, sim.n_frames),
+            order=self._drift_order,
+            high_pass=self._drift_high_pass,
+        )
+        drift_matrix = drift_matrix[:, :-1]  # remove the intercept column
+
+        drift_intensity = np.linspace(1, 1 + self.drift_intensities, sim.n_frames)
+
+        timeseries = drift_intensity @ drift_matrix
+
+        if sim.lazy:
+            raise NotImplementedError(
+                "lazy is not compatible with scanner drift (for now)"
+            )
+        else:
+            sim.data_acq[sim.static_vol > 0] *= timeseries
+
+        return sim

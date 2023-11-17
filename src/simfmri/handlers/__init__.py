@@ -7,7 +7,15 @@ from pathlib import Path
 import importlib
 import pkgutil
 
-from .base import H, handler, get_handler, list_handlers, AbstractHandler, HandlerChain
+from .base import (
+    H,
+    handler,
+    get_handler,
+    list_handlers,
+    requires_field,
+    AbstractHandler,
+    HandlerChain,
+)
 
 
 # load all the interfaces modules
@@ -22,6 +30,6 @@ __all__ = [
     "handler",
     "get_handler",
     "list_handlers",
-    "AbstractHandler",
+    "requires_field" "AbstractHandler",
     "HandlerChain",
 ]

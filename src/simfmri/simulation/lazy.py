@@ -80,10 +80,16 @@ class LazySimArray(Sequence):
 
     """
 
-    def __init__(self, base_array: np.ndarray = None, n_frames: int = 1):
+    def __init__(
+        self,
+        base_array: np.ndarray | LazySimArray = None,
+        n_frames: int = None,
+    ):
+        self._n_frames = n_frames
+        if isinstance(base_array, LazySimArray) and n_frames is None:
+            self._n_frames = len(base_array)
         self._base_array = base_array
         self._operations: list[Callable[np.ndarray, int, ...], np.ndarray] = []
-        self._n_frames = n_frames
 
     @property
     def shape(self) -> tuple[int, ...]:
@@ -95,9 +101,14 @@ class LazySimArray(Sequence):
         """Get dtype."""
         return self._base_array.dtype
 
+    @property
     def ndim(self) -> int:
         """Get number of dimensions."""
         return len(self.shape) + 1
+
+    def copy(self) -> LazySimArray:
+        """Get a copy."""
+        return deepcopy(self)
 
     def __len__(self) -> int:
         """Get length."""

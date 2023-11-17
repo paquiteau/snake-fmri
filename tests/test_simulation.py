@@ -20,7 +20,7 @@ def test_simulation_data():
     """Test the simulation data."""
     from simfmri.simulation import SimData
 
-    sim_data = SimData(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
+    sim_data = SimData(shape=(48, 48, 32), sim_time=12, sim_tr=1.0, fov=0.001)
     assert sim_data.shape == (48, 48, 32)
     assert sim_data.n_frames == 12
     assert sim_data.sim_tr == 1.0
