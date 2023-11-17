@@ -366,14 +366,14 @@ def get_handler(name: str) -> type(AbstractHandler):
 
 
 def requires_field(
-    cls: type(AbstractHandler),
     field_name: str,
     factory: Callable[[SimData, ...], SimData] = None,
-) -> type(AbstractHandler):
+) -> Callable[type(AbstractHandler)]:
     """Class Decorator for Handlers.
 
-    This decorator will check if field exist in the simulation object before handling it.
-    If init_factory is available it will use it to create it, otherwise, an error will be raised.
+    This decorator will check if field exist in the simulation object before handling.
+    If init_factory is available it will use it to create it, otherwise, an error will
+    be raised.
 
     Parameters
     ----------
@@ -381,21 +381,25 @@ def requires_field(
     field_name: str
     factory: callable
     """
-    old_handle = cls.handle
 
-    @functools.wraps(old_handle)
-    def wrap_handle(self: AbstractHandler, sim: SimData) -> SimData:
-        if not hasattr(sim, field_name) and not callable(factory):
-            msg = (
-                f"'{field_name}' is missing in simulation"
-                "and no way of computing it provided."
-            )
-            raise ValueError(msg)
-        if not hasattr(sim, field_name):
-            setattr(sim, field_name, factory(sim))
+    def class_wrapper(cls: type(AbstractHandler)) -> type(AbstractHandler):
+        old_handle = cls.handle
 
-        return old_handle(self, sim)
+        @functools.wraps(old_handle)
+        def wrap_handle(self: AbstractHandler, sim: SimData) -> SimData:
+            if not hasattr(sim, field_name) and not callable(factory):
+                msg = (
+                    f"'{field_name}' is missing in simulation"
+                    "and no way of computing it provided."
+                )
+                raise ValueError(msg)
+            if not hasattr(sim, field_name):
+                setattr(sim, field_name, factory(sim))
 
-    cls.handler = wrap_handle
+            return old_handle(self, sim)
 
-    return cls
+        cls.handler = wrap_handle
+
+        return cls
+
+    return class_wrapper
