@@ -118,11 +118,13 @@ class GaussianNoiseHandler(NoiseHandler):
                     dtype=abs(sim.data_ref[:][0]).dtype,
                 )
             )
-
-        sim.data_acq = sim.data_ref + noise
+        if sim.data_acq is None:
+            sim.data_acq = sim.data_ref.copy()
+        sim.data_acq = sim.data_acq + noise
 
     def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
-        sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
+        if sim.data_acq is None:
+            sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
 
         sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
 
