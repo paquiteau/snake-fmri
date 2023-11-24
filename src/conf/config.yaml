@@ -8,6 +8,7 @@ defaults:
 
 cache_dir: null
 force_sim: false
+result_dir: results
 # save:
 #   data: "mini"
 #   compress: true
@@ -15,6 +16,12 @@ force_sim: false
 hydra:
   job:
     chdir: true
+
+  run:
+    dir: ${result_dir}/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${result_dir}/multirun/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
 
   callbacks:
     gather_files:
