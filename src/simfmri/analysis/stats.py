@@ -56,8 +56,8 @@ def contrast_zscore(
         drift_model=sim.extra_infos.get("drift_model", None),
     )
     # Create a mask from reference data (not ideal, but best)
-    mask = sim.data_ref[0] > 0
-    image_ = abs(image)[:, mask]
+    mask = sim.static_vol > 0
+    image_ = abs(image)[..., mask].squeeze()
     logger.debug(f"image_={image_.shape}, design matrix={design_matrix.shape}")
     labels, results = run_glm(image_, design_matrix.values)
     # Translate formulas to vectors

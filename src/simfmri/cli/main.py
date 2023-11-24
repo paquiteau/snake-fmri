@@ -41,6 +41,7 @@ def main_app(cfg: DictConfig) -> None:
             simulator, sim = HandlerChain.from_conf(cfg.simulation)
             sim = simulator(sim)
             del simulator
+            os.makedirs(cache_dir, exist_ok=True)
             with open(sim_file, "wb") as f:
                 pickle.dump(sim, f)
 
