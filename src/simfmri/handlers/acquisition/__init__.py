@@ -1,7 +1,7 @@
 """Acquisition Handlers."""
 
 from .base import (
-    AcquisitionHandler,
+    BaseAcquisitionHandler,
     VDSAcquisitionHandler,
     RadialAcquisitionHandler,
     StackedSpiralAcquisitionHandler,

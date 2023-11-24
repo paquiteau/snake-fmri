@@ -13,11 +13,63 @@ from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
 
-from .trajectory import TrajectoryGeneratorType, kspace_bulk_shot
+from .trajectory import TrajectoryGeneratorType
 
 # from mrinufft import get_operator
 
 logger = logging.getLogger("simulation." + __name__)
+
+
+def kspace_bulk_shot(
+    traj_generator: Generator[np.ndarray],
+    n_sim_frame: int,
+    n_batch: int = 3,
+) -> Generator[tuple[int, np.ndarray, list[tuple[int, int]]]]:
+    """Generate a stream of shot, delivered in batch.
+
+    Parameters
+    ----------
+    traj_factory: Callable
+        A function that create a ndarray representing a kspace trajectory
+    n_batch: int
+        The number of shots delivered together. Typically n_batch*shot_time = sim_time
+        (time for a single sim_frame)
+    factory_kwargs: dict
+        Parameter for the trajectory
+
+    Yields
+    ------
+    tuple[int, np.ndarray, list[tuple[int, int]]
+        A tuple of (sim_frame shots, shot_pos) where shot_pos is the absolute position
+        (kspace_frame, shot_idx) index of the kspace frame in the full trajectory.
+    """
+    shots = next(traj_generator)
+    shot_idx = 0
+    kframe = 0
+    for sim_frame_idx in range(n_sim_frame):
+        if shot_idx + n_batch <= len(shots):
+            yield (
+                sim_frame_idx,
+                shots[shot_idx : shot_idx + n_batch],
+                [(kframe, i) for i in range(shot_idx, shot_idx + n_batch)],
+            )
+            shot_idx += n_batch
+        elif shot_idx <= len(shots):
+            # The last batch is incomplete, so we start a new trajectory
+            # to complete it.
+            new_shots = next(traj_generator)
+            new_shot_idx = shot_idx + n_batch - len(shots)
+            yield (
+                sim_frame_idx,
+                np.vstack([shots[shot_idx:], new_shots[:new_shot_idx]]),
+                [(kframe, i) for i in range(shot_idx, len(shots))]
+                + [(kframe + 1, i) for i in range(new_shot_idx)],
+            )
+            shots = new_shots
+            shot_idx = new_shot_idx
+            kframe += 1
+        else:
+            raise RuntimeError("invalid shot_idx value")
 
 
 def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
@@ -222,7 +274,7 @@ def acq_noncartesian(
 
 
 def work_generator(sim: SimData, kspace_bulk_gen: Generator) -> Generator[tuple]:
-    """Setup all the work."""
+    """Set up all the work."""
     for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
         sim_frame = np.complex64(sim.data_acq[sim_frame_idx])  # heavy to compute
         yield sim_frame, shot_batch, shot_pos
@@ -238,7 +290,6 @@ def _single_worker(
     kmask_infos: tuple[tuple[int], np.Dtype],
 ) -> None:
     """Perform a shot acquisition."""
-
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",

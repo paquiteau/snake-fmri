@@ -2,34 +2,33 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Mapping
+import logging
 from collections.abc import Generator
+from typing import Any, Iterable, Literal, Mapping
 
 import numpy as np
 
+from simfmri.simulation import SimData
+from simfmri.utils import AnyShape, validate_rng
 
 from ..base import AbstractHandler
-from simfmri.simulation import SimData
-from simfmri.utils import validate_rng
-
-from .trajectory import (
-    vds_factory,
-    radial_factory,
-    stack_spiral_factory,
-    TrajectoryFactoryProtocol,
-    TrajectoryGeneratorType,
-    trajectory_generator,
-    rotate_trajectory,
-)
-
 from ._coils import get_smaps
+from .trajectory import (
+    TrajectoryFactoryProtocol,
+    radial_factory,
+    rotate_trajectory,
+    stack_spiral_factory,
+    vds_factory,
+)
 from .workers import acq_cartesian, acq_noncartesian
 
-
 SimGeneratorType = Generator[np.ndarray, None, None]
+TrajectoryGeneratorType = Generator[np.ndarray, None, None]
+
+logger = logging.getLogger("simulation.acquisition")
 
 
-class AcquisitionHandler(AbstractHandler):
+class BaseAcquisitionHandler(AbstractHandler):
     r"""
     Simulate the acquisition of the data.
 
@@ -151,66 +150,37 @@ class AcquisitionHandler(AbstractHandler):
         return sim
 
 
-class GenericAcquisitionHandler(AcquisitionHandler):
-    """
-    Generic Acquisition Handler to generate k-space data.
+def trajectory_generator(
+    traj_factory: TrajectoryFactoryProtocol,
+    shape: AnyShape,
+    **kwargs: Mapping[str, Any],
+) -> Generator[np.ndarray, None, None]:
+    """Generate a trajectory.
 
     Parameters
     ----------
-    traj_factory: TrajectoryFactoryProtocol
-        The factory to create the trajectory. This factory should return the trajectory
-        for a single volume. The first argument is the volume shape of the simuluation,
-        the other arguments are given as kwargs from ``traj_params``.
-    traj_params: Mapping[str, Any]
-        The parameters to pass to the trajectory factory.
-    shot_time_ms: int
-        Time to acquire a single shot in ms.
-    traj_generator: TrajectoryGeneratorType
-    constant: bool, default True
-        If true, the trajectory is generated once and used for all frames.
-        Otherwise, it is regenerated at each frame.
-    smaps: bool, default True
-        If true, apply sensitivity maps to the data.
+    traj_factory
+        Trajectory factory function.
+    n_batch
+        Number of shot to deliver at once.
+    kwargs
+        Trajectory factory kwargs.
 
-    Notes
-    -----
-    The trajectory factory is responsible to generate the trajectory for a single kspace
-    frame. This factory is called by the trajectory generator, which order generation of
-    trajectory, and applies transformation if wanted.
-
-
+    Yields
+    ------
+    np.ndarray
+        Kspace trajectory.
     """
-
-    name = "acquisition-generic"
-
-    def __init__(
-        self,
-        trajectory_factory: TrajectoryFactoryProtocol,
-        traj_params: Mapping[str, Any],
-        shot_time_ms: int,
-        traj_generator: TrajectoryGeneratorType | None = None,
-        cartesian: bool = True,
-        smaps: bool = True,
-        constant: bool = True,
-    ):
-        self.acquire_mp = staticmethod(
-            acq_cartesian if self.cartesian else acq_noncartesian
-        )
-        self.traj_factory = trajectory_factory
-        self.traj_generator = traj_generator or trajectory_generator
-        self.shot_time_ms = shot_time_ms
-        self._traj_params = traj_params
-
-    def _handle(self, sim: SimData) -> SimData:
-        return self._acquire(
-            sim,
-            trajectory_generator=self.traj_generator(
-                self.traj_factory, sim.shape, **self._traj_params
-            ),
-        )
+    if kwargs.pop("constant", False):
+        logger.debug("constant trajectory")
+        traj = traj_factory(shape, **kwargs)
+        while True:
+            yield traj
+    while True:
+        yield traj_factory(shape, **kwargs)
 
 
-class VDSAcquisitionHandler(AcquisitionHandler):
+class VDSAcquisitionHandler(BaseAcquisitionHandler):
     """
     Variable Density Sampling Acquisition Handler to generate k-space data.
 
@@ -272,7 +242,7 @@ class VDSAcquisitionHandler(AcquisitionHandler):
         )
 
 
-class NonCartesianAcquisitionHandler(AcquisitionHandler):
+class NonCartesianAcquisitionHandler(BaseAcquisitionHandler):
     r"""
     Simulate the acquisition of the data.
 
@@ -318,6 +288,64 @@ class NonCartesianAcquisitionHandler(AcquisitionHandler):
         super().__init__(constant=constant, smaps=smaps, shot_time_ms=shot_time_ms)
         self._backend = backend
 
+
+class GenericAcquisitionHandler(BaseAcquisitionHandler):
+    """
+    Generic Acquisition Handler to generate k-space data.
+
+    Parameters
+    ----------
+    traj_factory: TrajectoryFactoryProtocol
+        The factory to create the trajectory. This factory should return the trajectory
+        for a single volume. The first argument is the volume shape of the simuluation,
+        the other arguments are given as kwargs from ``traj_params``.
+    traj_params: Mapping[str, Any]
+        The parameters to pass to the trajectory factory.
+    shot_time_ms: int
+        Time to acquire a single shot in ms.
+    traj_generator: TrajectoryGeneratorType
+    constant: bool, default True
+        If true, the trajectory is generated once and used for all frames.
+        Otherwise, it is regenerated at each frame.
+    smaps: bool, default True
+        If true, apply sensitivity maps to the data.
+
+    Notes
+    -----
+    The trajectory factory is responsible to generate the trajectory for a single kspace
+    frame. This factory is called by the trajectory generator, which order generation of
+    trajectory, and applies transformation if wanted.
+
+
+    """
+
+    name = "acquisition-generic"
+
+    def __init__(
+        self,
+        trajectory_factory: TrajectoryFactoryProtocol,
+        traj_params: Mapping[str, Any],
+        shot_time_ms: int,
+        traj_generator: TrajectoryGeneratorType | None = None,
+        cartesian: bool = True,
+        smaps: bool = True,
+        constant: bool = True,
+    ):
+        self.acquire_mp = staticmethod(
+            acq_cartesian if self.cartesian else acq_noncartesian
+        )
+        self.traj_factory = trajectory_factory
+        self.traj_generator = traj_generator or trajectory_generator
+        self.shot_time_ms = shot_time_ms
+        self._traj_params = traj_params
+
+    def _handle(self, sim: SimData) -> SimData:
+        return self._acquire(
+            sim,
+            trajectory_generator=self.traj_generator(
+                self.traj_factory, sim.shape, **self._traj_params
+            ),
+        )
 
 class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     """
