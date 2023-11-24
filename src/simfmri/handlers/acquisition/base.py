@@ -4,26 +4,25 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator
+from itertools import cycle
 from typing import Any, Iterable, Literal, Mapping
 
 import numpy as np
+from mrinufft.trajectories.io import read_trajectory
 
 from simfmri.simulation import SimData
 from simfmri.utils import AnyShape, validate_rng
 
 from ..base import AbstractHandler
 from ._coils import get_smaps
+from ._tools import TrajectoryFactoryProtocol, TrajectoryGeneratorType
 from .trajectory import (
-    TrajectoryFactoryProtocol,
     radial_factory,
     rotate_trajectory,
     stack_spiral_factory,
     vds_factory,
 )
 from .workers import acq_cartesian, acq_noncartesian
-
-SimGeneratorType = Generator[np.ndarray, None, None]
-TrajectoryGeneratorType = Generator[np.ndarray, None, None]
 
 logger = logging.getLogger("simulation.acquisition")
 
@@ -346,6 +345,31 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
                 self.traj_factory, sim.shape, **self._traj_params
             ),
         )
+
+
+class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
+    """Generic Acquisition handlers based on a list of files."""
+
+    name = "acquisition-generic-noncartesian"
+
+    def __init__(self, traj_files: Iterable[str] | str, smaps: bool, shot_time_ms: int):
+        if isinstance(traj_files, str):
+            traj_files = [traj_files]
+
+        super().__init__(
+            constant=len(traj_files) == 1, shot_time_ms=shot_time_ms, smaps=smaps
+        )
+        self.traj_files = traj_files
+
+    def _handle(self, sim: SimData) -> SimData:
+        return self._acquire(sim, trajectory_generator=self.traj_generator)
+
+    def traj_generator(self) -> Generator[np.ndarray, None, None]:
+        """Generate trajectory by cycling over the files."""
+        for file in cycle(self.traj_files):
+            traj, params = read_trajectory(file)
+            yield traj
+
 
 class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     """

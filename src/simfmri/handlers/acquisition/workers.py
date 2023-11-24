@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
 
-from .trajectory import TrajectoryGeneratorType
+from ._tools import TrajectoryGeneratorType
 
 # from mrinufft import get_operator
 

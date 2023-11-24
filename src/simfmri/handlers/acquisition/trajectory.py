@@ -1,7 +1,7 @@
 """K-spac trajectory data structure."""
 from __future__ import annotations
 
-from typing import Literal, Protocol, Mapping, Any
+from typing import Literal, Mapping, Any
 from collections.abc import Generator
 import numpy as np
 import logging
@@ -14,14 +14,6 @@ from mrinufft.trajectories.trajectory2D import (
     initialize_2D_spiral,
 )
 from mrinufft.trajectories.tools import stack, rotate
-
-
-class TrajectoryFactoryProtocol(Protocol):
-    """Protocol for trajectory factory."""
-
-    def __call__(self, shape: AnyShape, **kwargs: Mapping[str, Any]) -> np.ndarray:
-        """Create a trajectory."""
-        ...
 
 
 def vds_factory(
