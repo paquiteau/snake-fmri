@@ -13,7 +13,7 @@ from mrinufft.trajectories.trajectory2D import (
     initialize_2D_radial,
     initialize_2D_spiral,
 )
-from mrinufft.trajectories.trajectory3D import initialize_3D_from_2D_expansion
+from mrinufft.trajectories.tools import stack, rotate
 
 logger = logging.getLogger("simulation.acquisition.trajectory")
 
@@ -88,21 +88,23 @@ def radial_factory(
     **kwargs: Mapping[str, Any],
 ) -> np.ndarray:
     """Create a radial sampling trajectory."""
-    if len(shape) == 2:
-        traj_points = initialize_2D_radial(n_shots, n_points)
+    traj_points = initialize_2D_radial(n_shots, n_points)
 
-    elif len(shape) == 3:
+    if len(shape) == 3:
         if expansion is None:
             raise ValueError("Expansion should be provided for 3D radial sampling.")
         if n_repeat is None:
             raise ValueError("n_repeat should be provided for 3D radial sampling.")
-        traj_points = initialize_3D_from_2D_expansion(
-            basis="radial",
-            expansion=expansion,
-            Nc=n_shots,
-            Ns=n_points,
-            nb_repetitions=n_repeat,
-        )
+        if expansion == "stacked":
+            traj_points = stack(
+                traj_points,
+                nb_stacks=n_repeat,
+            )
+        elif expansion == "rotated":
+            traj_points = rotate(
+                traj_points,
+                nb_rotations=n_repeat,
+            )
     else:
         raise ValueError("Only 2D and 3D trajectories are supported.")
 
