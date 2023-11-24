@@ -32,7 +32,7 @@ simulation:
       direction: top-down
 
 reconstructors:
-  - adjoint: {}
+  adjoint: {}
 
 
 
