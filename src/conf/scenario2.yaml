@@ -25,14 +25,14 @@ simulation:
       bold_strength: 0.02
     noise-gaussian:
       snr: 100
-    acquisition-vds:
+    acquisition-sos:
       shot_time_ms: 50
-      acs: 1
-      accel: 1
-      accel_axis: 0
-      constant: true
-      direction: top-down
-      smaps: false
+      acsz: 0.125
+      accelz: 4
+      n_samples: 8000
+      constant: false
+      directionz: center-out
+      backend: gpunufft
 
 reconstructors:
   adjoint: {}
@@ -40,7 +40,7 @@ reconstructors:
     optimizer: pogm
     wavelet: sym8
     trehsold: sure
-    max_iter_per_frame: 15
+    max_iter_per_frame: 30
 
 stats:
   contrast_name: block_on
