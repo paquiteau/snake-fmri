@@ -109,11 +109,11 @@ class GaussianNoiseHandler(BaseNoiseHandler):
         if np.iscomplexobj(sim.data_ref):
             noise_std /= np.sqrt(2)
         noise = noise_std * rng.standard_normal(
-            sim.data_ref.shape, dtype=abs(sim.data_ref[:][0]).dtype
+            sim.data_acq.shape, dtype=abs(sim.data_acq[:][0]).dtype
         )
-        noise = noise.astype(sim.data_ref.dtype)
+        noise = noise.astype(sim.data_acq.dtype)
 
-        if sim.data_ref.dtype in [np.complex128, np.complex64]:
+        if sim.data_acq.dtype in [np.complex128, np.complex64]:
             noise += (
                 1j
                 * noise_std
@@ -122,15 +122,13 @@ class GaussianNoiseHandler(BaseNoiseHandler):
                     dtype=abs(sim.data_ref[:][0]).dtype,
                 )
             )
-        if sim.data_acq is None:
-            sim.data_acq = sim.data_ref.copy()
-        sim.data_acq = sim.data_acq + noise
+        sim.data_acq += noise
+        self.log.debug(f"{sim.data_acq}, {sim.data_ref}")
 
     def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
-        if sim.data_acq is None:
-            sim.data_acq = LazySimArray(sim.data_ref, len(sim.data_ref))
-
         sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
+
+        self.log.debug(f"{sim.data_acq}, {sim.data_ref}")
 
 
 class RicianNoiseHandler(BaseNoiseHandler):

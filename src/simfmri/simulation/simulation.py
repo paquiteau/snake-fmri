@@ -209,9 +209,7 @@ class SimData:
     @property
     def data_acq(self) -> np.ndarray:
         """Return the defacto acquired data if defined, else the reference data."""
-        if self._data_acq is not None:
-            return self._data_acq
-        return self.data_ref
+        return self._data_acq
 
     @data_acq.setter
     def data_acq(self, value: np.ndarray) -> None:
