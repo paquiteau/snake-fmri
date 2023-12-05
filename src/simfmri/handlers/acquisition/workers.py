@@ -229,8 +229,12 @@ def acq_noncartesian(
     if nufft_backend == "stacked":
         kwargs["z_index"] = "auto"
     logger.debug("extra kwargs %s", kwargs)
+    if "gpunufft" in nufft_backend:
+        from mrinufft.operators.interfaces.gpunufft import make_pinned_smaps
 
-    smaps = sim.smaps
+        smaps = make_pinned_smaps(sim.smaps)
+    else:
+        smaps = sim.smaps
     op_kwargs = dict(
         shape=sim.shape,
         n_coils=sim.n_coils,
