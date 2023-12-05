@@ -287,6 +287,7 @@ class NonCartesianAcquisitionHandler(BaseAcquisitionHandler):
     ):
         super().__init__(constant=constant, smaps=smaps, shot_time_ms=shot_time_ms)
         self._backend = backend
+        self.n_jobs = n_jobs
 
 
 class GenericAcquisitionHandler(BaseAcquisitionHandler):
@@ -496,4 +497,5 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             op_backend="stacked",
             z_index="auto",
             backend=self._backend,
+            n_jobs=self.n_jobs,
         )
