@@ -8,11 +8,11 @@ simulation:
   sim_params:
     sim_tr: 0.1
     sim_time: 300
-    shape: [42, 64, 64]
+    shape: [181, 217, 181]
     fov: [0.181,0.217,0.181]
-    n_coils: 1
+    n_coils: 8
     rng: 19980408
-    lazy: True
+    lazy: true
   handlers:
     phantom-brainweb:
       subject_id: 5
