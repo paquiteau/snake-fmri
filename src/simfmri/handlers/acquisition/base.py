@@ -283,6 +283,7 @@ class NonCartesianAcquisitionHandler(BaseAcquisitionHandler):
         smaps: bool = True,
         backend: str = "finufft",
         shot_time_ms: int = 50,
+        n_jobs: int = 4,
     ):
         super().__init__(constant=constant, smaps=smaps, shot_time_ms=shot_time_ms)
         self._backend = backend

@@ -203,6 +203,7 @@ def acq_noncartesian(
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
     n_kspace_frame: int,
+    n_jobs: int = -1,
     **kwargs: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with non cartesian stuff."""
@@ -242,7 +243,7 @@ def acq_noncartesian(
         backend_name=nufft_backend,
     )
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    with Parallel(n_jobs=-1, backend="loky", mmap_mode="r") as par:
+    with Parallel(n_jobs=n_jobs, backend="loky", mmap_mode="r") as par:
         par(
             delayed(_single_worker)(
                 sim_frame,
