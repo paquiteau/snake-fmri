@@ -297,7 +297,17 @@ def _single_worker(
             category=UserWarning,
             module="mrinufft",
         )
-        fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
+        if "gpunufft" in [
+            op_kwargs.get("backend_name", None),
+            op_kwargs.get("nufft_backend", None),
+        ]:
+            fourier_op = get_operator(
+                samples=shot_batch,
+                pinned_smaps=smaps,
+                **op_kwargs,
+            )
+        else:
+            fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
         kspace = fourier_op.op(sim_frame)
     L = shot_batch.shape[1]
 
