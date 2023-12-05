@@ -10,7 +10,7 @@ import warnings
 import numpy as np
 
 
-from fmri.operators.fourier import FFT_Sense, RepeatOperator, gpuNUFFTSpaceFourier
+from fmri.operators.fourier import FFT_Sense, RepeatOperator, PooledgpuNUFFTSpaceFourier
 from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
 from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
@@ -70,7 +70,7 @@ def get_fourier_operator(
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
     elif "gpunufft" in backend:
-        return gpuNUFFTSpaceFourier(
+        return PooledgpuNUFFTSpaceFourier(
             sim.kspace_mask,
             sim.shape,
             n_frames=len(sim.kspace_data),
