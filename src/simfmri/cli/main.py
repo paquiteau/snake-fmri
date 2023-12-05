@@ -75,7 +75,7 @@ def main_app(cfg: DictConfig) -> None:
                 "stats": stats,
                 "data_zscore": os.path.join(os.getcwd(), f"data_zscore_{rec}.npy"),
                 "data_rec": os.path.join(os.getcwd(), f"data_rec_{rec}.npy"),
-                "sim_data": os.path.join(os.getcwd(), "simulation.pkl"),
+                "sim_file": str(sim_file.absolute()),
             }
         )
         del sim
