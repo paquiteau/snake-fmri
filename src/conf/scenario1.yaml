@@ -1,6 +1,8 @@
 # This files contains the configuration to reproduce the scenario 1 of the Simfmri paper.
 
 force_sim: false
+cache_dir: ${oc.env:PWD}/cache
+result_dir: results
 
 simulation:
   sim_params:
@@ -43,6 +45,12 @@ hydra:
   job:
     chdir: true
 
+  run:
+    dir: ${result_dir}/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${result_dir}/multirun/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+
   callbacks:
     gather_files:
       _target_: hydra_callbacks.MultiRunGatherer
@@ -52,3 +60,5 @@ hydra:
 
     latest_run:
       _target_: hydra_callbacks.LatestRunLink
+      run_base_dir:  ${result_dir}/outputs
+      multirun_base_dir:  ${result_dir}/multirun
