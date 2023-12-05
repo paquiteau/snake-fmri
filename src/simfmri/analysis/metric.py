@@ -25,7 +25,7 @@ def get_signal_noise(
     """
     if np.any(np.iscomplex(ref)):
         signal = abs(ref)
-        noise = abs(ref) - abs(test)
+        noise = abs(test) - abs(signal)
     else:
         signal = ref
         noise = test - ref
