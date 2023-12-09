@@ -78,7 +78,7 @@ def _get_stacked_operator(backend: str, sim: SimData) -> SpaceFourier:
 
 
 def get_fourier_operator(
-    sim: SimData, cartesian_repeat: bool = False, **kwargs: None
+    sim: SimData, backend: str, cartesian_repeat: bool = False, **kwargs: None
 ) -> SpaceFourier:
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
@@ -93,7 +93,6 @@ def get_fourier_operator(
     )
 
     density = True
-    backend = sim.extra_infos.get("operator", "fft")
     logger.info(f"fourier backend is {backend}")
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
@@ -105,6 +104,7 @@ def get_fourier_operator(
             n_coils=sim.n_coils,
             smaps=sim.smaps,
             density=density,
+            pool_size=5,
             **kwargs,
         )
     elif "nufft" in backend:
@@ -159,7 +159,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        self.reconstructor = get_fourier_operator(sim)
+        self.reconstructor = get_fourier_operator(sim, self.nufft_backend)
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
@@ -189,8 +189,9 @@ class SequentialReconstructor(BaseReconstructor):
         optimizer: str = "pogm",
         wavelet: str = "sym8",
         threshold: float | Literal["sure"] = "sure",
+        nufft_backend: str = None,
     ):
-        super().__init__()
+        super().__init__(nufft_backend)
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.wavelet = wavelet
@@ -203,7 +204,9 @@ class SequentialReconstructor(BaseReconstructor):
         from modopt.opt.proximity import SparseThreshold
 
         if self.fourier_op is None:
-            self.fourier_op = get_fourier_operator(sim, cartesian_repeat=True)
+            self.fourier_op = get_fourier_operator(
+                sim, cartesian_repeat=True, backend=self.nufft_backend
+            )
 
         space_linear_op = WaveletTransform(
             self.wavelet, shape=sim.shape, level=3, mode="periodization"
@@ -263,8 +266,9 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         time_prox_op: ProximityParent = None,
         space_prox_op: ProximityParent = None,
         fourier_op: SpaceFourier = None,
+        nufft_backend: str | None = None,
     ):
-        super().__init__()
+        super().__init__(nufft_backend)
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
@@ -289,7 +293,9 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         from fmri.operators.svt import FlattenSVT
 
         if self.fourier_op is None:
-            self.fourier_op = get_fourier_operator(sim, cartesian_repeat=False)
+            self.fourier_op = get_fourier_operator(
+                sim, cartesian_repeat=False, backend=self.nufft_backend
+            )
 
         logger.debug("Space Fourier operator initialized")
         if self.time_linear_op is None:
@@ -369,8 +375,13 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
     name = "adjoint+denoised"
 
     def __init__(
-        self, patch_shape: int, patch_overlap: int, recombination: str = "weighted"
+        self,
+        patch_shape: int,
+        patch_overlap: int,
+        recombination: str = "weighted",
+        nufft_backend: str | None = None,
     ):
+        super().__init__(nufft_backend)
         self.patch_shape = patch_shape
         self.patch_overlap = patch_overlap
         self.recombination = recombination

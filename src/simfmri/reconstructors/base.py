@@ -9,14 +9,15 @@ logger = logging.getLogger("Reconstructor")
 RECONSTRUCTORS = {}
 
 
-class BaseReconstructor(ABC):
+class BaseReconstructor:
     """Represents the interface required to be benchmark-able."""
 
     name = None
 
-    def __init__(self):
+    def __init__(self, nufft_backend: str = None):
         self.reconstructor = None
         self.fourier_op = None
+        self.nufft_backend = nufft_backend  # optional nufft backend
 
     def __init_subclass__(cls):
         """Register reconstructors."""
@@ -27,7 +28,6 @@ class BaseReconstructor(ABC):
         """Set up the reconstructor."""
         logger.info(f"Setup reconstructor {self.__class__.__name__}")
 
-    @abstractmethod
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct data."""
         raise NotImplementedError()
