@@ -8,8 +8,8 @@ simulation:
   sim_params:
     sim_tr: 0.1
     sim_time: 300
-    shape: [181, 217, 181]
-    fov: [0.181,0.217,0.181]
+    shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
+    fov: [-1,-1,-1]
     n_coils: 8
     rng: 19980408
     lazy: true
@@ -17,6 +17,8 @@ simulation:
     phantom-brainweb:
       subject_id: 5
       bbox: [0.225,-0.07, 0.06, -0.055, null, null]
+      brainweb_folder: ${cache_dir}/brainweb
+      res: [1.0, 1.0, 0.943]
     activation-block:
       event_name: block_on
       block_on: 20
@@ -32,14 +34,17 @@ simulation:
       n_samples: 8000
       constant: false
       directionz: center-out
-      backend: gpunufft
+      backend: cufinufft
 
 reconstructors:
-  adjoint: {}
+  # adjoint:
+  #   nufft_backend: gpunufft
+
   sequential:
+    nufft_backend: gpunufft
     optimizer: pogm
     wavelet: sym8
-    trehsold: sure
+    threshold: sure
     max_iter_per_frame: 30
 
 stats:
