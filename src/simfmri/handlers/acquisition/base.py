@@ -90,6 +90,7 @@ class BaseAcquisitionHandler(AbstractHandler):
             trajectory for a single volume. and takes **self.traj_params as input.
         """
         if self.smaps and sim.n_coils > 1:
+            self.log.debug(f"generating sensitivity maps {sim.shape}, {sim.n_coils}")
             sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
         test_traj = next(trajectory_generator)

@@ -1,10 +1,11 @@
+#!/usr/bin/env python
 """Main script fot the reconstruction validation."""
-import json
 import gc
+import json
 import logging
 import os
-import pickle
 from pathlib import Path
+from typing import Any, Mapping
 
 import hydra
 import numpy as np
@@ -17,6 +18,17 @@ from simfmri.handlers import HandlerChain
 from simfmri.reconstructors import get_reconstructor
 
 logger = logging.getLogger(__name__)
+
+
+def reconstruct(
+    sim_file: os.PathLike, rec_name: str, params: Mapping[str, Any]
+) -> np.ndarray:
+    """Reconstruct the data."""
+    sim = np.load(sim_file, allow_pickle=True)
+    rec = get_reconstructor(rec_name)(**params)
+    with PerfLogger(logger, name="Reconstruction " + str(rec)):
+        rec.setup(sim)
+        return rec.reconstruct(sim), str(rec)
 
 
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
@@ -33,53 +45,40 @@ def main_app(cfg: DictConfig) -> None:
         try:
             if cfg.force_sim:
                 raise FileNotFoundError
-            with open(sim_file, "rb") as f:
-                logger.info(f"Loading simulation from cache {sim_file}")
-                sim = pickle.load(f)
-        except FileNotFoundError:
+            sim = np.load(sim_file, allow_pickle=True)
+        except OSError:
             logger.warning(f"Failed to load simulation from cache {sim_file}")
             simulator, sim = HandlerChain.from_conf(cfg.simulation)
             sim = simulator(sim)
             del simulator
-            os.makedirs(cache_dir, exist_ok=True)
-            with open(sim_file, "wb") as f:
-                pickle.dump(sim, f)
-
+            os.makedirs(sim_file.parent, exist_ok=True)
+            np.save(sim_file, sim, allow_pickle=True)
     gc.collect()
+
     reconstructors = OmegaConf.to_container(cfg.reconstructors)
     logger.debug("Reconstructors: %s", reconstructors)
     results = []
     # 2. Reconstruct and analyze
     for rec_name, params in reconstructors.items():
-        if len(reconstructors) > 1:
-            with open(sim_file, "rb") as f:
-                sim = pickle.load(f)  # direct pickling to avoid checkings
-
-        rec = get_reconstructor(rec_name)(**params)
-        with PerfLogger(logger, name="Reconstruction " + str(rec)):
-            rec.setup(sim)
-            data_test = rec.reconstruct(sim)
-
+        data_test, rec_str = reconstruct(sim_file, rec_name, params)
         logger.debug("Current simulation state: %s", sim)
-        with PerfLogger(logger, name="Analysis " + str(rec)):
+        with PerfLogger(logger, name="Analysis " + str(rec_str)):
             zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
             stats = get_scores(zscore, sim.roi)
 
-        np.save(f"data_rec_{rec}.npy", data_test)
-        np.save(f"data_zscore_{rec}.npy", zscore)
+        np.save(f"data_rec_{rec_str}.npy", data_test)
+        np.save(f"data_zscore_{rec_str}.npy", zscore)
         results.append(
             {
                 "sim_params": OmegaConf.to_container(cfg.simulation.sim_params),
                 "handlers": OmegaConf.to_container(cfg.simulation.handlers),
-                "reconstructor": str(rec),
+                "reconstructor": rec_str,
                 "stats": stats,
-                "data_zscore": os.path.join(os.getcwd(), f"data_zscore_{rec}.npy"),
-                "data_rec": os.path.join(os.getcwd(), f"data_rec_{rec}.npy"),
+                "data_zscore": os.path.join(os.getcwd(), f"data_zscore_{rec_str}.npy"),
+                "data_rec": os.path.join(os.getcwd(), f"data_rec_{rec_str}.npy"),
                 "sim_file": str(sim_file.absolute()),
             }
         )
-        del sim
-        del rec
         del data_test
         del zscore
         gc.collect()
@@ -89,7 +88,7 @@ def main_app(cfg: DictConfig) -> None:
         with open("results.json", "w") as f:
             json.dump(results, f)
 
-    logger.info(PerfLogger.recap())
+    PerfLogger.recap(logger)
 
 
 if __name__ == "__main__":
