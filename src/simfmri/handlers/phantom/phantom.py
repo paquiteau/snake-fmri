@@ -162,6 +162,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         brainweb_folder: os.PathLike | None = None,
         roi: int = 1,
         bbox: tuple[int, int, int, int, int, int] = None,
+        res: float | tuple[float, float, float] = None,
         force: bool = False,
     ):
         super().__init__()
@@ -170,15 +171,18 @@ class BrainwebPhantomHandler(AbstractHandler):
         self.roi = roi
         self.bbox = bbox
         self.force = force
+        self.res = res
 
     def _handle(self, sim: SimData) -> SimData:
         # TODO hash and cache config with all the parameters of get_mri
         # do this for both static_vol and roi.
         # save to brainweb_folder
         bw_dir = get_brainweb_dir(self.brainweb_folder)
-
-        static_hash = jbhash(("static", self.sub_id, sim.shape, self.bbox, sim.rng))
-        roi_hash = jbhash(("roi", self.sub_id, sim.shape, self.bbox))
+        self.log.debug(f"hash config {self.sub_id, sim.shape, self.bbox, sim.rng}")
+        static_hash = jbhash(
+            str(("static", self.sub_id, sim.shape, self.bbox, sim.rng))
+        )
+        roi_hash = jbhash(str((self.sub_id, sim.shape, self.bbox)))
 
         static_path = bw_dir / (static_hash + ".npy")
         roi_path = bw_dir / (roi_hash + ".npy")
@@ -186,13 +190,17 @@ class BrainwebPhantomHandler(AbstractHandler):
         if os.path.exists(static_path) and not self.force:
             static_vol = np.load(static_path)
         else:
+            self.log.warning(f"static volume was not cached at {static_path}.")
             static_vol = self._make_static_vol(sim)
+            os.makedirs(static_path.parent, exist_ok=True)
             np.save(static_path, static_vol)
 
         if -1 in sim.shape:
             old_shape = sim.shape
             sim._meta.shape = static_vol.shape
             self.log.warning(f"shape was implicit {old_shape}, it is now {sim.shape}.")
+        if sim.fov is None or sim.fov == (-1, -1, -1):
+            sim._meta.fov = (0.181, 0.217, 0.181)  # standard fov for brainweb.
         if self.bbox:
             # update FOV
             new_fov = [0.0] * 3
@@ -227,6 +235,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         return sim
 
     def _make_static_vol(self, sim: SimData) -> np.ndarray:
+        self.log.debug("Using brainweb_dl for data generation.")
         shape = sim.shape
         if shape == (-1, -1, -1):
             shape = None
@@ -236,6 +245,7 @@ class BrainwebPhantomHandler(AbstractHandler):
             contrast="T2*",
             rng=sim.rng or self.rng,
             shape=shape,
+            output_res=self.res,
             bbox=self.bbox,
         )
 
