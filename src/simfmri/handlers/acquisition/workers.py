@@ -1,5 +1,6 @@
 """Multiprocessing module for the acquisition of data."""
 from __future__ import annotations
+import gc
 
 from multiprocessing import shared_memory
 from contextlib import contextmanager
@@ -10,6 +11,7 @@ from joblib import Parallel, delayed
 import numpy as np
 from fmri.operators.fourier import FFT_Sense
 from mrinufft import get_operator
+from mrinufft.operators.interfaces.gpunufft import make_pinned_smaps
 from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
@@ -199,42 +201,6 @@ def acq_cartesian(
     return kdata, kmask
 
 
-def _init_sm(
-    name: str, shape: tuple[int, ...], dtype: DTypeLike
-) -> shared_memory.SharedMemory:
-    """Initialize a shared memory buffer."""
-    return shared_memory.SharedMemory(
-        name=name,
-        create=True,
-        size=np.prod(shape) * np.dtype(dtype).itemsize,
-    )
-
-
-@contextmanager
-def shm_manager(
-    name: str, shape: tuple[int, ...], dtype: DTypeLike, unlink: bool = False
-) -> Generator[np.ndarray]:
-    """Context manager for shared memory."""
-    try:
-        shm = shared_memory.SharedMemory(
-            name=name,
-            create=False,
-        )
-    except FileNotFoundError:
-        arr = None
-    else:
-        arr = np.ndarray(shape, buffer=shm.buf, dtype=dtype)
-
-    # properly close stuff
-    try:
-        yield arr
-    finally:
-        del arr
-        shm.close()
-        if unlink:
-            shm.unlink()
-
-
 def acq_noncartesian(
     sim: SimData,
     trajectory_gen: TrajectoryGeneratorType,
@@ -247,21 +213,6 @@ def acq_noncartesian(
     test_traj = next(trajectory_gen)
     n_samples = np.prod(test_traj.shape[:-1])
     dim = test_traj.shape[-1]
-
-    # Allocate kspace data, kspace mask and smaps in shared memory.
-    shm_infos = {
-        "kdata": ((n_kspace_frame, sim.n_coils, n_samples), np.complex64),
-        "kmask": ((n_kspace_frame, n_samples, dim), np.float32),
-        "smaps": ((sim.n_coils, *sim.shape), np.complex64),
-    }
-    _init_sm("kdata", *shm_infos["kdata"])
-    _init_sm("kmask", *shm_infos["kmask"])
-    if sim.smaps is not None:
-        shm_smaps = _init_sm("smaps", *shm_infos["smaps"])
-        smaps = np.ndarray(
-            shm_infos["smaps"][0], buffer=shm_smaps.buf, dtype=shm_infos["smaps"][1]
-        )
-        smaps[:] = sim.smaps
 
     nufft_backend = kwargs.pop("backend")
     logger.debug("Using backend %s", nufft_backend)
@@ -277,29 +228,26 @@ def acq_noncartesian(
     )
 
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-    with Parallel(n_jobs=n_jobs, backend="loky", mmap_mode="r") as par:
-        par(
+    shot_batches, shot_pos, kdata_t = zip(
+        *Parallel(
+            n_jobs=n_jobs,
+            backend="loky",
+        )(
             delayed(_single_worker)(
-                sim_frame,
-                shot_batch,
-                shot_pos,
-                op_kwargs,
-                shm_infos,
+                sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
             )
             for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
         )
-    del par
+    )
     # cleanup joblib https://github.com/joblib/joblib/issues/945
-    from joblib.externals.loky import get_reusable_executor
-
-    get_reusable_executor().shutdown(wait=True)
-
-    with (
-        shm_manager("kdata", *shm_infos["kdata"], unlink=True) as kdata_,
-        shm_manager("kmask", *shm_infos["kmask"], unlink=True) as kmask_,
-    ):
-        kdata = np.copy(kdata_)
-        kmask = np.copy(kmask_)
+    # Allocate kspace data, kspace mask and smaps in shared memory.
+    kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
+    kmask = np.zeros((n_kspace_frame, n_samples, dim), np.float32)
+    L = shot_batches[0].shape[1]
+    for i, sp in enumerate(shot_pos):
+        for ii, (kk, ss) in enumerate(sp):
+            kdata[kk, :, ss * L : (ss + 1) * L] = kdata_t[i][..., ii * L : (ii + 1) * L]
+            kmask[kk, ss * L : (ss + 1) * L] = shot_batches[i][ii]
     return kdata, kmask
 
 
@@ -315,30 +263,20 @@ def _single_worker(
     shot_batch: np.ndarray,
     shot_pos: tuple[int, int],
     op_kwargs: Mapping[str, Any],
-    shm_infos: Mapping[str, tuple[tuple[int], np.DtypeLike]],
+    smaps: np.ndarray,
 ) -> None:
     """Perform a shot acquisition."""
-
-    with (
-        warnings.catch_warnings(),
-        shm_manager("kdata", *shm_infos["kdata"]) as kdata_,
-        shm_manager("kmask", *shm_infos["kmask"]) as kmask_,
-        shm_manager("smaps", *shm_infos["smaps"]) as smaps,
-    ):
+    with (warnings.catch_warnings(),):
         warnings.filterwarnings(
             "ignore",
             category=UserWarning,
             module="mrinufft",
         )
-        if "gpunufft" in op_kwargs["backend_name"]:
-            op_kwargs["pinned_smaps"] = smaps
+        if op_kwargs["backend_name"] == "gpunufft":
+            op_kwargs["pinned_smaps"] = make_pinned_smaps(smaps)
             smaps = None
 
         fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
         kspace = fourier_op.op(sim_frame)
-        L = shot_batch.shape[1]
-
-        #  write to share memory shots location and values.
-        for i, (k, s) in enumerate(shot_pos):
-            kdata_[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
-            kmask_[k, s * L : (s + 1) * L] = shot_batch[i]
+    #  write to share memory shots location and values.
+    return shot_batch, shot_pos, kspace
