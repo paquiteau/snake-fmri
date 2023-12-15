@@ -37,8 +37,8 @@ simulation:
       backend: cufinufft
 
 reconstructors:
-  # adjoint:
-  #   nufft_backend: gpunufft
+  adjoint:
+    nufft_backend: gpunufft
 
   sequential:
     nufft_backend: gpunufft

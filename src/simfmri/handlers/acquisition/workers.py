@@ -1,21 +1,19 @@
 """Multiprocessing module for the acquisition of data."""
 from __future__ import annotations
-import gc
 
-from multiprocessing import shared_memory
-from contextlib import contextmanager
 import logging
 import warnings
-from typing import Any, Callable, Mapping, Generator
-from joblib import Parallel, delayed
+from typing import Any, Callable, Generator, Mapping
+
 import numpy as np
 from fmri.operators.fourier import FFT_Sense
+from joblib import Parallel, delayed
 from mrinufft import get_operator
 from mrinufft.operators.interfaces.gpunufft import make_pinned_smaps
 from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
-from numpy.typing import DTypeLike
+
 from ._tools import TrajectoryGeneratorType
 
 # from mrinufft import get_operator
@@ -231,7 +229,7 @@ def acq_noncartesian(
     shot_batches, shot_pos, kdata_t = zip(
         *Parallel(
             n_jobs=n_jobs,
-            backend="loky",
+            backend="multiprocessing",
         )(
             delayed(_single_worker)(
                 sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
@@ -239,8 +237,8 @@ def acq_noncartesian(
             for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
         )
     )
-    # cleanup joblib https://github.com/joblib/joblib/issues/945
-    # Allocate kspace data, kspace mask and smaps in shared memory.
+
+    # reorganize the data
     kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
     kmask = np.zeros((n_kspace_frame, n_samples, dim), np.float32)
     L = shot_batches[0].shape[1]
@@ -272,9 +270,6 @@ def _single_worker(
             category=UserWarning,
             module="mrinufft",
         )
-        if op_kwargs["backend_name"] == "gpunufft":
-            op_kwargs["pinned_smaps"] = make_pinned_smaps(smaps)
-            smaps = None
 
         fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
         kspace = fourier_op.op(sim_frame)
