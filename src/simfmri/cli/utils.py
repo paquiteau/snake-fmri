@@ -1,5 +1,8 @@
 """Utility function for hydra scripts."""
+from typing import Mapping, Any
+
 from hydra.utils import HydraConfig
+import re
 import json
 import os
 import itertools
@@ -7,6 +10,8 @@ import numpy as np
 from collections.abc import Iterator
 from simfmri.simulation import SimData
 import logging
+from joblib.hashing import hash as jb_hash
+from omegaconf import DictConfig, OmegaConf
 
 
 def setup_warning_logger() -> None:
@@ -196,3 +201,42 @@ def aggregate_results(results_files: list[str]) -> str:
     # Some light preprocessing.
     df.to_parquet("results_gathered.gzip")
     return os.getcwd() + "/results_gathered.gzip"
+
+
+def flatten(
+    d: Mapping[str, Any], parent_key: str = "", sep: str = "."
+) -> dict[str, Any]:
+    """
+    Flatten a nested dict.
+
+    https://stackoverflow.com/questions/6027558/flatten-nested-python-dictionaries-compressing-keys
+
+    Parameters
+    ----------
+    d: dict_like, to flatten.
+
+    """
+    items = []
+    for k, v in d.items():
+        new_key = parent_key + sep + k if parent_key else k
+        if isinstance(v, dict):
+            items.extend(flatten(v, new_key, sep=sep).items())
+        elif isinstance(v, list):
+            for i, val in enumerate(v):
+                items.extend(flatten({str(i): val}, new_key, sep=sep).items())
+        else:
+            items.append((new_key, v))
+    return dict(items)
+
+
+def hash_config(conf: Mapping[str, Any], *ignore_keys_pattern: str) -> str:
+    """Hash the config, while ignoring certains keys."""
+    if isinstance(conf, DictConfig):
+        conf = OmegaConf.to_container(conf)
+    flattened = flatten(conf)
+    for k in flattened:
+        for key_pattern in ignore_keys_pattern:
+            if re.match(key_pattern, k):
+                flattened[k] = "ignored"
+
+    return jb_hash(flattened)

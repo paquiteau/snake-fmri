@@ -16,6 +16,7 @@ from omegaconf import DictConfig, OmegaConf
 from simfmri.analysis.stats import contrast_zscore, get_scores
 from simfmri.handlers import HandlerChain
 from simfmri.reconstructors import get_reconstructor
+from simfmri.cli.utils import hash_config
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ def main_app(cfg: DictConfig) -> None:
     logging.captureWarnings(True)
 
     cache_dir = Path(cfg.cache_dir or os.getcwd())
-    hash_sim = jb_hash(OmegaConf.to_container(cfg.simulation))
+    hash_sim = hash_config(cfg.simulation, cfg.ignore_patterns)
     sim_file = cache_dir / f"{hash_sim}.pkl"
     # 1. Simulate (use cache if available)
     with PerfLogger(logger, name="Simulation"):
