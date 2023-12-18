@@ -38,10 +38,11 @@ simulation:
 
 reconstructors:
   adjoint:
-    nufft_backend: gpunufft
-
+    nufft_backend: cufinufft
+    nufft_kwargs: {}
   sequential:
-    nufft_backend: gpunufft
+    nufft_backend: cufinufft
+    nufft_kwargs: {}
     optimizer: pogm
     wavelet: sym8
     threshold: sure

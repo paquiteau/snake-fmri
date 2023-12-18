@@ -14,10 +14,11 @@ class BaseReconstructor:
 
     name = None
 
-    def __init__(self, nufft_backend: str = None):
+    def __init__(self, nufft_backend: str = None, nufft_kwargs: dict = None):
         self.reconstructor = None
         self.fourier_op = None
         self.nufft_backend = nufft_backend  # optional nufft backend
+        self.nufft_kwargs = nufft_kwargs or {}
 
     def __init_subclass__(cls):
         """Register reconstructors."""

@@ -78,21 +78,25 @@ def _get_stacked_operator(backend: str, sim: SimData) -> SpaceFourier:
 
 
 def get_fourier_operator(
-    sim: SimData, backend: str, cartesian_repeat: bool = False, **kwargs: None
+    sim: SimData,
+    backend: str,
+    cartesian_repeat: bool = False,
+    density="cell_count",
+    **kwargs: None,
 ) -> SpaceFourier:
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
 
-    from fmri.operators.fourier import CartesianSpaceFourier, SpaceFourierBase
     from mrinufft.operators import get_operator
-
     from fmri.operators.fourier import (
         FFT_Sense,
+        CartesianSpaceFourier,
+        SpaceFourierBase,
         RepeatOperator,
         PooledgpuNUFFTSpaceFourier,
+        CufinufftSpaceFourier,
     )
 
-    density = True
     logger.info(f"fourier backend is {backend}")
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
@@ -107,6 +111,18 @@ def get_fourier_operator(
             pool_size=5,
             **kwargs,
         )
+
+    elif "cufinufft" in backend:
+        return CufinufftSpaceFourier(
+            sim.kspace_mask,
+            sim.shape,
+            n_frames=len(sim.kspace_data),
+            n_coils=sim.n_coils,
+            smaps=sim.smaps,
+            density="cell_count",
+            **kwargs,
+        )
+
     elif "nufft" in backend:
         kwargs["squeeze_dims"] = True
         kwargs["density"] = density
@@ -159,7 +175,9 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        self.reconstructor = get_fourier_operator(sim, self.nufft_backend)
+        self.reconstructor = get_fourier_operator(
+            sim, self.nufft_backend, **self.nufft_kwargs
+        )
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
@@ -190,8 +208,9 @@ class SequentialReconstructor(BaseReconstructor):
         wavelet: str = "sym8",
         threshold: float | Literal["sure"] = "sure",
         nufft_backend: str = None,
+        nufft_kwargs: dict = None,
     ):
-        super().__init__(nufft_backend)
+        super().__init__(nufft_backend, nufft_kwargs)
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.wavelet = wavelet
@@ -199,23 +218,27 @@ class SequentialReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        from fmri.operators.wavelet import WaveletTransform
+        from modopt.opt.linear.wavelet import WaveletTransform
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(
-                sim, cartesian_repeat=True, backend=self.nufft_backend
+                sim,
+                cartesian_repeat=True,
+                backend=self.nufft_backend,
+                **self.nufft_kwargs,
             )
 
         space_linear_op = WaveletTransform(
-            self.wavelet, shape=sim.shape, level=3, mode="periodization"
+            self.wavelet, shape=sim.shape, level=3, mode="zero"
         )
-        space_linear_op.op(np.zeros_like(sim.data_ref[0]))
+        coeffs = space_linear_op.op(np.zeros_like(sim.data_ref[0]))
 
         if self.threshold == "sure":
             space_prox_op = AutoWeightedSparseThreshold(
                 space_linear_op.coeffs_shape,
+                linear=space_linear_op,
                 threshold_estimation="hybrid-sure",
                 threshold_scaler=0.6,
             )
@@ -225,7 +248,7 @@ class SequentialReconstructor(BaseReconstructor):
         from fmri.reconstructors.frame_based import SequentialReconstructor
 
         self.reconstructor = SequentialReconstructor(
-            self.fourier_op, space_linear_op, space_prox_op, optimizer="pogm"
+            self.fourier_op, space_linear_op, space_prox_op, optimizer=self.optimizer
         )
 
     def reconstruct(self, sim: SimData, fourier_op: None = None) -> np.ndarray:
