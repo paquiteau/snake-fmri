@@ -3,7 +3,9 @@
 force_sim: false
 cache_dir: ${oc.env:PWD}/cache
 result_dir: ${oc.env:PWD}/results
-
+ignore_patterns:
+  - "n_jobs"
+  -
 simulation:
   sim_params:
     sim_tr: 0.1
@@ -40,13 +42,16 @@ reconstructors:
   adjoint:
     nufft_backend: cufinufft
     nufft_kwargs: {}
-  sequential:
-    nufft_backend: cufinufft
-    nufft_kwargs: {}
-    optimizer: pogm
-    wavelet: sym8
-    threshold: sure
-    max_iter_per_frame: 30
+  # sequential:
+  #   nufft_backend: cufinufft
+  #   nufft_kwargs: {}
+  #   optimizer: pogm
+  #   wavelet: sym8
+  #   threshold: sure
+  #   max_iter_per_frame: 30
+  sequential-torch:
+    threshold: 1e-5
+    max_iter_per_frame: 40
 
 stats:
   contrast_name: block_on
