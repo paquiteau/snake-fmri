@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 def reconstruct(
     sim_file: os.PathLike, rec_name: str, params: Mapping[str, Any]
-) -> np.ndarray:
+) -> tuple[np.ndarray, str]:
     """Reconstruct the data."""
     sim = np.load(sim_file, allow_pickle=True)
     rec = get_reconstructor(rec_name)(**params)
@@ -56,7 +56,7 @@ def main_app(cfg: DictConfig) -> None:
             np.save(sim_file, sim, allow_pickle=True)
     gc.collect()
 
-    reconstructors = OmegaConf.to_container(cfg.reconstructors)
+    reconstructors: Mapping[str, Any] = OmegaConf.to_container(cfg.reconstructors)
     logger.debug("Reconstructors: %s", reconstructors)
     results = []
     # 2. Reconstruct and analyze

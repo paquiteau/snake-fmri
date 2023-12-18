@@ -22,7 +22,7 @@ def contrast_zscore(
     sim: SimData,
     contrast_name: str,
     **kwargs: None,
-) -> tuple[np.ndarray, dict]:
+) -> np.ndarray:
     """Compute z-score of contrast_name.
 
     For now only a single contrast is supported.
