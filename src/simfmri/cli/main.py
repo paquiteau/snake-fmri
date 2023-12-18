@@ -6,6 +6,7 @@ import logging
 import os
 from pathlib import Path
 from typing import Any, Mapping
+import pickle
 
 import hydra
 import numpy as np
@@ -25,7 +26,7 @@ def reconstruct(
     sim_file: os.PathLike, rec_name: str, params: Mapping[str, Any]
 ) -> tuple[np.ndarray, str]:
     """Reconstruct the data."""
-    sim = np.load(sim_file, allow_pickle=True)
+    sim = pickle.load(open(sim_file, "rb"))
     rec = get_reconstructor(rec_name)(**params)
     with PerfLogger(logger, name="Reconstruction " + str(rec)):
         rec.setup(sim)
@@ -46,14 +47,14 @@ def main_app(cfg: DictConfig) -> None:
         try:
             if cfg.force_sim:
                 raise FileNotFoundError
-            sim = np.load(sim_file, allow_pickle=True)
+            sim = pickle.load(open(sim_file, "rb"))
         except OSError:
             logger.warning(f"Failed to load simulation from cache {sim_file}")
             simulator, sim = HandlerChain.from_conf(cfg.simulation)
             sim = simulator(sim)
             del simulator
             os.makedirs(sim_file.parent, exist_ok=True)
-            np.save(sim_file, sim, allow_pickle=True)
+            pickle.dump(sim, open(sim_file, "wb"))
     gc.collect()
 
     reconstructors: Mapping[str, Any] = OmegaConf.to_container(cfg.reconstructors)
