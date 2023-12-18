@@ -9,7 +9,12 @@ import numpy as np
 from fmri.operators.fourier import FFT_Sense
 from joblib import Parallel, delayed
 from mrinufft import get_operator
-from mrinufft.operators.interfaces.gpunufft import make_pinned_smaps
+
+try:
+    from mrinufft.operators.interfaces.gpunufft import make_pinned_smaps
+except ImportError:
+    make_pinned_smaps = None
+
 from tqdm.auto import tqdm
 
 from simfmri.simulation import SimData
