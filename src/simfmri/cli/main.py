@@ -11,7 +11,6 @@ import pickle
 import hydra
 import numpy as np
 from hydra_callbacks import PerfLogger
-from joblib.hashing import hash as jb_hash
 from omegaconf import DictConfig, OmegaConf
 
 from simfmri.analysis.stats import contrast_zscore, get_scores
