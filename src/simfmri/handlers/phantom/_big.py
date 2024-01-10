@@ -1,5 +1,6 @@
 """Functions to generate phantom from bezier description."""
 import json
+import os
 import numpy as np
 import scipy as sp
 from skimage.transform import resize
@@ -100,7 +101,7 @@ def inside_bezier_region(
         b = -tmp[..., 0] * gamma[i, 1] + tmp[..., 1] * gamma[i, 0]
         d = -tmp[..., 0] * beta[i, 1] + tmp[..., 1] * beta[i, 0]
         #: map(ind(b.^2<a(i)*d)) = (a(i)>=0);
-        cond = b**2 < (a[i] * d)
+        cond = b ** 2 < (a[i] * d)
         inside[ind[cond]] = a[i] >= 0
         # a>=0 for outward-pointing triangles: add the interior points
         # a<0 for inside-pointing triangles: remove the exterior points
@@ -108,17 +109,17 @@ def inside_bezier_region(
     return inside_hull.reshape(X.shape)
 
 
-def _get_phantom_data(phantom_data_name: str | Path) -> list[dict]:
+def _get_phantom_data(phantom_data_name: str | os.PathLike) -> list[dict]:
     roi_idx = None
     if phantom_data_name == "big":
-        location = files("simfmri.handlers.phantom").joinpath("big_phantom_data.json")
-    elif isinstance(phantom_data_name, (str, Path)):
-        location = phantom_data_name
+        location = files("simfmri.handlers.phantom") / "big_phantom_data.json"
+    elif isinstance(phantom_data_name, os.PathLike):
+        location = Path(phantom_data_name)
     elif "big_roi" in phantom_data_name:
         roi_idx = phantom_data_name.split("-")[-1]
-        location = files("simfmri.handlers.phantom").joinpath("big_phantom_roi.json")
+        location = files("simfmri.handlers.phantom") / "big_phantom_roi.json"
 
-    with open(location) as f:
+    with location.open() as f:
         phantom_data = json.load(f)
     if roi_idx and roi_idx.isnumeric():
         phantom_data[int(roi_idx)]
@@ -127,8 +128,8 @@ def _get_phantom_data(phantom_data_name: str | Path) -> list[dict]:
 
 
 def raster_phantom(
-    shape: int | tuple[int, int],
-    phantom_data: str | dict | list[dict] = "big",
+    shape: int | tuple[int, ...],
+    phantom_data: str | dict | list[dict] | os.PathLike = "big",
     weighting: str = "rel",
     medical_view: bool = True,
 ) -> np.ndarray:
@@ -155,7 +156,7 @@ def raster_phantom(
         2D phantom.
     """
     if isinstance(shape, int):
-        shape = [shape] * 2
+        shape = (shape,) * 2
     if isinstance(phantom_data, (str, Path)):
         phantom_data = _get_phantom_data(phantom_data)
     elif isinstance(phantom_data, dict):
@@ -181,7 +182,7 @@ def raster_phantom(
             x2 = Y - region["center"][1]
             u1 = 2 / region["width"][0] * (ct * x1 + st * x2)
             u2 = 2 / region["width"][1] * (-st * x1 + ct * x2)
-            mask = np.sqrt(u1**2 + u2**2) <= 1
+            mask = np.sqrt(u1 ** 2 + u2 ** 2) <= 1
         else:
             raise ValueError("Unsupported region type.")
         if weighting == "label":
@@ -199,7 +200,7 @@ def raster_phantom(
 
 
 def generate_phantom(
-    shape: int | tuple[int, int],
+    shape: int | tuple[int, ...],
     raster_osf: int = 4,
     phantom_data: str = "big",
     anti_aliasing: bool = True,
@@ -236,8 +237,10 @@ def generate_phantom(
         Resize a 2D image
     """
     if isinstance(shape, int):
-        shape = [shape] * 2
-    im_big = raster_phantom(np.array(shape) * raster_osf, phantom_data=phantom_data)
+        shape = (shape,) * 2
+    im_big = raster_phantom(
+        tuple(np.array(shape) * raster_osf), phantom_data=phantom_data
+    )
     if raster_osf == 1:
         return im_big
     im_final = resize(im_big, shape, anti_aliasing=anti_aliasing)

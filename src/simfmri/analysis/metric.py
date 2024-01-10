@@ -1,11 +1,12 @@
 """Metric function to compare two different arrays."""
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def get_signal_noise(
-    test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None
-) -> tuple[np.ndarray, np.ndarray]:
+    test: NDArray, ref: NDArray, roi: NDArray | None = None
+) -> tuple[NDArray, NDArray]:
     """Get the actual signal and noise, in real-valued setting.
 
     If the data is complex, only the magnitude are compared.
@@ -25,7 +26,7 @@ def get_signal_noise(
     """
     if np.any(np.iscomplex(ref)):
         signal = abs(ref)
-        noise = abs(test) - abs(signal)
+        noise: NDArray = abs(test) - abs(signal)
     else:
         signal = ref
         noise = test - ref
@@ -37,7 +38,7 @@ def get_signal_noise(
     return signal, noise
 
 
-def get_snr(test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None) -> float:
+def get_snr(test: NDArray, ref: NDArray, roi: NDArray | None = None) -> float:
     """
     Compute the overall SNR between test (signal+noise) and ref(signal only).
 
@@ -54,9 +55,9 @@ def get_snr(test: np.ndarray, ref: np.ndarray, roi: np.ndarray = None) -> float:
 
 
 def get_tsnr(
-    test: np.ndarray,
-    ref: np.ndarray,
-    roi: np.ndarray = None,
+    test: NDArray,
+    ref: NDArray,
+    roi: NDArray | None = None,
     tax: int = 0,
 ) -> np.ndarray:
     """Get the tSNR.
@@ -79,9 +80,9 @@ def get_tsnr(
 
 
 def get_ptsnr(
-    test: np.ndarray,
-    ref: np.ndarray,
-    roi: np.ndarray = None,
+    test: NDArray,
+    ref: NDArray,
+    roi: NDArray | None = None,
     tax: int = 0,
 ) -> float:
     """Get the peak tSNR."""
@@ -89,11 +90,11 @@ def get_ptsnr(
 
 
 def get_snr_axis(
-    test: np.ndarray,
-    ref: np.ndarray,
-    roi: np.ndarray = None,
+    test: NDArray,
+    ref: NDArray,
+    roi: NDArray | None = None,
     mean_axis: int = 0,
-    peak_axis: int = None,
+    peak_axis: int | None = None,
 ) -> np.ndarray:
     """Get the snr, computed over the mean axis.
 

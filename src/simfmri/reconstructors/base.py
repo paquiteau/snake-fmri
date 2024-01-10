@@ -1,7 +1,6 @@
 """Base Interfaces for the reconstructors."""
 import logging
 import numpy as np
-from abc import ABC, abstractmethod
 
 from simfmri.simulation import SimData
 

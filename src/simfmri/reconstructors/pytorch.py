@@ -171,7 +171,6 @@ class SequentialReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-
         self.wavelet = TorchWaveletTransform(
             sim.shape,
             wavelet=self.wavelet_name,
@@ -208,7 +207,6 @@ class SequentialReconstructor(BaseReconstructor):
         n_coils: int = 1,
     ) -> np.ndarray:
         """Reconstruct a single frame of data using FISTA."""
-
         nufft = get_operator("cufinufft")(
             kspace_mask,
             n_coils=n_coils,

@@ -3,6 +3,7 @@ from importlib.resources import files
 import os
 
 import numpy as np
+from numpy.typing import DTypeLike, NDArray
 from joblib.hashing import hash as jbhash
 
 from brainweb_dl import get_mri
@@ -12,7 +13,7 @@ from simfmri.simulation import SimData, LazySimArray
 from simfmri.utils import validate_rng
 from simfmri.utils.typing import RngType
 
-from ..base import AbstractHandler
+from ..base import AbstractHandler, requires_field
 from ._big import generate_phantom, raster_phantom
 from ._shepp_logan import mr_shepp_logan
 
@@ -42,7 +43,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
         self,
         B0: int | float = 7,
         roi_index: int = 10,
-        dtype: np.dtype | str = np.float32,
+        dtype: DTypeLike = np.float32,
     ):
         super().__init__()
         self.B0 = B0
@@ -83,7 +84,7 @@ class BigPhantomGeneratorHandler(AbstractHandler):
         self,
         raster_osf: int = 4,
         roi_index: int = 10,
-        dtype: np.dtype | str = np.float32,
+        dtype: DTypeLike = np.float32,
         phantom_data: str = "big",
     ):
         super().__init__()
@@ -122,14 +123,20 @@ class RoiDefinerHandler(AbstractHandler):
     """
 
     name = "phantom-roi"
+    roi_data: str | dict | list[dict] | os.PathLike
 
-    def __init__(self, roi_data: list[dict] | dict = None, rng: RngType = None):
+    def __init__(
+        self,
+        roi_data: str | dict | list[dict] | os.PathLike | None = None,
+        rng: RngType = None,
+    ):
         super().__init__()
         if roi_data is None:
-            roi_data = files("simfmri.handlers.phantom").joinpath(
-                "big_phantom_roi.json"
+            self.roi_data = str(
+                files("simfmri.handlers.phantom") / "big_phantom_roi.json"
             )
-        self.roi_data = roi_data
+        else:
+            self.roi_data = roi_data
 
     def _handle(self, sim: SimData) -> SimData:
         sim.roi = raster_phantom(
@@ -161,9 +168,10 @@ class BrainwebPhantomHandler(AbstractHandler):
         subject_id: int,
         brainweb_folder: os.PathLike | None = None,
         roi: int = 1,
-        bbox: tuple[int, int, int, int, int, int] = None,
-        res: float | tuple[float, float, float] = None,
+        bbox: tuple[int, int, int, int, int, int] | None = None,
+        res: float | tuple[float, float, float] | None = None,
         force: bool = False,
+        rng: RngType = None,
     ):
         super().__init__()
         self.sub_id = subject_id
@@ -172,6 +180,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         self.bbox = bbox
         self.force = force
         self.res = res
+        self.rng = rng
 
     def _handle(self, sim: SimData) -> SimData:
         # TODO hash and cache config with all the parameters of get_mri
@@ -187,6 +196,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         static_path = bw_dir / (static_hash + ".npy")
         roi_path = bw_dir / (roi_hash + ".npy")
 
+        static_vol: NDArray
         if os.path.exists(static_path) and not self.force:
             static_vol = np.load(static_path)
         else:
@@ -216,27 +226,31 @@ class BrainwebPhantomHandler(AbstractHandler):
             self.log.warning(f"sim.fov was  {sim.fov}, it is now {new_fov}.")
             sim._meta.fov = tuple(new_fov)
 
+        roi: np.ndarray
+        data_ref: LazySimArray | NDArray
         if os.path.exists(roi_path) and not self.force:
             roi = np.load(roi_path)
         else:
             roi = self._make_roi(sim)
             np.save(roi_path, roi)
 
+        if sim.lazy and sim.static_vol is not None:
+            data_ref = LazySimArray(static_vol, sim.n_frames)
+        elif sim.static_vol is not None:
+            data_ref = np.repeat(static_vol[None, ...], sim.n_frames, axis=0)
+        else:
+            raise ValueError("Could not initialize data_ref ")
+
         sim.static_vol = static_vol
         sim.roi = roi
-
-        if sim.lazy:
-            sim.data_ref = LazySimArray(sim.static_vol, sim.n_frames)
-        else:
-            sim.data_ref = np.repeat(sim.static_vol[None, ...], sim.n_frames, axis=0)
-
+        sim.data_ref = data_ref
         self.log.debug(f"roi shape: {sim.roi.shape}")
         self.log.debug(f"data_ref shape: {sim.data_ref.shape}")
         return sim
 
     def _make_static_vol(self, sim: SimData) -> np.ndarray:
         self.log.debug("Using brainweb_dl for data generation.")
-        shape = sim.shape
+        shape: tuple[int, ...] | None = sim.shape
         if shape == (-1, -1, -1):
             shape = None
         return get_mri(
@@ -283,12 +297,16 @@ class BrainwebPhantomHandler(AbstractHandler):
 
             # replace None value by boundaries (0 or value)
             # and shift the box
-            occ_roi["shape"] = [
-                scaled_bbox[i + 1] - scaled_bbox[i] for i in range(0, 6, 2)
-            ]
-            occ_roi["center"] = [
-                c - b for c, b in zip(occ_roi["center"], scaled_bbox[::2])
-            ]
+            occ_roi["shape"] = (
+                scaled_bbox[1] - scaled_bbox[0],
+                scaled_bbox[3] - scaled_bbox[2],
+                scaled_bbox[5] - scaled_bbox[4],
+            )
+            occ_roi["center"] = (
+                occ_roi["center"][0] - scaled_bbox[0],
+                occ_roi["center"][1] - scaled_bbox[1],
+                occ_roi["center"][2] - scaled_bbox[2],
+            )
         self.log.debug("ROI shape is ", occ_roi)
         roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])
 
@@ -296,13 +314,14 @@ class BrainwebPhantomHandler(AbstractHandler):
             roi.shape,
             center=np.array(occ_roi["center"]) * roi_zoom,
             semi_axes_lengths=np.array(occ_roi["semi_axes_lengths"]) * roi_zoom,
-            euler_angles=np.array(occ_roi["euler_angles"]),
+            euler_angles=occ_roi["euler_angles"],
         )
         roi[~ellipsoid] = 0
 
         return roi
 
 
+@requires_field("data_ref")
 class TextureAdderHandler(AbstractHandler):
     """Add texture to the image by playing a white noise.
 
@@ -329,6 +348,9 @@ class TextureAdderHandler(AbstractHandler):
         return sim
 
 
+@requires_field("data_ref")
+@requires_field("data_acq")
+@requires_field("roi")
 class SlicerHandler(AbstractHandler):
     """Create an handler to get a 2D+T slice from a 3D+T simulation.
 
@@ -363,7 +385,7 @@ class SlicerHandler(AbstractHandler):
 
     def _handle(self, sim: SimData) -> SimData:
         """Perform the slicing on all relevant data and update data_shape."""
-        for data_type in ["data_ref", "_data_acq"]:
+        for data_type in ["data_ref", "data_acq"]:
             if (array := getattr(sim, data_type)) is not None:
                 setattr(sim, data_type, array[self.slicer])
         if sim.lazy:

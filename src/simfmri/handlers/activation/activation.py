@@ -1,21 +1,22 @@
 """Handler to add activations."""
 from __future__ import annotations
 
-from typing import Literal, Mapping, get_args
+from typing import Literal, Mapping, get_args, Any
 
 import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import compute_regressor  # type: ignore
 
-from simfmri.simulation.simulation import SimData
+from simfmri.simulation.simulation import SimData, LazySimArray
 
-from ..base import AbstractHandler
+from ..base import AbstractHandler, HandlerChain, requires_field
 from ._block import block_design
 
 
 HrfType = Literal["glover", "spm", None]
 
 
+@requires_field("data_ref")
 class ActivationHandler(AbstractHandler):
     """Add activation inside the region of interest. for a single type of event.
 
@@ -65,12 +66,11 @@ class ActivationHandler(AbstractHandler):
         cls,
         events: np.ndarray,
         rois: Mapping[str, np.ndarray],
-        prev_handler: AbstractHandler,
         bold_strength: float = 0.02,
         hrf_model: HrfType = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
-    ) -> ActivationHandler:
+    ) -> HandlerChain:
         """
         Create a sequence of handler from a sequence of event and associated rois.
 
@@ -105,9 +105,9 @@ class ActivationHandler(AbstractHandler):
             raise ValueError("Event array should be of shape N_cond, 3, N_events")
         if len(events) != len(rois):
             raise ValueError("Event and rois should have the same first dimension.")
-        h_old = prev_handler
+        h = HandlerChain()
         for event, roi_event in zip(events, rois, strict=True):
-            h = cls(
+            h_new = cls(
                 event,
                 rois[roi_event],
                 bold_strength,
@@ -115,18 +115,17 @@ class ActivationHandler(AbstractHandler):
                 oversampling,
                 min_onset,
             )
-            h_old.next = h
-            h_old = h
+            h = h >> h_new
         return h
 
     def _handle(self, sim: SimData) -> SimData:
-        if self._roi is None and sim.roi is None:
-            raise ValueError("roi is not defined.")
-        if sim.roi is None:
+        if sim.roi is None and self._roi is not None:
             sim.roi = self._roi.copy()
             roi = self._roi
-        else:
+        elif sim.roi is not None:
             roi = sim.roi
+        elif self._roi is None and sim.roi is None:
+            raise ValueError("roi is not defined.")
 
         if np.sum(abs(roi)) == 0:
             raise ValueError("roi is empty.")
@@ -140,12 +139,14 @@ class ActivationHandler(AbstractHandler):
         regressor = np.squeeze(regressor)
         regressor = 1 + (regressor * self._bold_strength / regressor.max())
         # apply the activations
-        if sim.lazy:
+        if isinstance(sim.data_ref, LazySimArray):
             sim.data_ref.apply(lazy_apply_regressor, regressor, roi)
-        else:
+        elif isinstance(sim.data_ref, np.ndarray):
             sim.data_ref[:, roi > 0] = (
                 sim.data_ref[:, roi > 0] * roi[roi > 0] * regressor[:, np.newaxis]
             )
+        else:
+            raise ValueError("sim.data_ref is not an array")
 
         try:
             sim._meta.extra_infos["events"].concat(self._event_condition)
@@ -187,17 +188,23 @@ class ActivationBlockHandler(ActivationHandler):
         duration: float,
         offset: float = 0,
         event_name: str = "block_on",
-        **kwargs: None,
-    ) -> ActivationHandler:
+        bold_strength: float = 0.02,
+        hrf_model: HrfType = "glover",
+        oversampling: int = 50,
+        min_onset: float = -24.0,
+    ):
         super().__init__(
             block_design(block_on, block_off, duration, offset, event_name),
             roi=None,
-            **kwargs,
+            bold_strength=bold_strength,
+            hrf_model=hrf_model,
+            oversampling=oversampling,
+            min_onset=min_onset,
         )
 
 
 def lazy_apply_regressor(
-    data: np.ndarray, regressor: np.ndarray, roi: np.ndarray, frame_idx: int = None
+    data: np.ndarray, regressor: np.ndarray, roi: np.ndarray, frame_idx: Any = None
 ) -> np.ndarray:
     """
     Lazy apply the regressor to the data.

@@ -42,7 +42,7 @@ def save_data(data: Any, path: os.PathLike) -> Path:  # noqa: ANN401
     elif path.suffix == ".json":
         json.dump(data, path.open("w"))
     elif path.suffix in [".nii", ".nii.gz"]:
-        if isinstance(data, [tuple, list]):
+        if isinstance(data, (tuple, list)):
             nib.save(nib.Nifti1Image(data[0], data[1]), path)
         else:
             nib.save(nib.Nifti1Image(data, np.eye(4)), path)

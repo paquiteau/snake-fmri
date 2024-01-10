@@ -220,7 +220,9 @@ class HandlerChain:
     def __init__(self, *args: AbstractHandler):
         self._handlers = list(args)
 
-    def __lshift__(self, other: AbstractHandler | HandlerChain | SimData):
+    def __lshift__(
+        self, other: AbstractHandler | HandlerChain | SimData
+    ) -> HandlerChain:
         """
         Perform self << other.
 
@@ -238,7 +240,7 @@ class HandlerChain:
             return self.__call__(other)
         return NotImplemented
 
-    def __rlshift__(self, other: AbstractHandler):
+    def __rlshift__(self, other: AbstractHandler) -> HandlerChain:
         """
         Perform other << self.
 
@@ -249,7 +251,7 @@ class HandlerChain:
             return self
         return NotImplemented
 
-    def __rshift__(self, other: AbstractHandler | HandlerChain):
+    def __rshift__(self, other: AbstractHandler | HandlerChain) -> HandlerChain:
         """
         Perform self >> other.
 
@@ -264,7 +266,9 @@ class HandlerChain:
             return HandlerChain(*self._handlers, *other._handlers)
         return NotImplemented
 
-    def __rrshift__(self, other: AbstractHandler | HandlerChain | SimData):
+    def __rrshift__(
+        self, other: AbstractHandler | HandlerChain | SimData
+    ) -> HandlerChain:
         """
         Perform other >> self.
 
@@ -366,7 +370,7 @@ def get_handler(name: str) -> type[AbstractHandler]:
 
 def requires_field(
     field_name: str,
-    factory: Callable[[SimData], Any],
+    factory: Callable[[SimData], Any] | None = None,
 ) -> Callable[..., type[AbstractHandler]]:
     """Class Decorator for Handlers.
 
@@ -386,14 +390,15 @@ def requires_field(
 
         @functools.wraps(old_handle)
         def wrap_handler(self: AbstractHandler, sim: SimData) -> SimData:
-            if getattr(sim, field_name, None) is None and not callable(factory):
-                msg = (
-                    f"'{field_name}' is missing in simulation"
-                    "and no way of computing it provided."
-                )
-                raise ValueError(msg)
             if getattr(sim, field_name, None) is None:
-                setattr(sim, field_name, factory(sim))
+                if callable(factory):
+                    setattr(sim, field_name, factory(sim))
+                else:
+                    msg = (
+                        f"'{field_name}' is missing in simulation"
+                        "and no way of computing it provided."
+                    )
+                    raise ValueError(msg)
 
             return old_handle(self, sim)
 

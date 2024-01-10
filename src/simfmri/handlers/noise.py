@@ -4,7 +4,7 @@ This module declares the various noise models availables.
 """
 from __future__ import annotations
 from .base import AbstractHandler, requires_field
-from ..simulation import SimData, LazySimArray
+from ..simulation import SimData
 
 from simfmri.utils import validate_rng
 

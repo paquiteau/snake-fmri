@@ -30,7 +30,7 @@ def reverse(func: Callable[[T, U], V]) -> Callable[[U, T], V]:
     return reversed_func
 
 
-def lazy_inplace_operation(name: str) -> Callable[[LazySimArray, ArrayLike], LazySimArray]:
+def lazy_inplace_operation(name: str) -> LazyOpType:
     """Create a lazy inplace operation on a LazySimArray."""
 
     def op(self: LazySimArray, val: ArrayLike) -> LazySimArray:
@@ -42,7 +42,7 @@ def lazy_inplace_operation(name: str) -> Callable[[LazySimArray, ArrayLike], Laz
 
 def lazy_operation(
     name: str, reversed: bool = False
-) -> Callable[[LazySimArray, ArrayLike], LazySimArray]:
+) -> LazyOpType:
     """Create a lazy operation on a LazySimArray."""
 
     def op(self: LazySimArray, val: ArrayLike) -> LazySimArray:
@@ -190,3 +190,5 @@ class LazySimArray:
     __neg__ = lazy_unary_operation("neg")
     __pos__ = lazy_unary_operation("pos")
     __abs__ = lazy_unary_operation("abs")
+
+LazyOpType = Callable[[LazySimArray, ArrayLike], LazySimArray]

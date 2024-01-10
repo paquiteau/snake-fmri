@@ -4,7 +4,7 @@ import numpy as np
 
 def mr_shepp_logan(
     N: int | tuple[int, int, int],
-    E: np.ndarray,
+    E: np.ndarray | None = None,
     B0: float = 3,
     T2star: bool = False,
     zlims: tuple[float, float] = (-1, 1),

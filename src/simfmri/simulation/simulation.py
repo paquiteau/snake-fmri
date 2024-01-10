@@ -13,22 +13,22 @@ import dataclasses
 import logging
 
 import numpy as np
-from numpy.typing import DTypeLike
-from simfmri.utils import AnyShape, cplx_type
+from numpy.typing import DTypeLike, NDArray
+from simfmri.utils import cplx_type
 from .lazy import LazySimArray
 
 logger = logging.getLogger(__name__)
 
 __all__ = ["SimData", "SimParams"]
 
-OptionalArray = Union[np.ndarray, None]
+OptionalArray = Union[NDArray, None]
 
 
 @dataclass
 class SimParams:
     """Simulation metadata."""
 
-    shape: AnyShape
+    shape: tuple[int, ...]
     """Shape of the volume of the simulation."""
     n_frames: int
     """Number of frame of the simulation."""
@@ -108,7 +108,7 @@ class SimData:
 
     def __init__(
         self,
-        shape: AnyShape,
+        shape: tuple[int, ...],
         fov: float | tuple[float],
         sim_tr: float,
         sim_time: float,
@@ -130,9 +130,9 @@ class SimData:
             extra_infos=extra_infos,
         )
         self.static_vol: OptionalArray
-        self.data_ref: OptionalArray | LazySimArray = None
+        self.data_ref: OptionalArray | LazySimArray | None = None
         self.roi: OptionalArray = None
-        self._data_acq: OptionalArray | LazySimArray = None
+        self.data_acq: OptionalArray | LazySimArray = None
         self.data_rec: OptionalArray | LazySimArray = None
         self.kspace_data: OptionalArray = None
         self.kspace_mask: OptionalArray = None
@@ -208,17 +208,7 @@ class SimData:
         return self.sim_tr * self.n_frames
 
     @property
-    def data_acq(self) -> OptionalArray | LazySimArray:
-        """Return the defacto acquired data if defined, else the reference data."""
-        return self._data_acq
-
-    @data_acq.setter
-    def data_acq(self, value: np.ndarray) -> None:
-        """Set the acquired data."""
-        self._data_acq = value
-
-    @property
-    def shape(self) -> AnyShape:
+    def shape(self) -> tuple[int, ...]:
         """Get shape."""
         return self._meta.shape
 
