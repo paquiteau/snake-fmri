@@ -10,7 +10,7 @@ import operator
 from copy import deepcopy
 from typing import Any, Callable, TypeVar, Mapping
 import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike, NDArray, DTypeLike
 from functools import wraps
 
 T = TypeVar("T")
@@ -96,7 +96,7 @@ class LazySimArray:
         return (len(self), *(self._base_array.shape))
 
     @property
-    def dtype(self) -> np.dtype:
+    def dtype(self) -> DTypeLike:
         """Get dtype."""
         return self._base_array.dtype
 

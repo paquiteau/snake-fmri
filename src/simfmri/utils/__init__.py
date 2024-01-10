@@ -1,12 +1,11 @@
 """Utilities tools for simfmri."""
-from .typing import RngType, AnyShape, Shape2d, Shape3d
-from .utils import validate_rng, cplx_type
+from .typing import RngType, AnyShape
+from .utils import validate_rng, cplx_type, real_type
 
 __all__ = [
-    "RngType",
     "AnyShape",
-    "Shape2d",
-    "Shape3d",
+    "RngType",
     "validate_rng",
     "cplx_type",
+    "real_type",
 ]

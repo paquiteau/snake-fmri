@@ -129,15 +129,81 @@ class SimData:
             rng=rng,
             extra_infos=extra_infos,
         )
-        self.static_vol: OptionalArray
-        self.data_ref: OptionalArray | LazySimArray | None = None
-        self.roi: OptionalArray = None
-        self.data_acq: OptionalArray | LazySimArray = None
-        self.data_rec: OptionalArray | LazySimArray = None
-        self.kspace_data: OptionalArray = None
-        self.kspace_mask: OptionalArray = None
-        self.smaps: OptionalArray = None
+        self._static_vol: NDArray | None
+        self._roi: NDArray | None = None
+        self._data_ref: NDArray | None | LazySimArray = None
+        self._data_acq: NDArray | None | LazySimArray = None
+        self.data_rec: NDArray | None = None
+        self._kspace_data: NDArray | None = None
+        self._kspace_mask: NDArray | None = None
+        self.smaps: NDArray | None = None
         self.lazy = lazy
+
+    @property
+    def static_vol(self) -> NDArray:
+        """Static volume."""
+        if self._static_vol is not None:
+            return self._static_vol
+        raise ValueError("static_vol is not defined")
+
+    @static_vol.setter
+    def static_vol(self, value: NDArray) -> None:
+        self._static_vol = value
+
+    @property
+    def kspace_data(self) -> NDArray:
+        """Static volume."""
+        if self._kspace_data is not None:
+            return self._kspace_data
+        raise ValueError("static_vol is not defined")
+
+    @kspace_data.setter
+    def kspace_data(self, value: NDArray) -> None:
+        self._kspace_data = value
+
+    @property
+    def kspace_mask(self) -> NDArray:
+        """Static volume."""
+        if self._kspace_mask is not None:
+            return self._kspace_mask
+        raise ValueError("static_vol is not defined")
+
+    @kspace_mask.setter
+    def kspace_mask(self, value: NDArray) -> None:
+        self._kspace_mask = value
+
+    @property
+    def data_ref(self) -> NDArray | LazySimArray:
+        """Static volume."""
+        if self._data_ref is not None:
+            return self._data_ref
+        raise ValueError("data_ref is not defined")
+
+    @data_ref.setter
+    def data_ref(self, value: NDArray) -> None:
+        self._data_ref = value
+
+    @property
+    def data_acq(self) -> NDArray | LazySimArray:
+        """Acquired Volume."""
+        if self._data_acq is not None:
+            return self._data_acq
+        raise ValueError("data_acq is not defined")
+
+    @data_acq.setter
+    def data_acq(self, value: NDArray) -> None:
+        self._data_acq = value
+
+    @property
+    def roi(self) -> NDArray:
+        """Reference data volume."""
+        if self._roi is not None:
+            return self._roi
+        raise ValueError("static_vol is not defined")
+
+    @roi.setter
+    def roi(self, value: NDArray) -> None:
+        self._roi = value
 
     @classmethod
     def from_params(cls, sim_params: SimParams, in_place: bool = False) -> SimData:

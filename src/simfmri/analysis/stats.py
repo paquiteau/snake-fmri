@@ -1,7 +1,7 @@
 """Analysis module."""
 import logging
 from typing import Literal
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 from sklearn.metrics import roc_curve
 import numpy as np
 
@@ -123,16 +123,16 @@ def get_scores(
     N = gt_f.size - P
 
     fpr, tpr, thresholds = roc_curve(gt_f, contrast.flatten())
-    stats["fpr"] = list(fpr)
-    stats["tpr"] = list(tpr)
-    stats["tresh"] = list(thresholds)
-    stats["tp"] = np.int32(tpr * P).tolist()
-    stats["fp"] = np.int32(fpr * N).tolist()
-    stats["tn"] = np.int32(N * (1 - fpr)).tolist()
-    stats["fn"] = np.int32(P * (1 - tpr)).tolist()
+    stats["fpr"] = fpr.tolist()
+    stats["tpr"] = tpr.tolist()
+    stats["tresh"] = thresholds.tolist()
+    stats["tp"] = np.int_(tpr * P).tolist()
+    stats["fp"] = np.int_(fpr * N).tolist()
+    stats["tn"] = np.int_(N * (1 - fpr)).tolist()
+    stats["fn"] = np.int_(P * (1 - tpr)).tolist()
     return stats
 
 
-def bacc(tpr: ArrayLike, fpr: ArrayLike) -> ArrayLike:
+def bacc(tpr: NDArray, fpr: NDArray) -> NDArray:
     """Compute Balanced Accuracy from TPR and FPR."""
     return (tpr + 1 - fpr) / 2

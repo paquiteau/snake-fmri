@@ -31,12 +31,28 @@ def cplx_type(dtype: DTypeLike) -> DTypeLike:
     d = np.dtype(dtype)
     if d.type is np.float64:
         return np.complex128
-    elif d.type is np.float128:
-        return np.complex256
     elif d.type is np.float32:
         return np.complex64
     else:
-        sim_logger.warning(
-            "not supported dtype, use matching complex64", stack_info=True
-        )
+        sim_logger.warning("unsupported dtype, use matching complex64", stack_info=True)
         return np.complex64
+
+
+def real_type(
+    dtype: DTypeLike,
+) -> np.dtype[np.float32] | np.dtype[np.float64]:
+    """Return the real type associated with the complex one.
+
+    Examples
+    --------
+    >>> cplx_type(np.float32)
+    np.complex64
+    """
+    d = np.dtype(dtype)
+    if d.type is np.complex64:
+        return np.dtype("float32")
+    elif d.type is np.complex128:
+        return np.dtype("float64")
+    else:
+        sim_logger.warning("unsupported dtype, use matching float32", stack_info=True)
+        return np.dtype("float32")

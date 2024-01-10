@@ -4,35 +4,34 @@ This module declares the various noise models availables.
 """
 from __future__ import annotations
 from .base import AbstractHandler, requires_field
-from ..simulation import SimData
+from ..simulation import SimData, LazySimArray
 
-from simfmri.utils import validate_rng
+from simfmri.utils import validate_rng, RngType, real_type
 
 import numpy as np
+from numpy.typing import NDArray
 import scipy.stats as sps
 
 
 def _lazy_add_noise(
-    data: np.ndarray,
+    data: NDArray[np.complexfloating] | NDArray[np.floating],
     noise_std: float,
     root_seed: int,
-    frame_idx: int = None,
+    frame_idx: int = 0,
 ) -> np.ndarray:
     """Add noise to data."""
     rng = np.random.default_rng([frame_idx, root_seed])
     if data.dtype in [np.complex128, np.complex64]:
         noise_std /= np.sqrt(2)
-    noise = noise_std * rng.standard_normal(data.shape, dtype=abs(data[:][0]).dtype)
-    noise = noise.astype(data.dtype)
+    noise = (
+        noise_std * rng.standard_normal(data.shape, dtype=real_type(data.dtype))
+    ).astype(data.dtype)
 
     if data.dtype in [np.complex128, np.complex64]:
-        noise += (
-            1j
-            * noise_std
-            * rng.standard_normal(
-                data.shape,
-                dtype=abs(data[:][0]).dtype,
-            )
+        noise = noise * 1j
+        noise += noise_std * rng.standard_normal(
+            data.shape,
+            dtype=abs(data[:][0]).dtype,
         )
     return data + noise
 
@@ -64,15 +63,15 @@ class BaseNoiseHandler(AbstractHandler):
         else:
             # SNR is defined as average(brain signal) / noise_std
             noise_std = np.mean(abs(sim.static_vol[sim.static_vol > 0])) / self._snr
-        if sim.lazy:
-            self._add_noise_lazy(sim, sim.rng, noise_std)
+        if isinstance(sim.data_acq, LazySimArray):
+            self._add_noise_lazy(sim.data_acq, sim.rng, noise_std)
         else:
             self._add_noise(sim, sim.rng, noise_std)
 
         sim.extra_infos["input_snr"] = self._snr
         return sim
 
-    def _add_noise(self, sim: SimData, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         """Add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
@@ -85,7 +84,9 @@ class BaseNoiseHandler(AbstractHandler):
         """
         raise NotImplementedError
 
-    def _add_noise_lazy(self, sim: SimData, noise_std: float) -> None:
+    def _add_noise_lazy(
+        self, lazy_arr: LazySimArray, rng_seed: int, noise_std: float
+    ) -> None:
         """Lazily add noise to the simulation.
 
         This should only update the attribute data_acq  of a Simulation object
@@ -104,31 +105,30 @@ class GaussianNoiseHandler(BaseNoiseHandler):
 
     name = "noise-gaussian"
 
-    def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, rng_seed: RngType, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
         if np.iscomplexobj(sim.data_ref):
             noise_std /= np.sqrt(2)
-        noise = noise_std * rng.standard_normal(
-            sim.data_acq.shape, dtype=abs(sim.data_acq[:][0]).dtype
-        )
-        noise = noise.astype(sim.data_acq.dtype)
+        noise = (
+            noise_std
+            * rng.standard_normal(
+                sim.data_acq.shape, dtype=real_type(sim.data_acq.dtype)
+            )
+        ).astype(sim.data_acq.dtype)
 
         if sim.data_acq.dtype in [np.complex128, np.complex64]:
-            noise += (
-                1j
-                * noise_std
-                * rng.standard_normal(
-                    sim.data_ref.shape,
-                    dtype=abs(sim.data_ref[:][0]).dtype,
-                )
+            noise = noise * 1j
+            noise += noise_std * rng.standard_normal(
+                sim.data_ref.shape,
+                dtype=real_type(sim.data_ref.dtype),
             )
         sim.data_acq += noise
         self.log.debug(f"{sim.data_acq}, {sim.data_ref}")
 
-    def _add_noise_lazy(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
-        sim.data_acq.apply(_lazy_add_noise, noise_std, rng_seed)
-
-        self.log.debug(f"{sim.data_acq}, {sim.data_ref}")
+    def _add_noise_lazy(
+        self, lazy_arr: LazySimArray, rng_seed: int, noise_std: float
+    ) -> None:
+        lazy_arr.apply(_lazy_add_noise, noise_std, rng_seed)
 
 
 class RicianNoiseHandler(BaseNoiseHandler):
@@ -136,7 +136,7 @@ class RicianNoiseHandler(BaseNoiseHandler):
 
     name = "noise-rician"
 
-    def _add_noise(self, sim: SimData, noise_std: float) -> None:
+    def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
             raise ValueError(
                 "The Rice distribution is only applicable to real-valued data."
@@ -171,10 +171,11 @@ class KspaceNoiseHandler(BaseNoiseHandler):
         # Complex Value, so the std is spread.
         noise_std /= np.sqrt(2)
         for kf in range(len(sim.kspace_data)):
-            kspace_noise = np.complex64(
-                rng.standard_normal(sim.kspace_data.shape[1:], dtype="float32")
-            )
-            kspace_noise += 1j * rng.standard_normal(
+            kspace_noise = rng.standard_normal(
+                sim.kspace_data.shape[1:], dtype="float32"
+            ).astype("complex64")
+            kspace_noise *= 1j
+            kspace_noise += rng.standard_normal(
                 sim.kspace_data.shape[1:], dtype="float32"
             )
             kspace_noise *= noise_std
@@ -215,15 +216,16 @@ class ScannerDriftHandler(AbstractHandler):
         self,
         drift_model: str = "polynomial",
         order: int = 1,
-        high_pass: float = None,
-        drift_intensities: float = 0.01,
+        high_pass: float | None = None,
+        drift_intensities: float | np.ndarray = 0.01,
     ):
         super().__init__()
         self._drift_model = drift_model
         if not isinstance(drift_intensities, np.ndarray):
             if isinstance(drift_intensities, (int, float)):
-                drift_intensities = [drift_intensities] * order
-            drift_intensities = np.array([drift_intensities])
+                drift_intensities = np.array([drift_intensities] * order)
+            else:
+                drift_intensities = np.array([drift_intensities])
         self._drift_intensities = drift_intensities
         self._drift_order = order
         self._drift_high_pass = high_pass
@@ -242,11 +244,11 @@ class ScannerDriftHandler(AbstractHandler):
         )
         drift_matrix = drift_matrix[:, :-1]  # remove the intercept column
 
-        drift_intensity = np.linspace(1, 1 + self.drift_intensities, sim.n_frames)
+        drift_intensity = np.linspace(1, 1 + self._drift_intensities, sim.n_frames)
 
         timeseries = drift_intensity @ drift_matrix
 
-        if sim.lazy:
+        if isinstance(sim.data_acq, LazySimArray):
             raise NotImplementedError(
                 "lazy is not compatible with scanner drift (for now)"
             )
