@@ -9,13 +9,20 @@ import os
 import logging
 from abc import ABCMeta, abstractmethod
 from typing import Callable, Any, Mapping, IO
-
+from typing_extensions import TypedDict
 import yaml
 
 from ..simulation import SimData, SimParams
 
 
 CallbackType = Callable[[SimData, SimData], Any]
+
+
+class ConfigDict(TypedDict):
+    """ConfigDict Class."""
+
+    sim_params: dict
+    handlers: dict[str, dict[str, Any]]
 
 
 class MetaHandler(ABCMeta):
@@ -29,7 +36,7 @@ class MetaHandler(ABCMeta):
 
     """
 
-    registry = {}
+    registry: dict[str, type[AbstractHandler]] = {}
 
     def __new__(meta, name, bases, namespace, **class_dict):  # noqa
         """Create new Handler class."""
@@ -75,6 +82,10 @@ class AbstractHandler(metaclass=MetaHandler):
     >>> C.handle(s1.copy()) == B.handle(A.handle(s1))
 
     """
+
+    _init_params: Mapping[str, Any]
+    name: str
+    _callbacks: list[Callable]
 
     def __rshift__(self, other: AbstractHandler | HandlerChain):
         """Perform self >> other."""
@@ -206,7 +217,7 @@ class DummyHandler(AbstractHandler):
 class HandlerChain:
     """Represent a Chain of Handler, that needs to be apply to a simulation."""
 
-    def __init__(self, *args: list[AbstractHandler]):
+    def __init__(self, *args: AbstractHandler):
         self._handlers = list(args)
 
     def __lshift__(self, other: AbstractHandler | HandlerChain | SimData):
@@ -264,12 +275,12 @@ class HandlerChain:
             self._handlers.insert(0, other)
             return self
         elif isinstance(other, HandlerChain):
-            return HandlerChain(*other._handlers, self._handlers)
+            return HandlerChain(*other._handlers, *self._handlers)
         elif isinstance(other, SimData):
             return self.__call__(other)
         return NotImplemented
 
-    def __eq__(self, other: HandlerChain):
+    def __eq__(self, other: Any):
         if not isinstance(other, HandlerChain):
             return NotImplemented
         return self._handlers == other._handlers
@@ -309,22 +320,17 @@ class HandlerChain:
         ret = ret[:-3]
         return ret
 
-    def to_yaml(
-        self, filename: os.PathLike = None, sim: SimData | SimParams = None
-    ) -> None | str:
+    def to_yaml(self, filename: os.PathLike, sim: SimData | SimParams) -> None | str:
         """Convert a Chain of handler to a yaml representation."""
-        conf = dict()
-        if sim:
-            conf["sim_params"] = {
+        conf: dict = {
+            "sim_params": {
                 f.name: getattr(sim, f.name)
                 for f in fields(SimParams)
                 if f.name != "extra_infos"
-            }
-        conf["handlers"] = []
-        for h in self._handlers:
-            conf["handlers"].append({h.name: h._init_params})
-
-        return yaml.dump(conf, filename)
+            },
+            "handlers": [{h.name: h._init_params for h in self._handlers}],
+        }
+        return yaml.dump(conf, filename)  # type: ignore
 
     @classmethod
     def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
@@ -333,18 +339,10 @@ class HandlerChain:
         return cls.from_conf(conf)
 
     @classmethod
-    def from_conf(cls, conf: Mapping[str, Any]) -> tuple[HandlerChain, SimData]:
+    def from_conf(cls, conf: ConfigDict) -> tuple[HandlerChain, SimData]:
         """Load a chain of handler from a configuration."""
-        sim = None
-        if getattr(conf, "sim_params", None):
-            sim = SimData(**conf["sim_params"])
-        try:
-            handlers_conf = conf["handlers"]
-        except KeyError as e:
-            raise ValueError(
-                "A handler config file should have a  `handlers` section "
-            ) from e
-
+        sim = SimData(**conf["sim_params"])
+        handlers_conf = conf["handlers"]
         handlers = []
         for h_name, h_conf in handlers_conf.items():
             handlers.append(MetaHandler.registry[h_name](**h_conf))
@@ -361,15 +359,15 @@ def list_handlers() -> list[str]:
     return list(MetaHandler.registry.keys())
 
 
-def get_handler(name: str) -> type(AbstractHandler):
+def get_handler(name: str) -> type[AbstractHandler]:
     """Get a handler from its name."""
     return MetaHandler.registry[name]
 
 
 def requires_field(
     field_name: str,
-    factory: Callable[[SimData, ...], SimData] = None,
-) -> Callable[type(AbstractHandler)]:
+    factory: Callable[[SimData], Any],
+) -> Callable[..., type[AbstractHandler]]:
     """Class Decorator for Handlers.
 
     This decorator will check if field exist in the simulation object before handling.
@@ -383,7 +381,7 @@ def requires_field(
     factory: callable
     """
 
-    def class_wrapper(cls: type(AbstractHandler)) -> type(AbstractHandler):
+    def class_wrapper(cls: type[AbstractHandler]) -> type[AbstractHandler]:
         old_handle = cls.handle
 
         @functools.wraps(old_handle)
@@ -399,7 +397,7 @@ def requires_field(
 
             return old_handle(self, sim)
 
-        cls.handle = wrap_handler
+        cls.handle = wrap_handler  # type: ignore  # mypy is too dump to get this is a legal move.
 
         return cls
 

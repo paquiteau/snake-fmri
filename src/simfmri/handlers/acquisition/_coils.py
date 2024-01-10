@@ -1,13 +1,14 @@
 """Simulation of Smaps."""
 import numpy as np
 from simfmri.utils.typing import AnyShape
+from numpy.typing import DTypeLike
 
 
 def get_smaps(
     shape: AnyShape,
     n_coils: int,
     antenna: str = "birdcage",
-    dtype: np.dtype = np.complex64,
+    dtype: DTypeLike = np.complex64,
 ) -> np.ndarray:
     """Get sensitivity maps for a specific antenna.
 
@@ -29,7 +30,7 @@ def get_smaps(
 
 
 def _birdcage_maps(
-    shape: AnyShape, r: float = 1.5, nzz: int = 8, dtype: np.dtype = np.complex64
+    shape: AnyShape, r: float = 1.5, nzz: int = 8, dtype: DTypeLike = np.complex64
 ) -> np.ndarray:
     """Simulate birdcage coil sensitivies.
 
@@ -68,7 +69,7 @@ def _birdcage_maps(
     x_co = (x - nx / 2.0) / (nx / 2.0) - coilx
     y_co = (y - ny / 2.0) / (ny / 2.0) - coily
     z_co = (z - nz / 2.0) / (nz / 2.0) - coilz
-    rr = (x_co**2 + y_co**2 + z_co**2) ** 0.5
+    rr = (x_co ** 2 + y_co ** 2 + z_co ** 2) ** 0.5
     phi = np.arctan2(x_co, -y_co) + coil_phs
     out = (1 / rr) * np.exp(1j * phi)
 

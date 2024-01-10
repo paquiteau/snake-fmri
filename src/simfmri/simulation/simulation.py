@@ -5,7 +5,8 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any, Mapping
+from typing import Literal, Any, Union
+from dataclasses import InitVar, dataclass, field
 import copy
 import pickle
 import dataclasses
@@ -20,8 +21,10 @@ logger = logging.getLogger(__name__)
 
 __all__ = ["SimData", "SimParams"]
 
+OptionalArray = Union[np.ndarray, None]
 
-@dataclasses.dataclass
+
+@dataclass
 class SimParams:
     """Simulation metadata."""
 
@@ -35,16 +38,17 @@ class SimParams:
     """Number of coil of the simulation."""
     rng: int = 19980408
     """Random number generator seed."""
-    extra_infos: Mapping[str, Any] = dataclasses.field(
-        default_factory=lambda: dict(), repr=False
-    )
+    extra_infos: dict[str, Any] = field(default_factory=lambda: dict(), repr=False)
     """Extra information, to add more information to the simulation"""
-    fov: tuple[float, ...] | float = 0.192
+    fov_init: InitVar[tuple[float, ...] | float] = 0.192
     """Field of view of the volume in mm"""
+    fov: tuple[float, ...] = field(init=False)
 
-    def __post_init__(self) -> None:
-        if isinstance(self.fov, float):
-            self.fov = (self.fov,) * len(self.shape)
+    def __post_init__(self, fov_init: tuple[float, ...] | float) -> None:
+        if isinstance(fov_init, float):
+            self.fov = (fov_init,) * len(self.shape)
+        elif isinstance(fov_init, tuple):
+            self.fov = fov_init
 
 
 class SimData:
@@ -118,24 +122,21 @@ class SimData:
             extra_infos = dict()
         self._meta = SimParams(
             shape,
-            fov=fov,
+            fov_init=fov,
             n_frames=n_frames,
             sim_tr=sim_tr,
             n_coils=n_coils,
             rng=rng,
             extra_infos=extra_infos,
         )
-        self.static_vol = None
-        self.data_ref = None
-        self.roi = None
-        self._data_acq = None
-        self.data_rec = None
-        self.kspace_data = None
-        self._data_acq = None
-        self.data_ref = None
-        self.kspace_mask = None
-        self.kspace_location = None
-        self.smaps = None
+        self.static_vol: OptionalArray
+        self.data_ref: OptionalArray | LazySimArray = None
+        self.roi: OptionalArray = None
+        self._data_acq: OptionalArray | LazySimArray = None
+        self.data_rec: OptionalArray | LazySimArray = None
+        self.kspace_data: OptionalArray = None
+        self.kspace_mask: OptionalArray = None
+        self.smaps: OptionalArray = None
         self.lazy = lazy
 
     @classmethod
@@ -207,7 +208,7 @@ class SimData:
         return self.sim_tr * self.n_frames
 
     @property
-    def data_acq(self) -> np.ndarray:
+    def data_acq(self) -> OptionalArray | LazySimArray:
         """Return the defacto acquired data if defined, else the reference data."""
         return self._data_acq
 
@@ -227,12 +228,12 @@ class SimData:
         return self._meta.n_frames
 
     @property
-    def fov(self) -> tuple[float]:
+    def fov(self) -> tuple[float, ...]:
         """Get the simulation FOV."""
         return self._meta.fov
 
     @property
-    def res(self) -> tuple[float]:
+    def res(self) -> tuple[float, ...]:
         """Get resolution."""
         return tuple(f / s for f, s in zip(self.fov, self.shape))
 
@@ -297,8 +298,9 @@ class SimData:
             if self.data_ref.shape != (self.n_frames, *self.shape):
                 logger.warn("self.data_ref.shape != (self.n_frames, *self.shape)")
                 return False
-            if self.data_acq.shape != self.data_ref.shape:
-                logger.warn("self.data_acq.shape != self.data_ref.shape")
+            if self.data_acq is not None:
+                if self.data_acq.shape != self.data_ref.shape:
+                    logger.warn("self.data_acq.shape != self.data_ref.shape")
                 return False
 
         if self.smaps is not None:
@@ -320,12 +322,14 @@ class SimData:
             arr = self.data_acq
             while isinstance(arr, LazySimArray):
                 arr = arr._base_array
-            mem += arr.nbytes * self.n_frames
-
+            if arr is not None:
+                mem += arr.nbytes * self.n_frames
+            else:
+                raise ValueError("Unknown base array")
         if unit == "MB":
-            return mem / 1024**2
+            return mem / 1024 ** 2
         elif unit == "GB":
-            return mem / 1024**3
+            return mem / 1024 ** 3
         else:
             raise ValueError("unit must be MB or GB")
 

@@ -4,7 +4,6 @@ from __future__ import annotations
 from typing import Literal, Mapping, Any
 from collections.abc import Generator
 import numpy as np
-import logging
 from simfmri.utils.typing import RngType, AnyShape
 
 from .cartesian_sampling import get_kspace_slice_loc
@@ -134,7 +133,7 @@ def stack_spiral_factory(
         kspace_locs3d[i, :, :2] = spiral2D
         kspace_locs3d[i, :, 2] = z_kspace[i]
 
-    return np.float32(kspace_locs3d)
+    return kspace_locs3d.astype(np.float32)
 
 
 #####################################
@@ -144,15 +143,14 @@ def stack_spiral_factory(
 
 ROTATE_ANGLES = {
     "constant": 0,
-    None: 0,
     "golden": 2.39996322972865332,  # 2pi(2-phi)
     "golden-mri": 1.941678793,  # 115.15 deg
 }
 
 
 def rotate_trajectory(
-    trajectories: Generator[np.ndarray], theta: float | str = None
-) -> np.ndarray:
+    trajectories: Generator[np.ndarray, None, None], theta: str | float = 0
+) -> Generator[np.ndarray, None, None]:
     """Incrementally rotate a trajectory.
 
     Parameters
@@ -164,7 +162,7 @@ def rotate_trajectory(
         theta = ROTATE_ANGLES[theta]
 
     for traj in trajectories:
-        if traj.dim == 2:
+        if traj.ndim == 2:
             rot = np.array(
                 [[np.cos(theta), -np.sin(theta)], [np.sin(theta), np.cos(theta)]]
             )

@@ -34,13 +34,13 @@ class SaveFieldHandler(AbstractHandler):
 
     name = "save-fields"
 
-    def __init__(self, **kwargs: Mapping[str, os.PathLike]):
+    def __init__(self, **kwargs: os.PathLike[Any]):
         self.fields = kwargs
 
     def _handle(self, sim: SimData) -> SimData:
         for field, path in self.fields.items():
             data = getattr(sim, field)
-            self.log.debug(f"Saving {field} to {path}")
+            self.log.debug(f"Saving {field} to {self.fields[field]}")
             save_data(data, path)
 
         return sim
@@ -56,7 +56,7 @@ class ISMRMRDHandler(AbstractHandler):
         self.header = OmegaConf.to_container(header)
 
     def _handle(self, sim):
-
+        ...
         # Complete the minimal header with user input
         # Create The ISMRMRD dataset
 

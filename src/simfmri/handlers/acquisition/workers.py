@@ -4,6 +4,7 @@ from __future__ import annotations
 import logging
 import warnings
 from typing import Any, Callable, Generator, Mapping
+from numpy.typing import DTypeLike, NDArray
 
 import numpy as np
 from fmri.operators.fourier import FFT_Sense
@@ -17,7 +18,7 @@ except ImportError:
 
 from tqdm.auto import tqdm
 
-from simfmri.simulation import SimData
+from simfmri.simulation import SimData, LazySimArray
 
 from ._tools import TrajectoryGeneratorType
 
@@ -27,10 +28,10 @@ logger = logging.getLogger("simulation." + __name__)
 
 
 def kspace_bulk_shot(
-    traj_generator: Generator[np.ndarray],
+    traj_generator: Generator[np.ndarray, None, None],
     n_sim_frame: int,
     n_batch: int = 3,
-) -> Generator[tuple[int, np.ndarray, list[tuple[int, int]]]]:
+) -> Generator[tuple[int, np.ndarray, list[tuple[int, int]]], None, None]:
     """Generate a stream of shot, delivered in batch.
 
     Parameters
@@ -78,7 +79,7 @@ def kspace_bulk_shot(
             raise RuntimeError("invalid shot_idx value")
 
 
-def _get_slicer(shot: np.ndarray) -> tuple[slice, slice, slice]:
+def _get_slicer(shot: np.ndarray) -> tuple[slice, ...]:
     """Return a slicer for the mask.
 
     Fully sampled axis are marked with a -1.
@@ -94,11 +95,14 @@ def _run_cartesian(
     kdata: np.ndarray,
     kmask: np.ndarray,
     sim_frame_idx: int,
-    shot_batch: np.ndarray,
-    shot_pos: tuple[int, int],
+    shot_batch: NDArray[np.int_],
+    shot_pos: list[tuple[int, int]],
     **kwargs: Mapping[str, Any],
 ) -> None:
-    sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
+    if sim.data_acq is not None:
+        sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
+    else:
+        raise ValueError("data_acq not available.")
 
     masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
     for i, shot in enumerate(shot_batch):
@@ -120,11 +124,13 @@ def _run_noncartesian(
     kdata: np.ndarray,
     kmask: np.ndarray,
     sim_frame_idx: int,
-    shot_batch: np.ndarray,
-    shot_pos: tuple[int, int],
+    shot_batch: NDArray[np.int_],
+    shot_pos: list[tuple[int, int]],
     nufft_backend: str,
     **kwargs: Mapping[str, Any],
 ) -> None:
+    if sim.data_acq is None:
+        raise ValueError("Data acq not available.")
     sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
     with warnings.catch_warnings():
         warnings.filterwarnings(
@@ -158,8 +164,8 @@ def _acquire(
     runner: Callable,
     n_shot_sim_frame: int,
     n_kspace_frame: int,
-    kdata_info: tuple[tuple[int, ...], np.dtype],
-    kmask_info: tuple[tuple[int, ...], np.dtype],
+    kdata_info: tuple[tuple[int, ...], DTypeLike],
+    kmask_info: tuple[tuple[int, ...], DTypeLike],
     **kwargs: Mapping[str, Any],
 ) -> tuple[np.ndarray, np.ndarray]:
     kdata = np.zeros(*kdata_info)
@@ -210,9 +216,11 @@ def acq_noncartesian(
     n_shot_sim_frame: int,
     n_kspace_frame: int,
     n_jobs: int = -1,
-    **kwargs: Mapping[str, Any],
+    **kwargs: Any,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with non cartesian stuff."""
+    if sim.data_acq is None:
+        raise ValueError("data acq not available")
     test_traj = next(trajectory_gen)
     n_samples = np.prod(test_traj.shape[:-1])
     dim = test_traj.shape[-1]
@@ -232,14 +240,13 @@ def acq_noncartesian(
 
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
     shot_batches, shot_pos, kdata_t = zip(
-        *Parallel(
-            n_jobs=n_jobs,
-            backend="multiprocessing",
-        )(
+        *Parallel(n_jobs=n_jobs, backend="multiprocessing",)(
             delayed(_single_worker)(
                 sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
             )
-            for sim_frame, shot_batch, shot_pos in tqdm(work_generator(sim, scheduler))
+            for sim_frame, shot_batch, shot_pos in tqdm(
+                work_generator(sim.data_acq, scheduler)
+            )
         )
     )
 
@@ -254,10 +261,12 @@ def acq_noncartesian(
     return kdata, kmask
 
 
-def work_generator(sim: SimData, kspace_bulk_gen: Generator) -> Generator[tuple]:
+def work_generator(
+    data_acq: np.ndarray | LazySimArray, kspace_bulk_gen: Generator
+) -> Generator[tuple, None, None]:
     """Set up all the work."""
     for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
-        sim_frame = np.complex64(sim.data_acq[sim_frame_idx])  # heavy to compute
+        sim_frame = np.complex64(data_acq[sim_frame_idx])  # heavy to compute
         yield sim_frame, shot_batch, shot_pos
 
 
@@ -267,7 +276,7 @@ def _single_worker(
     shot_pos: tuple[int, int],
     op_kwargs: Mapping[str, Any],
     smaps: np.ndarray,
-) -> None:
+) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
     """Perform a shot acquisition."""
     with (warnings.catch_warnings(),):
         warnings.filterwarnings(

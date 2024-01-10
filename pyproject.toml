@@ -111,6 +111,7 @@ ignore = [
     "ANN101", # missing type annotation for self
     "ANN102", # missing type annotation for cls in classmethod.
     "ANN204", # missing return type for __init__
+    "ANN401",
     "D105", # missing docstring in magic method
     "D404", # Imperative mode is not necessary everywhere, trust me.
 ]
@@ -128,4 +129,7 @@ convention = "numpy"
 enabled = true
 live_mode = true
 strict = true
-overrides = ["--ignore-missing-imports", ""]
+overrides = ["--ignore-missing-imports"]
+
+[tool.mypy]
+ignore_missing_imports=true

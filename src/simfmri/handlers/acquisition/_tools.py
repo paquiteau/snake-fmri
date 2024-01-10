@@ -1,6 +1,6 @@
 import numpy as np
 
-from typing import Generator, Mapping, Any, Protocol
+from typing import Generator, Protocol, Callable
 
 from simfmri.utils.typing import AnyShape
 
@@ -11,6 +11,6 @@ TrajectoryGeneratorType = Generator[np.ndarray, None, None]
 class TrajectoryFactoryProtocol(Protocol):
     """Protocol for trajectory factory."""
 
-    def __call__(self, shape: AnyShape, **kwargs: Mapping[str, Any]) -> np.ndarray:
+    def __call__(self, shape: AnyShape, **__kwargs: None) -> np.ndarray:
         """Create a trajectory."""
         ...

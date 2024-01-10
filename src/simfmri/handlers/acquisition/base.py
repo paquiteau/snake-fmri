@@ -5,10 +5,10 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator
 from itertools import cycle
-from typing import Any, Iterable, Literal, Mapping
+from typing import Any, Literal, Callable
 
 import numpy as np
-from mrinufft.trajectories.io import read_trajectory
+from mrinufft.io import read_trajectory
 
 from simfmri.simulation import SimData
 from simfmri.utils import AnyShape, validate_rng
@@ -66,19 +66,21 @@ class BaseAcquisitionHandler(AbstractHandler):
     """
 
     acquire_mp = staticmethod(acq_cartesian)
+    cartesian = True
 
     def __init__(self, constant: bool, smaps: bool, shot_time_ms: int):
         super().__init__()
         self.constant = constant
         self.smaps = smaps
         self.shot_time_ms = shot_time_ms
+        self._traj_params: dict[str, Any] = dict()
 
     def _acquire(
         self,
         sim: SimData,
         trajectory_generator: TrajectoryGeneratorType,
-        **kwargs: Mapping[str, Any],
-    ) -> np.ndarray:
+        **kwargs: Any,
+    ) -> SimData:
         """Acquire the data by splitting the kspace shot over the simulation frames.
 
         Parameters
@@ -151,9 +153,9 @@ class BaseAcquisitionHandler(AbstractHandler):
 
 
 def trajectory_generator(
-    traj_factory: TrajectoryFactoryProtocol,
+    traj_factory: Callable[..., np.ndarray],
     shape: AnyShape,
-    **kwargs: Mapping[str, Any],
+    **kwargs: Any,
 ) -> Generator[np.ndarray, None, None]:
     """Generate a trajectory.
 
@@ -218,7 +220,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
         accel: int,
         accel_axis: int,
         direction: Literal["center-out", "random"],
-        shot_time_ms: int = None,
+        shot_time_ms: int,
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
         smaps: bool = True,
@@ -326,7 +328,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
     def __init__(
         self,
         trajectory_factory: TrajectoryFactoryProtocol,
-        traj_params: Mapping[str, Any],
+        traj_params: dict[str, Any],
         shot_time_ms: int,
         traj_generator: TrajectoryGeneratorType | None = None,
         cartesian: bool = True,
@@ -355,7 +357,7 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     name = "acquisition-generic-noncartesian"
 
-    def __init__(self, traj_files: Iterable[str] | str, smaps: bool, shot_time_ms: int):
+    def __init__(self, traj_files: list[str] | str, smaps: bool, shot_time_ms: int):
         if isinstance(traj_files, str):
             traj_files = [traj_files]
 
@@ -404,10 +406,16 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
         n_repeat: int = 1,
         angle: str = "constant",
         shot_time_ms: int = 20,
-        **kwargs: Mapping(str, Any),
+        smaps: bool = True,
+        backend: str = "finufft",
+        n_jobs: int = 4,
     ) -> None:
         super().__init__(
-            constant=angle == "constant", shot_time_ms=shot_time_ms, **kwargs
+            constant=angle == "constant",
+            shot_time_ms=shot_time_ms,
+            smaps=smaps,
+            backend=backend,
+            n_jobs=n_jobs,
         )
 
         self._traj_params = {
@@ -470,9 +478,18 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         nb_revolutions: int = 10,
         in_out: bool = True,
         pdfz: Literal["gaussian", "uniform"] = "gaussian",
-        **kwargs: Mapping[str, Any],
+        constant: bool = False,
+        smaps: bool = True,
+        backend: str = "finufft",
+        shot_time_ms: int = 50,
+        n_jobs: int = 4,
     ):
-        super().__init__(**kwargs)
+        super().__init__(
+            constant=constant,
+            backend=backend,
+            shot_time_ms=shot_time_ms,
+            n_jobs=n_jobs,
+        )
         self._traj_params = {
             "acsz": acsz,
             "accelz": accelz,

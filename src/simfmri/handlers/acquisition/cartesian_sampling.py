@@ -24,7 +24,7 @@ def get_kspace_slice_loc(
     accel: int = 4,
     pdf: str = "gaussian",
     rng: RngType = None,
-    direction: Direction = "center-out",
+    direction: Literal["center-out", "random", "top-down"] = "center-out",
 ) -> np.ndarray:
     """Get slice index at a random position.
 

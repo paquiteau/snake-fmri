@@ -8,7 +8,7 @@ https://github.com/NeuralEnsemble/lazyarray/blob/master/lazyarray.py
 from __future__ import annotations
 import operator
 from copy import deepcopy
-from typing import Any, Callable, Sequence, TypeVar, Mapping
+from typing import Any, Callable, TypeVar, Mapping
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
 from functools import wraps
@@ -22,7 +22,7 @@ def reverse(func: Callable[[T, U], V]) -> Callable[[U, T], V]:
     """Flip argument of function f(a, b) ->  f(b, a)."""
 
     @wraps(func)
-    def reversed_func(a: T, b: U) -> V:
+    def reversed_func(a: U, b: T) -> V:
         return func(b, a)
 
     reversed_func.__doc__ = "Reversed argument form of %s" % func.__doc__
@@ -30,7 +30,7 @@ def reverse(func: Callable[[T, U], V]) -> Callable[[U, T], V]:
     return reversed_func
 
 
-def lazy_inplace_operation(name: str) -> Callable[[NDArray, Any], NDArray]:
+def lazy_inplace_operation(name: str) -> Callable[[LazySimArray, ArrayLike], LazySimArray]:
     """Create a lazy inplace operation on a LazySimArray."""
 
     def op(self: LazySimArray, val: ArrayLike) -> LazySimArray:
@@ -42,7 +42,7 @@ def lazy_inplace_operation(name: str) -> Callable[[NDArray, Any], NDArray]:
 
 def lazy_operation(
     name: str, reversed: bool = False
-) -> Callable[[NDArray, ArrayLike], NDArray]:
+) -> Callable[[LazySimArray, ArrayLike], LazySimArray]:
     """Create a lazy operation on a LazySimArray."""
 
     def op(self: LazySimArray, val: ArrayLike) -> LazySimArray:
@@ -61,13 +61,12 @@ def lazy_unary_operation(name: str) -> Callable[[LazySimArray], LazySimArray]:
 
     def op(self: LazySimArray) -> LazySimArray:
         new_map = deepcopy(self)
-        new_map.operations.append((getattr(operator, name), None))
+        new_map._operations.append((getattr(operator, name), None, None))
         return new_map
 
     return op
 
-
-class LazySimArray(Sequence):
+class LazySimArray:
     """A lazy array for the simulation of the data.
 
     The simulation data is acquired frame wise. The idea is thus to register all
@@ -82,19 +81,19 @@ class LazySimArray(Sequence):
 
     def __init__(
         self,
-        base_array: np.ndarray | LazySimArray = None,
-        n_frames: int = None,
+        base_array: NDArray | LazySimArray,
+        n_frames: int =  -1,
     ):
         self._n_frames = n_frames
         if isinstance(base_array, LazySimArray) and n_frames is None:
             self._n_frames = len(base_array)
         self._base_array = base_array
-        self._operations: list[Callable[np.ndarray, int, ...], np.ndarray] = []
+        self._operations: list[tuple] = []
 
     @property
     def shape(self) -> tuple[int, ...]:
         """Get shape."""
-        return (len(self), *self._base_array.shape)
+        return (len(self), *(self._base_array.shape))
 
     @property
     def dtype(self) -> np.dtype:
@@ -114,16 +113,12 @@ class LazySimArray(Sequence):
         """Get length."""
         return self._n_frames
 
-    def __getitem__(self, addr: int | tuple[slice | int]) -> np.ndarray:
+    def __getitem__(self, addr: int | tuple[slice | int]) -> NDArray:
         """Get frame idx by applying all the operations in order.
 
         If an operation requires the frame index, (ie has `frame_idx=None` in signature)
         it will be provided here.
 
-        TODO add support for slicing:
-        - transform the slice of frame in range of frame idx
-        - extract the rest of the slice from the modified base array and return it.
-        This would allow stuff like larray[:, mask] to work.
         """
         match addr:
             case int():
@@ -140,8 +135,10 @@ class LazySimArray(Sequence):
                         for i in range(start, stop, step)
                     ]
                 )
+            case _:
+                raise ValueError("Index should be a int or tuple of int and slice")
 
-    def _get_frame(self, frame_idx: int) -> np.ndarray:
+    def _get_frame(self, frame_idx: int) -> NDArray:
         if isinstance(self._base_array, LazySimArray):
             cur = self._base_array[frame_idx]
         else:
@@ -159,14 +156,14 @@ class LazySimArray(Sequence):
 
     def apply(
         self,
-        op: Callable[[np.ndarray, int, ...], np.ndarray],
-        *args: Sequence[Any],
+        op: Callable[..., NDArray],
+        *args: Any,
         **op_kwargs: Mapping[str, Any],
     ) -> None:
         """Register an operation to apply."""
         self._operations.append((op, args, op_kwargs))
 
-    def pop_op(self, idx: int) -> None:
+    def pop_op(self, idx: int) -> tuple:
         """Pop an operation."""
         op = self._operations.pop(idx)
         return op

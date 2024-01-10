@@ -4,7 +4,7 @@ import numpy as np
 
 def mr_shepp_logan(
     N: int | tuple[int, int, int],
-    E: np.ndarray = None,
+    E: np.ndarray,
     B0: float = 3,
     T2star: bool = False,
     zlims: tuple[float, float] = (-1, 1),
@@ -77,10 +77,10 @@ def mr_shepp_logan(
     .. [2] https://github.com/mckib2/phantominator/blob/master/phantominator/mr_shepp_logan.py
     """  # noqa: E501
     # Determine size of phantom
-    if np.isscalar(N):
+    if isinstance(N, int):
         L, M, N = N, N, N
     else:
-        L, M, N = N[:]
+        L, M, N = N
 
     # Make sure zlims are appropriate
     assert len(zlims) == 2, (
@@ -132,9 +132,9 @@ def mr_shepp_logan(
 
         # Find indices falling inside the ellipsoid, ellipses only
         # rotated in xy plane
-        idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a**2 + (
+        idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a ** 2 + (
             (X - xc) * st0 - (Y - yc) * ct0
-        ) ** 2 / b**2 + (Z - zc) ** 2 / c**2 <= 1
+        ) ** 2 / b ** 2 + (Z - zc) ** 2 / c ** 2 <= 1
 
         # Add ellipses together -- subtract of M0 is negative
         M0s[idx] += M0[ii]
@@ -266,7 +266,7 @@ def idx_in_ellipse(E: np.ndarray, shape: tuple[int, int, int]) -> np.ndarray:
     ct0 = np.cos(theta)
     st0 = np.sin(theta)
 
-    idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a**2 + (
+    idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a ** 2 + (
         (X - xc) * st0 - (Y - yc) * ct0
-    ) ** 2 / b**2 + (Z - zc) ** 2 / c**2 <= 1
+    ) ** 2 / b ** 2 + (Z - zc) ** 2 / c ** 2 <= 1
     return idx
