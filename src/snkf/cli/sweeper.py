@@ -1,4 +1,4 @@
-"""A dataset sweeper for simfmri_runner."""
+"""A dataset sweeper for snkf_runner."""
 import itertools
 import logging
 import os

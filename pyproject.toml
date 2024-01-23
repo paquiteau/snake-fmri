@@ -1,5 +1,5 @@
 [project]
-name = "simfmri"  # Required
+name = "snake-fmri"  # Required
 # corresponds to the "Summary" metadata field:
 description = "A simulator and validator of fMRI reconstruction methods."
 # This field corresponds to the "Description" metadata field:
@@ -64,9 +64,9 @@ doc = ["jupyter-book", "sphinx-book-theme<1.0.0"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-simfmri-main ="simfmri.cli.main:main_app"
-simfmri-data ="simfmrmi.cli.generate_dataset:generate_data"
-simfmri-rec="simfmri.cli.eval_recon:eval_recon"
+snkf-main ="snkf.cli.main:main_app"
+snkf-data ="simfmrmi.cli.generate_dataset:generate_data"
+snkf-rec="snkf.cli.eval_recon:eval_recon"
 
 
 [build-system]
@@ -80,7 +80,7 @@ where=["src"]
 
 
 [tool.setuptools_scm]
-write_to = "src/simfmri/_version.py"
+write_to = "src/snkf/_version.py"
 version_scheme = "python-simplified-semver"
 local_scheme="no-local-version"
 
@@ -97,7 +97,7 @@ profile="black"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
-    "--cov=simfmri",
+    "--cov=snkf",
     "--cov-report=term-missing",
     "--cov-report=xml"
 ]

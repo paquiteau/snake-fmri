@@ -14,9 +14,9 @@ hydra:
       reconstruction: lowrank_sparse, sequential, zero_filled
 
   run:
-    dir: /volatile/pierre-antoine/simfmri/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+    dir: /volatile/pierre-antoine/snkf/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
   sweep:
-    dir: /volatile/pierre-antoine/simfmri/multirun/extend-sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
+    dir: /volatile/pierre-antoine/snkf/multirun/extend-sweep/${now:%Y-%m-%d}/${now:%H-%M-%S}
     subdir: ${hydra.job.num}
 
   callbacks:
@@ -24,7 +24,7 @@ hydra:
       _target_: hydra_callbacks.MultiRunGatherer
       result_file: "results.json"
       aggregator:
-        _target_: simfmri.runner.utils.aggregate_results
+        _target_: snkf.runner.utils.aggregate_results
         _partial_: true
 
     latest_link:

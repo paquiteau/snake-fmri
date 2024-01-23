@@ -72,7 +72,7 @@ hydra:
       _target_: hydra_callbacks.MultiRunGatherer
       aggregator:
         _partial_: true
-        _target_: simfmri.cli.utils.aggregate_results
+        _target_: snkf.cli.utils.aggregate_results
 
     latest_run:
       _target_: hydra_callbacks.LatestRunLink

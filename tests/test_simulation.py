@@ -5,7 +5,7 @@ import pytest
 
 def test_simulation_params():
     """Test the simulation params."""
-    from simfmri.simulation import SimParams
+    from snkf.simulation import SimParams
 
     sim_params = SimParams(shape=(48, 48, 32), n_frames=12, sim_tr=1.0)
     assert sim_params.shape == (48, 48, 32)
@@ -18,7 +18,7 @@ def test_simulation_params():
 
 def test_simulation_data():
     """Test the simulation data."""
-    from simfmri.simulation import SimData
+    from snkf.simulation import SimData
 
     sim_data = SimData(shape=(48, 48, 32), sim_time=12, sim_tr=1.0, fov=0.001)
     assert sim_data.shape == (48, 48, 32)

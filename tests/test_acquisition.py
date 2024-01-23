@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import pytest
-from simfmri.simulation import SimData
-from simfmri.handlers import (
+from snkf.simulation import SimData
+from snkf.handlers import (
     CartesianAcquisitionHandler,
     BigPhantomGeneratorHandler,
 )

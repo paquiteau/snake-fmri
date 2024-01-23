@@ -5,7 +5,7 @@ from scipy.stats import norm  # type: ignore
 from enum import Enum
 
 from typing import Sequence, Any, Literal
-from simfmri.utils import RngType, validate_rng, AnyShape
+from snkf.utils import RngType, validate_rng, AnyShape
 
 SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
 

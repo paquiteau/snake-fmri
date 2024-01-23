@@ -22,4 +22,4 @@ hydra:
   sweeper:
     max_batch_size: 10
     samples_per_job: 1
-    dataset_path: "/home/pac/gits/nsp/simfmri_runner/datasets/dataset.csv"
+    dataset_path: "/home/pac/gits/nsp/snkf_runner/datasets/dataset.csv"

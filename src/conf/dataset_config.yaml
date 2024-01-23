@@ -13,5 +13,5 @@ hydra:
       _target_: hydra_callbacks.GitInfo
       clean: false
     retrieve_dataset:
-      _target_: simfmri.runner.generate_dataset.RetrieveDatasetCallback
+      _target_: snkf.runner.generate_dataset.RetrieveDatasetCallback
       dataset_dir: datasets

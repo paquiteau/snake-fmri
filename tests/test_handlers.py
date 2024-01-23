@@ -1,9 +1,9 @@
 """Tests for the handler interface."""
 import pytest
 
-from simfmri.handlers import AbstractHandler, list_handlers, get_handler
-from simfmri.handlers.base import MetaHandler, requires_field
-from simfmri.simulation import SimData
+from snkf.handlers import AbstractHandler, list_handlers, get_handler
+from snkf.handlers.base import MetaHandler, requires_field
+from snkf.simulation import SimData
 
 
 class DummyHandler(AbstractHandler):

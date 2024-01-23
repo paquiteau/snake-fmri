@@ -5,8 +5,8 @@ from typing import Mapping
 
 from omegaconf import OmegaConf
 
-from simfmri.handlers.base import AbstractHandler
-from simfmri.simulation import SimData
+from snkf.handlers.base import AbstractHandler
+from snkf.simulation import SimData
 
 from .utils import load_data
 

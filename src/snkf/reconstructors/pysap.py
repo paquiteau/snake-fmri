@@ -13,7 +13,7 @@ from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
 
 from .base import BaseReconstructor
-from simfmri.simulation import SimData
+from snkf.simulation import SimData
 
 logger = logging.getLogger(__name__)
 

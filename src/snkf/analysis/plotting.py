@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from matplotlib.artist import Artist
     from matplotlib.axes import Axes
     from matplotlib.figure import Figure
-    from simfmri.simulation import SimData
+    from snkf.simulation import SimData
 
 from matplotlib.lines import Line2D
 from matplotlib.offsetbox import (

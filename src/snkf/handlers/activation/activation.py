@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import compute_regressor  # type: ignore
 
-from simfmri.simulation.simulation import SimData, LazySimArray
+from snkf.simulation.simulation import SimData, LazySimArray
 
 from ..base import AbstractHandler, HandlerChain, requires_field
 from ._block import block_design
@@ -175,7 +175,7 @@ class ActivationBlockHandler(ActivationHandler):
 
     See Also
     --------
-    simfmri.utils.activations.block_design
+    snkf.utils.activations.block_design
         The helper function to create the block desing.
     """
 

@@ -2,8 +2,8 @@
    :toctree: _autosummary
    :recursive:
 
-    simfmri.simulation
-    simfmri.handlers
-    simfmri.reconstructors
-    simfmri.cli
-    simfmri.analysis
+    snkf.simulation
+    snkf.handlers
+    snkf.reconstructors
+    snkf.cli
+    snkf.analysis

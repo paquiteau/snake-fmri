@@ -2,7 +2,7 @@
 import logging
 import numpy as np
 
-from simfmri.simulation import SimData
+from snkf.simulation import SimData
 
 logger = logging.getLogger("Reconstructor")
 RECONSTRUCTORS = {}

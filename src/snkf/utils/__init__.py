@@ -1,4 +1,4 @@
-"""Utilities tools for simfmri."""
+"""Utilities tools for snkf."""
 from .typing import RngType, AnyShape
 from .utils import validate_rng, cplx_type, real_type
 

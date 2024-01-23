@@ -8,7 +8,7 @@ import os
 import itertools
 import numpy as np
 from collections.abc import Sequence
-from simfmri.simulation import SimData
+from snkf.simulation import SimData
 import logging
 from joblib.hashing import hash as jb_hash
 from omegaconf import DictConfig, OmegaConf

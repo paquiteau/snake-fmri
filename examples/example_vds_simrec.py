@@ -6,8 +6,8 @@ This example shows how to simulate and reconstruct a simple 2D vds simulation.
 """
 import matplotlib.pyplot as plt
 import numpy as np
-from simfmri.simulation import H, SimData, list_handlers
-from simfmri.runner.reconstructor import (
+from snkf.simulation import H, SimData, list_handlers
+from snkf.runner.reconstructor import (
     ZeroFilledReconstructor,
     SequentialReconstructor,
     LowRankPlusSparseReconstructor,

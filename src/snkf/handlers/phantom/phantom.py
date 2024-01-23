@@ -9,9 +9,9 @@ from joblib.hashing import hash as jbhash
 from brainweb_dl import get_mri
 from brainweb_dl._brainweb import get_brainweb_dir
 
-from simfmri.simulation import SimData, LazySimArray
-from simfmri.utils import validate_rng, real_type
-from simfmri.utils.typing import RngType
+from snkf.simulation import SimData, LazySimArray
+from snkf.utils import validate_rng, real_type
+from snkf.utils.typing import RngType
 
 from ..base import AbstractHandler, requires_field
 from ._big import generate_phantom, raster_phantom
@@ -132,9 +132,7 @@ class RoiDefinerHandler(AbstractHandler):
     ):
         super().__init__()
         if roi_data is None:
-            self.roi_data = str(
-                files("simfmri.handlers.phantom") / "big_phantom_roi.json"
-            )
+            self.roi_data = str(files("snkf.handlers.phantom") / "big_phantom_roi.json")
         else:
             self.roi_data = roi_data
 

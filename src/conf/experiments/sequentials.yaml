@@ -21,6 +21,6 @@ hydra:
 
   callbacks:
     gather_files:
-      _target_: simfmri.runner.callback.MultiRunGatherer
+      _target_: snkf.runner.callback.MultiRunGatherer
     latest_link:
-      _target_: simfmri.runner.callback.LatestRunLink
+      _target_: snkf.runner.callback.LatestRunLink

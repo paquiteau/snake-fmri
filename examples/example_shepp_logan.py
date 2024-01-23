@@ -7,8 +7,8 @@ In this example we are going to simulate a 3D phantom and add a simple activatio
 
 import matplotlib.pyplot as plt
 
-from simfmri.simulation import SimData
-from simfmri.handlers import (
+from snkf.simulation import SimData
+from snkf.handlers import (
     SheppLoganGeneratorHandler,
     ActivationHandler,
     AcquisitionHandler,

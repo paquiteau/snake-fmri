@@ -3,7 +3,7 @@
 import logging
 import numpy as np
 from numpy.typing import DTypeLike
-from simfmri.utils.typing import RngType
+from snkf.utils.typing import RngType
 
 sim_logger = logging.getLogger("simulation")
 

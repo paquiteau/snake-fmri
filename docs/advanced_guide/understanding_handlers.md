@@ -20,7 +20,7 @@ Handlers can be chained to create a complex simulation.
 ## Listing availables handlers
 
 ```{code-cell} ipython3
-from simfmri.handlers import H, list_handlers, HandlerChain
+from snkf.handlers import H, list_handlers, HandlerChain
 ```
 
 ```{code-cell} ipython3

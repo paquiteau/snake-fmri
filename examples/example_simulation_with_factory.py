@@ -23,10 +23,10 @@ from omegaconf import OmegaConf
 
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
-_target_: simfmri.simulation.SimDataFactory
+_target_: snkf.simulation.SimDataFactory
 checkpoints: false
 sim_params:
-  _target_: simfmri.simulation.SimulationParams
+  _target_: snkf.simulation.SimulationParams
   n_frames: 100
   shape: [128, 128, 128]
   sim_tr: 1.0
@@ -34,13 +34,13 @@ sim_params:
 
 handlers:
   generator:
-    _target_: simfmri.simulation.SheppLoganGeneratorHandler
+    _target_: snkf.simulation.SheppLoganGeneratorHandler
   slicer:
-    _target_: simfmri.simulation.SlicerHandler
+    _target_: snkf.simulation.SlicerHandler
     axis: 0
     index: 58
   activation:
-    _target_: simfmri.simulation.ActivationHandler.from_block_design
+    _target_: snkf.simulation.ActivationHandler.from_block_design
     event_name: block_on
     block_on: 3
     block_off: 3
@@ -56,7 +56,7 @@ handlers:
 #
 # .. tip::
 #     For more information on Hydra and its configuration be sure to check the sister
-#     package ``simfmri_runner``.
+#     package ``snkf_runner``.
 #
 
 # %%

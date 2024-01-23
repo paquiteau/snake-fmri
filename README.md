@@ -17,23 +17,23 @@ simfmri comes with helper tools to configure and run simulation, and as such can
 ## Available commands 
 
 3 CLI interfaces are able to use the configuration folder to perform differents task: 
- - `simfmri-main` to do a full simulation + reconstruction + validation 
- - `simfmri-data` to generate a dataset of simulation
- - `simfmri-rec` to evaluate reconstructions methods (and do the statistics) over an existing dataset. 
+ - `snkf-main` to do a full simulation + reconstruction + validation 
+ - `snkf-data` to generate a dataset of simulation
+ - `snkf-rec` to evaluate reconstructions methods (and do the statistics) over an existing dataset. 
  
- Typically you would create a dataset with `simfmri-data` and then run `simfmri-rec` on it.
+ Typically you would create a dataset with `snkf-data` and then run `snkf-rec` on it.
  
 
 ## Configurations Files
-The configuration  are located in `simfmri/runner/conf` and articulates over 3 main componenents: 
+The configuration  are located in `snkf/runner/conf` and articulates over 3 main componenents: 
 - the simulation
 - the reconstruction
 - the validation via statistical analysis
 
 ### Simulation 
-located in `simfmri/runner/conf/simulation`
+located in `snkf/runner/conf/simulation`
 ### Reconstruction
-located in `simfmri/runner/conf/reconstruction`
+located in `snkf/runner/conf/reconstruction`
 
 ### Validation
 

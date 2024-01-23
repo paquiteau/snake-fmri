@@ -18,7 +18,7 @@ except ImportError:
 
 from tqdm.auto import tqdm
 
-from simfmri.simulation import SimData, LazySimArray
+from snkf.simulation import SimData, LazySimArray
 
 from ._tools import TrajectoryGeneratorType
 

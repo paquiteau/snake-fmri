@@ -10,8 +10,8 @@ from typing import Any, Literal, Callable
 import numpy as np
 from mrinufft.io import read_trajectory
 
-from simfmri.simulation import SimData
-from simfmri.utils import AnyShape, validate_rng
+from snkf.simulation import SimData
+from snkf.utils import AnyShape, validate_rng
 
 from ..base import AbstractHandler
 from ._coils import get_smaps

@@ -112,12 +112,12 @@ def inside_bezier_region(
 def _get_phantom_data(phantom_data_name: str | os.PathLike) -> list[dict]:
     roi_idx = None
     if phantom_data_name == "big":
-        location = files("simfmri.handlers.phantom") / "big_phantom_data.json"
+        location = files("snkf.handlers.phantom") / "big_phantom_data.json"
     elif isinstance(phantom_data_name, os.PathLike):
         location = Path(phantom_data_name)
     elif "big_roi" in phantom_data_name:
         roi_idx = phantom_data_name.split("-")[-1]
-        location = files("simfmri.handlers.phantom") / "big_phantom_roi.json"
+        location = files("snkf.handlers.phantom") / "big_phantom_roi.json"
 
     with location.open() as f:
         phantom_data = json.load(f)

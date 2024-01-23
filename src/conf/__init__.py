@@ -1,1 +1,1 @@
-"""Hydra configuration files for simfmri."""
+"""Hydra configuration files for snkf."""

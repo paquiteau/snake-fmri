@@ -2,4 +2,4 @@
 Examples
 ========
 
-The following are a collection of examples showcasing the possibility of simfmri.
+The following are a collection of examples showcasing the possibility of snkf.

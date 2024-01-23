@@ -2,9 +2,9 @@
 import pytest
 import numpy as np
 
-from simfmri.utils.phantom.big import _is_in_triangle, _is_in_triangle_mplt
+from snkf.utils.phantom.big import _is_in_triangle, _is_in_triangle_mplt
 
-from simfmri.utils.utils import validate_rng, cplx_type
+from snkf.utils.utils import validate_rng, cplx_type
 
 
 @pytest.mark.parametrize("triangle_check", [_is_in_triangle, _is_in_triangle_mplt])

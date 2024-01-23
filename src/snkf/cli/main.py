@@ -13,10 +13,10 @@ import numpy as np
 from hydra_callbacks import PerfLogger
 from omegaconf import DictConfig, OmegaConf
 
-from simfmri.analysis.stats import contrast_zscore, get_scores
-from simfmri.handlers import HandlerChain
-from simfmri.reconstructors import get_reconstructor
-from simfmri.cli.utils import hash_config
+from snkf.analysis.stats import contrast_zscore, get_scores
+from snkf.handlers import HandlerChain
+from snkf.reconstructors import get_reconstructor
+from snkf.cli.utils import hash_config
 
 logger = logging.getLogger(__name__)
 

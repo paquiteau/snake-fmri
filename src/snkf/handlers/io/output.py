@@ -8,9 +8,9 @@ from typing import Any, Mapping
 import pickle
 from omegaconf import OmegaConf
 
-from simfmri.simulation import SimData
-from simfmri.handlers.base import AbstractHandler
-from simfmri.handlers import requires_field
+from snkf.simulation import SimData
+from snkf.handlers.base import AbstractHandler
+from snkf.handlers import requires_field
 
 from .utils import save_data
 

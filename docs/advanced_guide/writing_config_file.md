@@ -5,7 +5,7 @@
 ```
 
 <!-- #raw -->
-```{include} ../../../src/simfmri/conf/simulation/sl_basic.yaml
+```{include} ../../../src/snkf/conf/simulation/sl_basic.yaml
 ```
 <!-- #endraw -->
 

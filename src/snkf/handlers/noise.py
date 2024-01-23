@@ -6,7 +6,7 @@ from __future__ import annotations
 from .base import AbstractHandler, requires_field
 from ..simulation import SimData, LazySimArray
 
-from simfmri.utils import validate_rng, RngType, real_type
+from snkf.utils import validate_rng, RngType, real_type
 
 import numpy as np
 from numpy.typing import NDArray
