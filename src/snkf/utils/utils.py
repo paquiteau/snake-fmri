@@ -3,9 +3,36 @@
 import logging
 import numpy as np
 from numpy.typing import DTypeLike
+from typing import Any
 from snkf.utils.typing import RngType
 
 sim_logger = logging.getLogger("simulation")
+
+
+class DuplicateFilter(logging.Filter):
+    """
+    Filters away duplicate log messages.
+
+    https://stackoverflow.com/a/60462619
+    """
+
+    def __init__(self, logger: logging.Logger):
+        self.msgs: set[str] = set()
+        self.logger = logger
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        """Filter duplicate records."""
+        msg = str(record.msg)
+        is_duplicate = msg in self.msgs
+        if not is_duplicate:
+            self.msgs.add(msg)
+        return not is_duplicate
+
+    def __enter__(self):
+        self.logger.addFilter(self)
+
+    def __exit__(self, exc_type: Any, exc_val: Any, exc_tb: Any):
+        self.logger.removeFilter(self)
 
 
 def validate_rng(rng: RngType = None) -> np.random.Generator:
@@ -29,12 +56,18 @@ def cplx_type(dtype: DTypeLike) -> DTypeLike:
     np.complex64
     """
     d = np.dtype(dtype)
-    if d.type is np.float64:
+    if d.type is np.complex64:
+        return np.complex64
+    elif d.type is np.complex128:
+        return np.complex128
+    elif d.type is np.float64:
         return np.complex128
     elif d.type is np.float32:
         return np.complex64
     else:
-        sim_logger.warning("unsupported dtype, use matching complex64", stack_info=True)
+        sim_logger.warning(
+            f"unsupported dtype {d}, using default complex64", stack_info=True
+        )
         return np.complex64
 
 
@@ -51,8 +84,14 @@ def real_type(
     d = np.dtype(dtype)
     if d.type is np.complex64:
         return np.dtype("float32")
+    elif d.type is np.float32:
+        return np.dtype("float32")
     elif d.type is np.complex128:
         return np.dtype("float64")
+    elif d.type is np.float64:
+        return np.dtype("float64")
     else:
-        sim_logger.warning("unsupported dtype, use matching float32", stack_info=True)
+        sim_logger.warning(
+            f"unsupported dtype ({d}) using default float32", stack_info=True
+        )
         return np.dtype("float32")

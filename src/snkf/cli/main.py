@@ -39,7 +39,7 @@ def main_app(cfg: DictConfig) -> None:
     logging.captureWarnings(True)
 
     cache_dir = Path(cfg.cache_dir or os.getcwd())
-    hash_sim = hash_config(cfg.simulation, cfg.ignore_patterns)
+    hash_sim = hash_config(cfg.simulation, *getattr(cfg, "ignore_patterns", []))
     sim_file = cache_dir / f"{hash_sim}.pkl"
     # 1. Simulate (use cache if available)
     with PerfLogger(logger, name="Simulation"):

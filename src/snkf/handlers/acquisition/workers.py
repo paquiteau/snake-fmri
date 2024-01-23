@@ -19,7 +19,7 @@ except ImportError:
 from tqdm.auto import tqdm
 
 from snkf.simulation import SimData, LazySimArray
-
+from snkf.utils import DuplicateFilter
 from ._tools import TrajectoryGeneratorType
 
 # from mrinufft import get_operator
@@ -265,9 +265,10 @@ def work_generator(
     data_acq: np.ndarray | LazySimArray, kspace_bulk_gen: Generator
 ) -> Generator[tuple, None, None]:
     """Set up all the work."""
-    for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
-        sim_frame = np.complex64(data_acq[sim_frame_idx])  # heavy to compute
-        yield sim_frame, shot_batch, shot_pos
+    with DuplicateFilter(logging.getLogger("simulation")):
+        for sim_frame_idx, shot_batch, shot_pos in kspace_bulk_gen:
+            sim_frame = np.complex64(data_acq[sim_frame_idx])  # heavy to compute
+            yield sim_frame, shot_batch, shot_pos
 
 
 def _single_worker(
@@ -278,7 +279,7 @@ def _single_worker(
     smaps: np.ndarray,
 ) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
     """Perform a shot acquisition."""
-    with (warnings.catch_warnings(),):
+    with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
             category=UserWarning,

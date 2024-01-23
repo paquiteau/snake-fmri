@@ -1,6 +1,6 @@
 """Utilities tools for snkf."""
 from .typing import RngType, AnyShape
-from .utils import validate_rng, cplx_type, real_type
+from .utils import validate_rng, cplx_type, real_type, DuplicateFilter
 
 __all__ = [
     "AnyShape",
@@ -8,4 +8,5 @@ __all__ = [
     "validate_rng",
     "cplx_type",
     "real_type",
+    "DuplicateFilter",
 ]

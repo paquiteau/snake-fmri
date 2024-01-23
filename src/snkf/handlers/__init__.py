@@ -8,6 +8,7 @@ import importlib
 import pkgutil
 
 from .base import (
+    AbstractHandler,
     H,
     handler,
     get_handler,
@@ -28,6 +29,7 @@ __all__ = [
     "handler",
     "get_handler",
     "list_handlers",
-    "requires_field" "AbstractHandler",
+    "requires_field",
+    "AbstractHandler",
     "HandlerChain",
 ]

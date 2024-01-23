@@ -5,7 +5,7 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any, Union
+from typing import Literal, Any, Union, Sequence
 from dataclasses import InitVar, dataclass, field
 import copy
 import pickle
@@ -22,6 +22,10 @@ logger = logging.getLogger(__name__)
 __all__ = ["SimData", "SimParams"]
 
 OptionalArray = Union[NDArray, None]
+
+
+class UndefinedArrayError(ValueError):
+    """Raise when an array is undefined."""
 
 
 @dataclass
@@ -44,11 +48,11 @@ class SimParams:
     """Field of view of the volume in mm"""
     fov: tuple[float, ...] = field(init=False)
 
-    def __post_init__(self, fov_init: tuple[float, ...] | float) -> None:
+    def __post_init__(self, fov_init: Sequence[float] | float) -> None:
         if isinstance(fov_init, float):
             self.fov = (fov_init,) * len(self.shape)
-        elif isinstance(fov_init, tuple):
-            self.fov = fov_init
+        elif isinstance(fov_init, Sequence):
+            self.fov = tuple(fov_init)
 
 
 class SimData:
@@ -129,7 +133,7 @@ class SimData:
             rng=rng,
             extra_infos=extra_infos,
         )
-        self._static_vol: NDArray | None
+        self._static_vol: NDArray | None = None
         self._roi: NDArray | None = None
         self._data_ref: NDArray | None | LazySimArray = None
         self._data_acq: NDArray | None | LazySimArray = None
@@ -144,7 +148,7 @@ class SimData:
         """Static volume."""
         if self._static_vol is not None:
             return self._static_vol
-        raise ValueError("static_vol is not defined")
+        raise UndefinedArrayError("static_vol is not defined")
 
     @static_vol.setter
     def static_vol(self, value: NDArray) -> None:
@@ -155,7 +159,7 @@ class SimData:
         """Static volume."""
         if self._kspace_data is not None:
             return self._kspace_data
-        raise ValueError("static_vol is not defined")
+        raise UndefinedArrayError("static_vol is not defined")
 
     @kspace_data.setter
     def kspace_data(self, value: NDArray) -> None:
@@ -166,7 +170,7 @@ class SimData:
         """Static volume."""
         if self._kspace_mask is not None:
             return self._kspace_mask
-        raise ValueError("static_vol is not defined")
+        raise UndefinedArrayError("static_vol is not defined")
 
     @kspace_mask.setter
     def kspace_mask(self, value: NDArray) -> None:
@@ -177,7 +181,7 @@ class SimData:
         """Static volume."""
         if self._data_ref is not None:
             return self._data_ref
-        raise ValueError("data_ref is not defined")
+        raise UndefinedArrayError("data_ref is not defined")
 
     @data_ref.setter
     def data_ref(self, value: NDArray) -> None:
@@ -188,7 +192,7 @@ class SimData:
         """Acquired Volume."""
         if self._data_acq is not None:
             return self._data_acq
-        raise ValueError("data_acq is not defined")
+        raise UndefinedArrayError("data_acq is not defined")
 
     @data_acq.setter
     def data_acq(self, value: NDArray) -> None:
@@ -199,7 +203,7 @@ class SimData:
         """Reference data volume."""
         if self._roi is not None:
             return self._roi
-        raise ValueError("static_vol is not defined")
+        raise UndefinedArrayError("roi is not defined")
 
     @roi.setter
     def roi(self, value: NDArray) -> None:

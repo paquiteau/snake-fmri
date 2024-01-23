@@ -203,6 +203,14 @@ class BrainwebPhantomHandler(AbstractHandler):
             os.makedirs(static_path.parent, exist_ok=True)
             np.save(static_path, static_vol)
 
+        roi: NDArray
+        if os.path.exists(roi_path) and not self.force:
+            roi = np.load(roi_path)
+        else:
+            roi = self._make_roi(sim)
+            np.save(roi_path, roi)
+
+        # update the simulation
         if -1 in sim.shape:
             old_shape = sim.shape
             sim._meta.shape = static_vol.shape
@@ -224,24 +232,15 @@ class BrainwebPhantomHandler(AbstractHandler):
             self.log.warning(f"sim.fov was  {sim.fov}, it is now {new_fov}.")
             sim._meta.fov = tuple(new_fov)
 
-        roi: np.ndarray
-        data_ref: LazySimArray | NDArray
-        if os.path.exists(roi_path) and not self.force:
-            roi = np.load(roi_path)
-        else:
-            roi = self._make_roi(sim)
-            np.save(roi_path, roi)
-
-        if sim.lazy and sim.static_vol is not None:
-            data_ref = LazySimArray(static_vol, sim.n_frames)
-        elif sim.static_vol is not None:
-            data_ref = np.repeat(static_vol[None, ...], sim.n_frames, axis=0)
-        else:
-            raise ValueError("Could not initialize data_ref ")
-
         sim.static_vol = static_vol
         sim.roi = roi
-        sim.data_ref = data_ref
+
+        # create the data ref field.
+        if sim.lazy:
+            sim.data_ref = LazySimArray(static_vol, sim.n_frames)
+        else:
+            sim.data_ref = np.repeat(static_vol[None, ...], sim.n_frames, axis=0)
+
         self.log.debug(f"roi shape: {sim.roi.shape}")
         self.log.debug(f"data_ref shape: {sim.data_ref.shape}")
         return sim
@@ -267,12 +266,16 @@ class BrainwebPhantomHandler(AbstractHandler):
             BRAINWEB_OCCIPITAL_ROI,
         )
 
+        shape: tuple[int, ...] | None = sim.shape
+        if shape == (-1, -1, -1):
+            shape = None
         roi = get_mri(
             self.sub_id,
             brainweb_dir=self.brainweb_folder,
             contrast="fuzzy",
-            shape=sim.shape,
+            shape=shape,
             bbox=self.bbox,
+            output_res=self.res,
         )[..., 2]
 
         occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
@@ -302,8 +305,8 @@ class BrainwebPhantomHandler(AbstractHandler):
             )
             occ_roi["center"] = (
                 occ_roi["center"][0] - scaled_bbox[0],
-                occ_roi["center"][1] - scaled_bbox[1],
-                occ_roi["center"][2] - scaled_bbox[2],
+                occ_roi["center"][1] - scaled_bbox[2],
+                occ_roi["center"][2] - scaled_bbox[4],
             )
         self.log.debug("ROI shape is ", occ_roi)
         roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])

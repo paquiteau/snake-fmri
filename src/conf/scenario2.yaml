@@ -5,7 +5,6 @@ cache_dir: ${oc.env:PWD}/cache
 result_dir: ${oc.env:PWD}/results
 ignore_patterns:
   - "n_jobs"
-  -
 simulation:
   sim_params:
     sim_tr: 0.1

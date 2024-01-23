@@ -12,7 +12,7 @@ from typing import Callable, Any, Mapping, IO
 from typing_extensions import TypedDict
 import yaml
 
-from ..simulation import SimData, SimParams
+from ..simulation import SimData, SimParams, UndefinedArrayError
 
 
 CallbackType = Callable[[SimData, SimData], Any]
@@ -390,7 +390,9 @@ def requires_field(
 
         @functools.wraps(old_handle)
         def wrap_handler(self: AbstractHandler, sim: SimData) -> SimData:
-            if getattr(sim, field_name, None) is None:
+            try:
+                getattr(sim, field_name)
+            except UndefinedArrayError as e:
                 if callable(factory):
                     setattr(sim, field_name, factory(sim))
                 else:
@@ -398,7 +400,7 @@ def requires_field(
                         f"'{field_name}' is missing in simulation"
                         "and no way of computing it provided."
                     )
-                    raise ValueError(msg)
+                    raise ValueError(msg) from e
 
             return old_handle(self, sim)
 
