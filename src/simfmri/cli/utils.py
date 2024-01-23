@@ -73,18 +73,18 @@ def keyval_fmt(**kwargs: None) -> str:
 
 def dump_confusion(
     results: dict | list[dict], result_file: str | None = "result.json"
-) -> list[Any]:
+) -> list | dict:
     """Dump the result of the confusion matrix into a json file."""
     if isinstance(results, list):
-        new_results = []
+        ret = []
         for r in results:
-            new_results.append(dump_confusion(r, result_file=None))
+            ret.append(dump_confusion(r, result_file=None))
         if result_file:
             with open(result_file, "w") as f:
-                json.dump(new_results, f)
-            return new_results
-
-    new_results = results.copy()
+                json.dump(ret, f)
+            return ret
+    else:
+        new_results: dict[str, Any] = results.copy()
     task_overriden = HydraConfig.get().overrides.task
     for overrided in task_overriden:
         key, val = overrided.split("=")

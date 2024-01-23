@@ -10,7 +10,7 @@ from brainweb_dl import get_mri
 from brainweb_dl._brainweb import get_brainweb_dir
 
 from simfmri.simulation import SimData, LazySimArray
-from simfmri.utils import validate_rng
+from simfmri.utils import validate_rng, real_type
 from simfmri.utils.typing import RngType
 
 from ..base import AbstractHandler, requires_field
@@ -342,7 +342,7 @@ class TextureAdderHandler(AbstractHandler):
         rng = validate_rng(sim.rng)
 
         sim.data_ref += sigma_noise * rng.standard_normal(
-            sim.data_ref.shape[1:], dtype=sim.data_ref.dtype
+            sim.data_ref.shape[1:], dtype=real_type(sim.data_ref.dtype)
         )
 
         return sim
@@ -379,7 +379,7 @@ class SlicerHandler(AbstractHandler):
     @property
     def slicer(self) -> tuple:
         """Return slicer operator."""
-        base_slicer = [slice(None, None, None)] * 4
+        base_slicer: list[slice | int] = [slice(None, None, None)] * 4
         base_slicer[self.axis + 1] = self.index
         return tuple(base_slicer)
 
