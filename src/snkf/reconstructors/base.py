@@ -11,9 +11,11 @@ RECONSTRUCTORS = {}
 class BaseReconstructor:
     """Represents the interface required to be benchmark-able."""
 
-    name = None
+    name: None | str = None
 
-    def __init__(self, nufft_backend: str = None, nufft_kwargs: dict = None):
+    def __init__(
+        self, nufft_backend: str | None = None, nufft_kwargs: dict | None = None
+    ):
         self.reconstructor = None
         self.fourier_op = None
         self.nufft_backend = nufft_backend  # optional nufft backend
@@ -36,7 +38,7 @@ class BaseReconstructor:
         return self.name
 
 
-def get_reconstructor(name: str) -> type(BaseReconstructor):
+def get_reconstructor(name: str) -> type[BaseReconstructor]:
     """Get a handler from its name."""
     try:
         return RECONSTRUCTORS[name]

@@ -38,9 +38,9 @@ simulation:
       backend: cufinufft
 
 reconstructors:
-  adjoint:
-    nufft_backend: cufinufft
-    nufft_kwargs: {}
+  # adjoint:
+  #   nufft_backend: cufinufft
+  #   nufft_kwargs: {}
   # sequential:
   #   nufft_backend: cufinufft
   #   nufft_kwargs: {}

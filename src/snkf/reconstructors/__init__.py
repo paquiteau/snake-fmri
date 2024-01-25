@@ -7,6 +7,8 @@ from .pysap import (
     LowRankPlusSparseReconstructor,
 )
 
+from .pytorch import TorchSequentialReconstructor
+
 __all__ = [
     "RECONSTRUCTOR",
     "get_reconstructor",
@@ -14,4 +16,5 @@ __all__ = [
     "SequentialReconstructor",
     "ZeroFilledReconstructor",
     "LowRankPlusSparseReconstructor",
+    "TorchSequentialReconstructor",
 ]
