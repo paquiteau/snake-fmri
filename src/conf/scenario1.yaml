@@ -28,7 +28,7 @@ simulation:
       block_on: 20
       block_off: 20
       duration: 300
-      bold_strength: 0.02
+      bold_strength: 0.05
     noise-gaussian:
       snr: 100
     acquisition-vds:

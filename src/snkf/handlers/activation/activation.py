@@ -1,4 +1,5 @@
 """Handler to add activations."""
+
 from __future__ import annotations
 
 from typing import Literal, Mapping, get_args, Any
@@ -137,21 +138,25 @@ class ActivationHandler(AbstractHandler):
             min_onset=self._min_onset,
         )
         regressor = np.squeeze(regressor)
-        regressor = 1 + (regressor * self._bold_strength / regressor.max())
+        regressor = regressor * self._bold_strength / regressor.max()
         # apply the activations
+        self.log.debug(f"Regressor values  {min(regressor)},{max(regressor)}")
+
         if isinstance(sim.data_ref, LazySimArray):
             sim.data_ref.apply(lazy_apply_regressor, regressor, roi)
         elif isinstance(sim.data_ref, np.ndarray):
-            sim.data_ref[:, roi > 0] = (
-                sim.data_ref[:, roi > 0] * roi[roi > 0] * regressor[:, np.newaxis]
+            sim.data_ref[:, roi > 0] = sim.data_ref[:, roi > 0] * (
+                (1 + regressor[:, np.newaxis]) * roi[roi > 0] + (1 - roi[roi > 0])
             )
         else:
             raise ValueError("sim.data_ref is not an array")
 
-        try:
-            sim._meta.extra_infos["events"].concat(self._event_condition)
-        except KeyError:
-            sim._meta.extra_infos["events"] = self._event_condition
+        if "events" in sim._meta.extra_infos.keys():
+            df = pd.Dataframe(sim._meta.extra_infos["events"])
+            df = df.concat(self._event_condition)
+        else:
+            df = self._event_condition
+        sim._meta.extra_infos["events"] = df.to_dict()
 
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
         return sim
@@ -221,5 +226,7 @@ def lazy_apply_regressor(
         frame index to apply the regressor.
     """
     data = np.copy(data)
-    data[roi > 0] = data[roi > 0] * roi[roi > 0] * regressor[frame_idx]
+    data[roi > 0] = data[roi > 0] * (
+        (1 + regressor[frame_idx]) * roi[roi > 0] + (1 - roi[roi > 0])
+    )
     return data
