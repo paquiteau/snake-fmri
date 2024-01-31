@@ -4,9 +4,11 @@ import gc
 import json
 import logging
 import os
+import dataclasses
 from pathlib import Path
 from typing import Any, Mapping
 import pickle
+
 
 import hydra
 import numpy as np
@@ -71,7 +73,7 @@ def main_app(cfg: DictConfig) -> None:
         np.save(f"data_zscore_{rec_str}.npy", zscore)
         results.append(
             {
-                "sim_params": OmegaConf.to_container(cfg.simulation.sim_params),
+                "sim_params": dataclasses.asdict(sim._meta),
                 "handlers": OmegaConf.to_container(cfg.simulation.handlers),
                 "reconstructor": rec_str,
                 "stats": stats,
@@ -87,7 +89,7 @@ def main_app(cfg: DictConfig) -> None:
     # 3. Clean up and saving
     with PerfLogger(logger, name="Cleanup"):
         with open("results.json", "w") as f:
-            json.dump(results, f)
+            json.dump(results, f, default=lambda o: str(o))
 
     PerfLogger.recap(logger)
 

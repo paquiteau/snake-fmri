@@ -1,8 +1,10 @@
 """Analysis module."""
+
 import logging
 from typing import Literal
 from numpy.typing import NDArray
 from sklearn.metrics import roc_curve
+import pandas as pd
 import numpy as np
 
 from nilearn.glm.first_level import make_first_level_design_matrix, run_glm
@@ -52,7 +54,7 @@ def contrast_zscore(
     """
     design_matrix = make_first_level_design_matrix(
         frame_times=np.arange(len(image)) * sim.extra_infos["TR_ms"] / 1000,
-        events=sim.extra_infos["events"],
+        events=pd.DataFrame(sim.extra_infos["events"]),
         drift_model=sim.extra_infos.get("drift_model", None),
     )
     # Create a mask from reference data (not ideal, but best)
