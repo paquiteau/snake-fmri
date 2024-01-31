@@ -7,7 +7,7 @@ This phantom is more realistic than the Shepp-Logan Phantom, but is a 2D phantom
 """
 
 import matplotlib.pyplot as plt
-from snkf.utils.phantom import generate_phantom, raster_phantom
+from snkf.handlers.phantom._big import generate_phantom, raster_phantom
 
 # %%
 # Rasterisation vs Generation

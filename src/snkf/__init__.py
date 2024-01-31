@@ -9,6 +9,8 @@ from .handlers import (
     get_handler,
     list_handlers,
     AbstractHandler,
+    load_from_conf,
+    load_from_yaml,
 )
 
 __all__ = [
@@ -19,6 +21,8 @@ __all__ = [
     "get_handler",
     "list_handlers",
     "AbstractHandler",
+    "load_from_conf",
+    "load_from_yaml",
 ]
 
 try:

@@ -23,6 +23,8 @@ for _, name, _ in pkgutil.iter_modules([str(Path(__file__).parent)]):
         continue
     importlib.import_module("." + name, __name__)
 
+load_from_conf = HandlerChain.from_conf
+load_from_yaml = HandlerChain.from_yaml
 
 __all__ = [
     "H",
@@ -32,4 +34,6 @@ __all__ = [
     "requires_field",
     "AbstractHandler",
     "HandlerChain",
+    "load_from_conf",
+    "load_from_yaml",
 ]

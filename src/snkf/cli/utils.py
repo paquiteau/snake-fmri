@@ -233,9 +233,9 @@ def hash_config(conf: Mapping[str, Any], *ignore_keys_pattern: str) -> str:
     if isinstance(conf, DictConfig):
         conf = OmegaConf.to_container(conf)
     flattened = flatten(conf)
-    for k in flattened:
+    for k in list(flattened.keys()):
         for key_pattern in ignore_keys_pattern:
-            if re.match(key_pattern, k):
-                flattened[k] = "ignored"
-
+            if re.search(key_pattern, k):
+                flattened.pop(k)
+    print(flattened)
     return jb_hash(flattened)

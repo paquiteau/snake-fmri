@@ -2,7 +2,7 @@
 import pytest
 import numpy as np
 
-from snkf.utils.phantom.big import _is_in_triangle, _is_in_triangle_mplt
+from snkf.handlers.phantom._big import _is_in_triangle, _is_in_triangle_mplt
 
 from snkf.utils.utils import validate_rng, cplx_type
 
@@ -19,7 +19,8 @@ def test_is_in_triangle(triangle_check):
     [
         ("float64", np.complex128),
         ("float32", np.complex64),
-        ("float128", np.complex256),
+        ("complex64", np.complex64),
+        ("complex128", np.complex128),
         ("int16", np.complex64),
     ],
 )

@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 import pytest
 from snkf.simulation import SimData
-from snkf.handlers import (
-    CartesianAcquisitionHandler,
-    BigPhantomGeneratorHandler,
-)
+from snkf.handlers.phantom import BigPhantomGeneratorHandler
 
 
 @pytest.fixture

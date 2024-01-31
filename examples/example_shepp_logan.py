@@ -8,17 +8,11 @@ In this example we are going to simulate a 3D phantom and add a simple activatio
 import matplotlib.pyplot as plt
 
 from snkf.simulation import SimData
-from snkf.handlers import (
-    SheppLoganGeneratorHandler,
-    ActivationHandler,
-    AcquisitionHandler,
-    KspaceNoiseHandler,
-)
+from snkf.handlers import H
 
 # %%
 # We are going to simulate a 2D+t fMRI scan of a phantom with activations. .
 shape = (64, 64, 64)
-n_frames = 50
 sim_tr = 1.0
 n_coils = 1
 
@@ -33,7 +27,9 @@ snr = 100
 # This data is used to createa the main SimData object, which gather
 # all the data related to this simulation
 
-sim_data = SimData(shape=shape, n_frames=n_frames, sim_tr=1, n_coils=1)
+sim_data = SimData(
+    shape=shape, sim_time=50, sim_tr=1, n_coils=1, fov=(0.192, 0.192, 0.192)
+)
 
 print(sim_data)
 
@@ -48,17 +44,25 @@ print(sim_data)
 #
 
 simulator = (
-    # Create a shepp logan phantom
-    SheppLoganGeneratorHandler()
+    # Create a shepp logan
+    H["phantom-shepp_logan"]()
     # Add activations (and creates a time dimension)
-    >> ActivationHandler.from_block_design(3, 3, n_frames)
+    >> H["activation-block"](3, 3, 50)
     # simulate the acquisition
-    >> AcquisitionHandler.vds(acs=24, accel=accel, constant=True, gen_smaps=False)
+    >> H["acquisition-vds"](
+        acs=24,
+        accel=accel,
+        accel_axis=1,
+        direction="center-out",
+        shot_time_ms=50,
+        constant=True,
+        smaps=False,
+    )
     # add noise to the kspace
-    >> KspaceNoiseHandler(snr=snr)
+    >> H["noise-kspace"](snr=snr)
 )
 
-print(simulator.get_chain())
+print(simulator)
 # %% The simulation can then be run easily:
 
 
@@ -68,11 +72,7 @@ def print_callback(old_sim, new_sim):
     print(new_sim)
 
 
-cur = simulator
-while cur is not None:
-    cur.add_callback(print_callback)
-    cur = cur.prev
-
+simulator.add_callback_to_all(print_callback)
 sim_data = simulator(sim_data)
 print(sim_data)
 

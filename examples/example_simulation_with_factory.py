@@ -9,8 +9,7 @@ In this example we are going to describe how to use the simulation factory inter
 
 import io  # to simulate a file access.
 
-from hydra.utils import instantiate
-from omegaconf import OmegaConf
+from snkf import load_from_yaml
 
 # %%
 # Describing all the step of a simulation can be tedious.
@@ -23,30 +22,25 @@ from omegaconf import OmegaConf
 
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
-_target_: snkf.simulation.SimDataFactory
-checkpoints: false
 sim_params:
-  _target_: snkf.simulation.SimulationParams
-  n_frames: 100
-  shape: [128, 128, 128]
-  sim_tr: 1.0
-  n_coils: 1
+    sim_time: 100
+    shape: [128, 128, 128]
+    fov: [0.192,0.192,0.192]
+    sim_tr: 1.0
+    n_coils: 1
 
 handlers:
-  generator:
-    _target_: snkf.simulation.SheppLoganGeneratorHandler
-  slicer:
-    _target_: snkf.simulation.SlicerHandler
-    axis: 0
-    index: 58
-  activation:
-    _target_: snkf.simulation.ActivationHandler.from_block_design
-    event_name: block_on
-    block_on: 3
-    block_off: 3
-    duration: 100
-    offset: 0
-"""
+    phantom-shepp_logan: {}
+    phantom-slicer:
+        axis: 0
+        index: 58
+    activation-block:
+        event_name: block_on
+        block_on: 3
+        block_off: 3
+        duration: 100
+        offset: 0
+ """
 
 
 # %%
@@ -68,8 +62,8 @@ handlers:
 # equivalent to
 # with open("your_config.yaml") as config_file:
 with io.StringIO(sim_config) as config_file:
-    factory = instantiate(OmegaConf.load(config_file))
 
-sim_data = factory.simulate()
+    simulator, sim = load_from_yaml(config_file)
 
-print(sim_data)
+sim = simulator(sim)
+print(sim)

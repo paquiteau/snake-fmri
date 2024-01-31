@@ -354,11 +354,20 @@ class SimData:
 
     def is_valid(self) -> bool:
         """Check if the attributes are coherent to each other."""
-        if self.data_ref is not None:
+        try:
+            data_ref = self.data_ref
+        except UndefinedArrayError:
+            logger.warn("data_ref is not defined yet.")
+            data_ref = None
+        if data_ref is not None:
             if self.data_ref.shape != (self.n_frames, *self.shape):
                 logger.warn("self.data_ref.shape != (self.n_frames, *self.shape)")
                 return False
-            if self.data_acq is not None:
+            try:
+                data_acq = self.data_acq
+            except UndefinedArrayError:
+                data_acq = None
+            if data_acq is not None:
                 if self.data_acq.shape != self.data_ref.shape:
                     logger.warn("self.data_acq.shape != self.data_ref.shape")
                 return False
@@ -405,11 +414,15 @@ class SimData:
             "roi",
             "smaps",
         ]:
-            array = getattr(self, array_name)
-            if isinstance(array, np.ndarray):
-                ret += f"{array_name}: {array.dtype}({array.shape})\n"
+            try:
+                array = getattr(self, array_name)
+            except UndefinedArrayError:
+                ret += f"{array_name}: undefined\n"
             else:
-                ret += f"{array_name}: {array}\n"
+                if isinstance(array, np.ndarray):
+                    ret += f"{array_name}: {array.dtype}({array.shape})\n"
+                else:
+                    ret += f"{array_name}: {array}\n"
 
         ret += "extra_infos:\n"
         for k, v in self.extra_infos.items():
