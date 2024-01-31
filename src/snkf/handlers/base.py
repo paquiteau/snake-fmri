@@ -392,16 +392,17 @@ def requires_field(
         def wrap_handler(self: AbstractHandler, sim: SimData) -> SimData:
             try:
                 getattr(sim, field_name)
-            except UndefinedArrayError as e:
+            except (UndefinedArrayError, AttributeError) as e:
+                if type(e).__name__ == "AttributeError":
+                    logging.warn("Unknown attribute")
                 if callable(factory):
                     setattr(sim, field_name, factory(sim))
                 else:
                     msg = (
                         f"'{field_name}' is missing in simulation"
-                        "and no way of computing it provided."
+                        f"and no way of computing it provided for handler {self}."
                     )
                     raise ValueError(msg) from e
-
             return old_handle(self, sim)
 
         cls.handle = wrap_handler  # type: ignore  # mypy is too dump to get this is a legal move.

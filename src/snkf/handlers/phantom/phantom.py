@@ -185,11 +185,13 @@ class BrainwebPhantomHandler(AbstractHandler):
         # do this for both static_vol and roi.
         # save to brainweb_folder
         bw_dir = get_brainweb_dir(self.brainweb_folder)
-        self.log.debug(f"hash config {self.sub_id, sim.shape, self.bbox, sim.rng}")
-        static_hash = jbhash(
-            str(("static", self.sub_id, sim.shape, self.bbox, sim.rng))
+        self.log.debug(
+            f"hash config {self.sub_id, sim.shape, self.bbox, sim.rng, self.res, }"
         )
-        roi_hash = jbhash(str((self.sub_id, sim.shape, self.bbox)))
+        static_hash = jbhash(
+            str(("static", self.sub_id, sim.shape, self.bbox, sim.rng, self.res))
+        )
+        roi_hash = jbhash(str((self.sub_id, sim.shape, self.bbox, self.res)))
 
         static_path = bw_dir / (static_hash + ".npy")
         roi_path = bw_dir / (roi_hash + ".npy")
@@ -350,7 +352,7 @@ class TextureAdderHandler(AbstractHandler):
 
 
 @requires_field("data_ref")
-@requires_field("data_acq")
+@requires_field("data_acq", lambda x: x.data_ref.copy())
 @requires_field("roi")
 class SlicerHandler(AbstractHandler):
     """Create an handler to get a 2D+T slice from a 3D+T simulation.

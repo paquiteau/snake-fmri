@@ -90,123 +90,42 @@ def _get_slicer(shot: np.ndarray) -> tuple[slice, ...]:
     return tuple(slicer)
 
 
-def _run_cartesian(
-    sim: SimData,
-    kdata: np.ndarray,
-    kmask: np.ndarray,
-    sim_frame_idx: int,
-    shot_batch: NDArray[np.int_],
-    shot_pos: list[tuple[int, int]],
-    **kwargs: Mapping[str, Any],
-) -> None:
-    if sim.data_acq is not None:
-        sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
-    else:
-        raise ValueError("data_acq not available.")
-
-    masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.int8)
-    for i, shot in enumerate(shot_batch):
-        masks[i][_get_slicer(shot)] = 1
-    mask = np.sum(masks, axis=0)
-    fourier_op = FFT_Sense(
-        sim_frame.shape, mask=mask, smaps=sim.smaps, n_coils=sim.n_coils
-    )
-
-    process_kspace = fourier_op.op(sim_frame)
-
-    for m, (k, _) in zip(masks, shot_pos):
-        kdata[k, ...] += process_kspace * m
-        kmask[k, ...] |= m
-
-
-def _run_noncartesian(
-    sim: SimData,
-    kdata: np.ndarray,
-    kmask: np.ndarray,
-    sim_frame_idx: int,
-    shot_batch: NDArray[np.int_],
-    shot_pos: list[tuple[int, int]],
-    nufft_backend: str,
-    **kwargs: Mapping[str, Any],
-) -> None:
-    if sim.data_acq is None:
-        raise ValueError("Data acq not available.")
-    sim_frame = np.complex64(sim.data_acq[sim_frame_idx])
-    with warnings.catch_warnings():
-        warnings.filterwarnings(
-            "ignore",
-            "Samples will be rescaled to .*",
-            category=UserWarning,
-            module="mrinufft",
-        )
-        fourier_op = get_operator(
-            nufft_backend,
-            samples=shot_batch,
-            shape=sim.shape,
-            smaps=sim.smaps,
-            n_coils=sim.n_coils,
-            density=False,
-            **kwargs,
-        )
-
-    kspace = fourier_op.op(sim_frame)
-
-    L = shot_batch.shape[1]
-
-    for i, (k, s) in enumerate(shot_pos):
-        kdata[k, :, s * L : (s + 1) * L] = kspace[..., i * L : (i + 1) * L]
-        kmask[k, s * L : (s + 1) * L] = shot_batch[i]
-
-
-def _acquire(
-    sim: SimData,
-    trajectory_gen: TrajectoryGeneratorType,
-    runner: Callable,
-    n_shot_sim_frame: int,
-    n_kspace_frame: int,
-    kdata_info: tuple[tuple[int, ...], DTypeLike],
-    kmask_info: tuple[tuple[int, ...], DTypeLike],
-    **kwargs: Mapping[str, Any],
-) -> tuple[np.ndarray, np.ndarray]:
-    kdata = np.zeros(*kdata_info)
-    kmask = np.zeros(*kmask_info)
-
-    scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
-
-    for sim_frame_idx, shot_batch, shot_pos in tqdm(scheduler, total=sim.n_frames):
-        runner(
-            sim,
-            kdata,
-            kmask,
-            sim_frame_idx,
-            shot_batch,
-            shot_pos,
-            **kwargs,
-        )
-
-    return kdata, kmask
-
-
 def acq_cartesian(
     sim: SimData,
     trajectory_gen: TrajectoryGeneratorType,
     n_shot_sim_frame: int,
     n_kspace_frame: int,
+    n_jobs: int = -1,
+    **kwargs: Any,
 ) -> tuple[np.ndarray, np.ndarray]:
     """Acquire with cartesian stuff."""
-    kdata_info = ((n_kspace_frame, sim.n_coils, *sim.shape), np.complex64)
-    kmask_info = ((n_kspace_frame, *sim.shape), np.int8)
+    if sim.data_acq is None:
+        raise ValueError("data acq is not available")
+    scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
 
-    kdata, kmask = _acquire(
-        sim,
-        trajectory_gen,
-        _run_cartesian,
-        n_shot_sim_frame,
-        n_kspace_frame,
-        kdata_info,
-        kmask_info,
+    shot_batches, shot_pos, kdata_t = zip(
+        *Parallel(n_jobs=n_jobs, backend="multiprocessing")(
+            delayed(_cart_worker)(
+                sim_frame, shot_batch, shot_pos, smaps=sim.smaps, n_coils=sim.n_coils
+            )
+            for sim_frame, shot_batch, shot_pos in tqdm(
+                work_generator(sim.data_acq, scheduler)
+            )
+        )
     )
+    # reorganize the data
+    kdata = np.zeros((n_kspace_frame, sim.n_coils, *sim.shape), np.complex64)
+    kmask = np.zeros((n_kspace_frame, *sim.shape), np.float32)
 
+    for i, sp in enumerate(shot_pos):
+        for ii, (kk, ss) in enumerate(sp):
+            mask = np.zeros(sim.shape, dtype=bool)
+            mask[_get_slicer(shot_batches[i][ii])] = 1
+            if sim.n_coils == 1:
+                kdata[kk, 0, mask] = kdata_t[i][ii]
+            else:
+                kdata[kk, 0, mask] = kdata_t[i][ii]
+            kmask[kk] += mask
     return kdata, kmask
 
 
@@ -241,7 +160,7 @@ def acq_noncartesian(
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
     shot_batches, shot_pos, kdata_t = zip(
         *Parallel(n_jobs=n_jobs, backend="multiprocessing",)(
-            delayed(_single_worker)(
+            delayed(_nufft_worker)(
                 sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
             )
             for sim_frame, shot_batch, shot_pos in tqdm(
@@ -271,9 +190,9 @@ def work_generator(
             yield sim_frame, shot_batch, shot_pos
 
 
-def _single_worker(
+def _nufft_worker(
     sim_frame: np.ndarray,
-    shot_batch: np.ndarray,
+    shot_batch: NDArray[np.int_],
     shot_pos: tuple[int, int],
     op_kwargs: Mapping[str, Any],
     smaps: np.ndarray,
@@ -290,3 +209,27 @@ def _single_worker(
         kspace = fourier_op.op(sim_frame)
     #  write to share memory shots location and values.
     return shot_batch, shot_pos, kspace
+
+
+def _cart_worker(
+    sim_frame: np.ndarray,
+    shot_batch: NDArray[np.int_],
+    shot_pos: tuple[int, int],
+    **kwargs: Mapping[str, Any],
+) -> tuple[NDArray[np.int_], tuple[int, int], tuple[np.ndarray]]:
+
+    masks = np.zeros((len(shot_batch), *sim_frame.shape), dtype=np.bool_)
+    for i, shot in enumerate(shot_batch):
+        masks[i][_get_slicer(shot)] = 1
+    # ensure that mask are orthogonal !
+    assert np.all(np.sum(masks, axis=0) < 2)
+    mask = np.sum(masks, axis=0)
+    fourier_op = FFT_Sense(sim_frame.shape, mask=mask, **kwargs)
+
+    process_kspace: np.ndarray = fourier_op.op(sim_frame)
+    # split to mask
+    if fourier_op.n_coils == 1:
+        kspaces = tuple(process_kspace[m == 1] for m in masks)
+    else:
+        kspaces = tuple(process_kspace[:, m == 1] for m in masks)
+    return shot_batch, shot_pos, kspaces

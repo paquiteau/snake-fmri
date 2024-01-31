@@ -54,7 +54,6 @@ class TorchSequentialReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-
         self.wavelet = TorchWaveletTransform(
             sim.shape,
             wavelet=self.wavelet_name,
@@ -102,7 +101,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
         )
         logger.debug("Estimating Lipschitz constant...")
         L = nufft.get_lipschitz_cst(max_iter=10)
-        eta = 1 / L
+        eta = L  # HACK was 1/L
         logger.debug(f"step_size: {eta}")
         xk = torch.empty(1, 1, *shape, dtype=torch.complex64, device="cuda")
         xk.copy_(torch.from_numpy(previous_frame))
@@ -113,7 +112,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
             grad = nufft.data_consistency(xk, kspace_data)
             x_tmp = xk - eta * grad
             x_tmp = self.wavelet.adj_op(self.prox.op(self.wavelet.op(x_tmp)))
-            tkk = (1 + np.sqrt(1 + 4 * tk**2)) // 2
+            tkk = (1 + np.sqrt(1 + 4 * tk ** 2)) // 2
             xkk = x_tmp + ((tk - 1) / tkk) * (x_tmp - xk)
             xk.copy_(xkk)
             tk = tkk

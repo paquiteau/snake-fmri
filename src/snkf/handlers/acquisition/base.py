@@ -13,7 +13,7 @@ from mrinufft.io import read_trajectory
 from snkf.simulation import SimData
 from snkf.utils import AnyShape, validate_rng
 
-from ..base import AbstractHandler
+from ..base import AbstractHandler, requires_field
 from ._coils import get_smaps
 from ._tools import TrajectoryFactoryProtocol, TrajectoryGeneratorType
 from .trajectory import (
@@ -27,6 +27,10 @@ from .workers import acq_cartesian, acq_noncartesian
 logger = logging.getLogger("simulation.acquisition")
 
 
+requires_data_acq = requires_field("data_acq", lambda sim: sim.data_ref.copy())
+
+
+@requires_data_acq
 class BaseAcquisitionHandler(AbstractHandler):
     r"""
     Simulate the acquisition of the data.
@@ -224,6 +228,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
         pdf: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
         smaps: bool = True,
+        n_jobs: int = 1,
     ):
         super().__init__(constant=constant, shot_time_ms=shot_time_ms, smaps=smaps)
         self._traj_params = {
@@ -234,6 +239,8 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
             "pdf": pdf,
         }
 
+        self.n_jobs = n_jobs
+
     def _handle(self, sim: SimData) -> SimData:
         self._traj_params["rng"] = validate_rng(sim.rng)
         return self._acquire(
@@ -241,6 +248,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
             trajectory_generator=trajectory_generator(
                 vds_factory, sim.shape, **self._traj_params
             ),
+            n_jobs=self.n_jobs,
         )
 
 
@@ -334,6 +342,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
         cartesian: bool = True,
         smaps: bool = True,
         constant: bool = True,
+        n_jobs: int = 1,
     ):
         self.acquire_mp = staticmethod(
             acq_cartesian if self.cartesian else acq_noncartesian
@@ -342,6 +351,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
         self.traj_generator = traj_generator or trajectory_generator
         self.shot_time_ms = shot_time_ms
         self._traj_params = traj_params
+        self.n_jobs = n_jobs
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
@@ -349,6 +359,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
             trajectory_generator=self.traj_generator(
                 self.traj_factory, sim.shape, **self._traj_params
             ),
+            n_jobs=self.n_jobs,
         )
 
 
@@ -438,6 +449,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
                 trajectory_generator(radial_factory, sim.shape, **self._traj_params),
                 self._angle,
             ),
+            n_jobs=self.n_jobs,
         )
 
 

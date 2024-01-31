@@ -97,6 +97,16 @@ def get_fourier_operator(
         CufinufftSpaceFourier,
     )
 
+    if backend is None:
+        return CartesianSpaceFourier(
+            shape=sim.kspace_mask.shape[1:],
+            mask=sim.kspace_mask,
+            n_frames=len(sim.kspace_data),
+            n_coils=sim.n_coils,
+            smaps=sim.smaps,
+            **kwargs,
+        )
+
     logger.info(f"fourier backend is {backend}")
     if backend == "stacked-cufinufft":
         return _get_stacked_operator(backend, sim)
@@ -154,15 +164,6 @@ def get_fourier_operator(
                 for i in range(len(sim.kspace_data))
             ]
         )
-
-    return CartesianSpaceFourier(
-        shape=sim.kspace_mask.shape[1:],
-        mask=sim.kspace_mask,
-        n_frames=len(sim.kspace_data),
-        n_coils=sim.n_coils,
-        smaps=sim.smaps,
-        **kwargs,
-    )
 
 
 class ZeroFilledReconstructor(BaseReconstructor):
