@@ -1,23 +1,41 @@
 """Base Interfaces for the reconstructors."""
+
 import logging
 import numpy as np
-
+from typing import Protocol
 from snkf.simulation import SimData
 
 logger = logging.getLogger("Reconstructor")
 RECONSTRUCTORS = {}
 
 
+class SpaceFourierProto(Protocol):
+    """Fourier operator interface."""
+
+    n_frames: int
+    shape: tuple[int]
+    n_coils: int
+    uses_sense: bool
+
+    def op(self, x: np.ndarray) -> np.ndarray:
+        """Apply the Fourier operator."""
+        ...
+
+    def adj_op(self, x: np.ndarray) -> np.ndarray:
+        """Apply the adjoint of the Fourier operator."""
+        ...
+
+
 class BaseReconstructor:
     """Represents the interface required to be benchmark-able."""
 
     name: None | str = None
+    fourier_op: SpaceFourierProto
 
     def __init__(
         self, nufft_backend: str | None = None, nufft_kwargs: dict | None = None
     ):
         self.reconstructor = None
-        self.fourier_op = None
         self.nufft_backend = nufft_backend  # optional nufft backend
         self.nufft_kwargs = nufft_kwargs or {}
 
