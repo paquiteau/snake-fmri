@@ -1,4 +1,5 @@
 """Phantom Generation Handlers."""
+
 from importlib.resources import files
 import os
 
@@ -184,7 +185,13 @@ class BrainwebPhantomHandler(AbstractHandler):
         # TODO hash and cache config with all the parameters of get_mri
         # do this for both static_vol and roi.
         # save to brainweb_folder
+        if sim.fov is None or sim.fov == (-1, -1, -1):
+            fov = np.array([0.181, 0.217, 0.181])  # standard fov for brainweb.
+        else:
+            fov = np.array(sim.fov)
+
         bw_dir = get_brainweb_dir(self.brainweb_folder)
+
         self.log.debug(
             f"hash config {self.sub_id, sim.shape, self.bbox, sim.rng, self.res, }"
         )
@@ -212,16 +219,28 @@ class BrainwebPhantomHandler(AbstractHandler):
             roi = self._make_roi(sim)
             np.save(roi_path, roi)
 
+        # axial direction as last dimension.
+        static_vol = np.moveaxis(static_vol, 0, -1)
+        roi = np.moveaxis(roi, 0, -1)
+        # For best compatibility we ensure to have an even shape:
+        self.log.debug(f"{static_vol.shape, roi.shape}")
+
+        for i, s in enumerate(list(static_vol.shape)):
+            if s % 2 == 0:
+                continue
+            static_vol = np.insert(static_vol, static_vol.shape[i], 0, i)
+            roi = np.insert(roi, roi.shape[i], 0, i)
+            fov[i] *= (s + 1) / s
+
+        self.log.debug(f"{static_vol.shape, roi.shape}")
         # update the simulation
         if -1 in sim.shape:
             old_shape = sim.shape
             sim._meta.shape = static_vol.shape
             self.log.warning(f"shape was implicit {old_shape}, it is now {sim.shape}.")
-        if sim.fov is None or sim.fov == (-1, -1, -1):
-            sim._meta.fov = (0.181, 0.217, 0.181)  # standard fov for brainweb.
         if self.bbox:
             # update FOV
-            new_fov = [0.0] * 3
+            new_fov = np.zeros(3)
             for i in range(3):
                 bmin = self.bbox[2 * i]
                 bmax = self.bbox[2 * i + 1]
@@ -229,8 +248,8 @@ class BrainwebPhantomHandler(AbstractHandler):
                 bmax = bmax if bmax else 1
                 bmax = 1 + bmax if bmax < 0 else bmax
 
-                new_fov[i] = sim.fov[i] * (bmax - bmin)
-
+                new_fov[i] = fov[i] * (bmax - bmin)
+            new_fov = np.roll(new_fov, 2)  # apply same roll as for axes.
             self.log.warning(f"sim.fov was  {sim.fov}, it is now {new_fov}.")
             sim._meta.fov = tuple(new_fov)
 
