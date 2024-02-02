@@ -112,7 +112,7 @@ class SimData:
 
     def __init__(
         self,
-        shape: tuple[int, ...],
+        shape: tuple[int, int, int],
         fov: float | tuple[float],
         sim_tr: float,
         sim_time: float,
@@ -396,9 +396,9 @@ class SimData:
             else:
                 raise ValueError("Unknown base array")
         if unit == "MB":
-            return mem / 1024 ** 2
+            return mem / 1024**2
         elif unit == "GB":
-            return mem / 1024 ** 3
+            return mem / 1024**3
         else:
             raise ValueError("unit must be MB or GB")
 

@@ -3,9 +3,10 @@
 Note that we are not using any Deep Learning here, but rather the Pytorch framework
 for its streamlined handling of tensors and GPU support.
 """
+
 from __future__ import annotations
 import logging
-from typing import Literal
+from typing import Literal, Any, Mapping
 from tqdm.auto import tqdm
 
 import numpy as np
@@ -42,8 +43,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
         optimizer: str = "pogm",
         wavelet: str = "sym4",
         threshold: float | Literal["sure"] = "sure",
-        nufft_kwargs: dict | None = None,
-        **kwargs,
+        nufft_kwargs: dict[str, Any] | None = None,
     ):
         super().__init__()
 
@@ -51,6 +51,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
         self.optimizer = optimizer
         self.wavelet_name = wavelet
         self.threshold = threshold
+        self.nufft_kwargs = nufft_kwargs or {}
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -97,7 +98,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
             n_coils=n_coils,
             smaps=smaps,
             smaps_cached=True,
-            density="cell_count",
+            **self.nufft_kwargs,
         )
         logger.debug("Estimating Lipschitz constant...")
         L = nufft.get_lipschitz_cst(max_iter=10)
@@ -112,7 +113,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
             grad = nufft.data_consistency(xk, kspace_data)
             x_tmp = xk - eta * grad
             x_tmp = self.wavelet.adj_op(self.prox.op(self.wavelet.op(x_tmp)))
-            tkk = (1 + np.sqrt(1 + 4 * tk ** 2)) // 2
+            tkk = (1 + np.sqrt(1 + 4 * tk**2)) // 2
             xkk = x_tmp + ((tk - 1) / tkk) * (x_tmp - xk)
             xk.copy_(xkk)
             tk = tkk
