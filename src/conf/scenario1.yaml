@@ -6,40 +6,39 @@ result_dir: results
 ignore_patterns:
   - "n_jobs"
 
-simulation:
-  sim_params:
-    sim_tr: 0.1
-    sim_time: 300
-    shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
-    fov: [-1,-1,-1]
-    # shape: [42, 64, 64]
-    # fov: [0.181,0.217,0.181]
-    n_coils: 1
-    rng: 19980408
-    lazy: True
-  handlers:
-    phantom-brainweb:
-      subject_id: 5
-      bbox: [0.225,-0.07, 0.06, -0.055, null, null]
-      brainweb_folder: ${cache_dir}/brainweb
-      res: [3.0, 3.0,2.81 ]
-    activation-block:
-      event_name: block_on
-      block_on: 20
-      block_off: 20
-      duration: 300
-      bold_strength: 0.05
-    noise-gaussian:
-      snr: 100
-    acquisition-vds:
-      shot_time_ms: 50
-      acs: 1
-      accel: 1
-      accel_axis: 0
-      constant: true
-      direction: top-down
-      smaps: false
-      n_jobs: 5
+sim_params:
+  sim_tr: 0.1
+  sim_time: 300
+  shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
+  fov: [-1,-1,-1]
+  # shape: [42, 64, 64]
+  # fov: [0.181,0.217,0.181]
+  n_coils: 1
+  rng: 19980408
+  lazy: True
+handlers:
+  phantom-brainweb:
+    subject_id: 5
+    bbox: [0.225,-0.07, 0.06, -0.055, null, null]
+    brainweb_folder: ${cache_dir}/brainweb
+    res: [3.0, 3.0,2.81 ]
+  activation-block:
+    event_name: block_on
+    block_on: 20
+    block_off: 20
+    duration: 300
+    bold_strength: 0.05
+  noise-gaussian:
+    snr: 100
+  acquisition-vds:
+    shot_time_ms: 50
+    acs: 1
+    accel: 1
+    accel_axis: 0
+    constant: true
+    direction: top-down
+    smaps: false
+    n_jobs: 5
 
 reconstructors:
   adjoint: {}

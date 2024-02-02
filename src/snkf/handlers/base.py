@@ -1,4 +1,5 @@
 """Base Handler Interface."""
+
 from __future__ import annotations
 from dataclasses import fields
 import inspect
@@ -340,13 +341,14 @@ class HandlerChain:
     def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
         """Convert a yaml config to a chain of handlers."""
         conf = yaml.safe_load(stream)
-        return cls.from_conf(conf)
+        return cls.from_conf(conf["sim_param"], conf["handlers"])
 
     @classmethod
-    def from_conf(cls, conf: ConfigDict) -> tuple[HandlerChain, SimData]:
+    def from_conf(
+        cls, sim_param: Mapping[str, Any], handlers_conf: Mapping[str, Any]
+    ) -> tuple[HandlerChain, SimData]:
         """Load a chain of handler from a configuration."""
-        sim = SimData(**conf["sim_params"])
-        handlers_conf = conf["handlers"]
+        sim = SimData(**sim_param)
         handlers = []
         for h_name, h_conf in handlers_conf.items():
             handlers.append(MetaHandler.registry[h_name](**h_conf))

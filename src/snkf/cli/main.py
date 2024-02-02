@@ -41,8 +41,12 @@ def main_app(cfg: DictConfig) -> None:
     logging.captureWarnings(True)
 
     cache_dir = Path(cfg.cache_dir or os.getcwd())
-    hash_sim = hash_config(cfg.simulation, *getattr(cfg, "ignore_patterns", []))
+    hash_sim = hash_config(
+        dict(sim_params=cfg.sim_params, handlers=cfg.handlers),
+        *getattr(cfg, "ignore_patterns", []),
+    )
     sim_file = cache_dir / f"{hash_sim}.pkl"
+    logger.debug(f"simulation cache file is {sim_file}")
     # 1. Simulate (use cache if available)
     with PerfLogger(logger, name="Simulation"):
         try:
@@ -51,7 +55,7 @@ def main_app(cfg: DictConfig) -> None:
             sim = pickle.load(open(sim_file, "rb"))
         except OSError:
             logger.warning(f"Failed to load simulation from cache {sim_file}")
-            simulator, sim = HandlerChain.from_conf(cfg.simulation)
+            simulator, sim = HandlerChain.from_conf(cfg.sim_params, cfg.handlers)
             sim = simulator(sim)
             del simulator
             os.makedirs(sim_file.parent, exist_ok=True)
@@ -74,7 +78,7 @@ def main_app(cfg: DictConfig) -> None:
         results.append(
             {
                 "sim_params": dataclasses.asdict(sim._meta),
-                "handlers": OmegaConf.to_container(cfg.simulation.handlers),
+                "handlers": OmegaConf.to_container(cfg.handlers),
                 "reconstructor": rec_str,
                 "stats": stats,
                 "data_zscore": os.path.join(os.getcwd(), f"data_zscore_{rec_str}.npy"),
