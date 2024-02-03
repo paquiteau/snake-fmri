@@ -67,6 +67,8 @@ def main_app(cfg: DictConfig) -> None:
     results = []
     # 2. Reconstruct and analyze
     for rec_name, params in reconstructors.items():
+        if params is None:
+            logger.debug(f"Skipped {rec_name}, no parametrization")
         data_test, rec_str = reconstruct(sim_file, rec_name, params)
         logger.debug("Current simulation state: %s", sim)
         with PerfLogger(logger, name="Analysis " + str(rec_str)):
