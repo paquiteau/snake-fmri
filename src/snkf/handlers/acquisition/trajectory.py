@@ -1,10 +1,12 @@
 """K-spac trajectory data structure."""
+
 from __future__ import annotations
 
 from typing import Literal, Mapping, Any
 from collections.abc import Generator
 import numpy as np
 from snkf.utils.typing import RngType, AnyShape
+from numpy.typing import NDArray
 
 from .cartesian_sampling import get_kspace_slice_loc
 
@@ -12,7 +14,21 @@ from mrinufft.trajectories.trajectory2D import (
     initialize_2D_radial,
     initialize_2D_spiral,
 )
+
 from mrinufft.trajectories.tools import stack, rotate
+from mrinufft.trajectories.utils import (
+    check_hardware_constraints,
+    compute_gradients_and_slew_rates,
+)
+
+
+def check_trajectory(
+    trajectory: NDArray, osf: int, gmax: float, smax: float
+) -> np.bool_:
+    """Check if a trajectory is feasible or not."""
+    grads, slew = compute_gradients_and_slew_rates(trajectory[:, ::osf, :])
+    is_ok, max_grad, max_slew = check_hardware_constraints(grads, slew, gmax, smax)
+    return np.all(is_ok)
 
 
 def vds_factory(
