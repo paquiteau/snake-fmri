@@ -1,9 +1,7 @@
-#!/usr/bin/env python3
+"""Wavelet Transform using pytorch compatible with Modopt API."""
 
 import torch
 import ptwt
-import cupy as cp
-import numpy as np
 
 
 class TorchWaveletTransform:
@@ -24,7 +22,22 @@ class TorchWaveletTransform:
         self.mode = mode
 
     def op(self, data: torch.Tensor) -> list[torch.Tensor]:
-        """Apply the wavelet decomposition."""
+        """Apply the wavelet decomposition on.
+
+        Parameters
+        ----------
+        data: torch.Tensor
+            2D or 3D, real or complex data with last axes matching shape of
+            the operator.
+
+        Returns
+        -------
+        list[torch.Tensor]
+            list of tensor each containing the data of a subband.
+        """
+        if data.shape == self.shape:
+            data = data[None, ...]  # add a batch dimension
+
         if len(self.shape) == 2:
             if torch.is_complex(data):
                 # 2D Complex
@@ -32,6 +45,8 @@ class TorchWaveletTransform:
                 coeffs_ = ptwt.wavedec2(
                     data_, self.wavelet, level=self.level, mode=self.mode, axes=(-3, -2)
                 )
+                self.coeffs_shape = [coeffs_[0].shape]
+                self.coeffs_shape += [tuple(cc.shape for cc in c) for c in coeffs_]
                 # flatten list of tuple of tensors to a list of tensors
                 coeffs = [torch.view_as_complex(coeffs_[0].contiguous())] + [
                     torch.view_as_complex(cc.contiguous())
@@ -71,7 +86,20 @@ class TorchWaveletTransform:
         return [coeffs_[0]] + [cc for c in coeffs_[1:] for cc in c.values()]
 
     def adj_op(self, coeffs: list[torch.Tensor]) -> torch.Tensor:
-        """Apply the wavelet recomposition."""
+        """Apply the wavelet recomposition.
+
+        Parameters
+        ----------
+        list[torch.Tensor]
+            list of tensor each containing the data of a subband.
+
+        Returns
+        -------
+        data: torch.Tensor
+            2D or 3D, real or complex data with last axes matching shape of the
+            operator.
+
+        """
         if len(self.shape) == 2:
             if torch.is_complex(coeffs[0]):
                 ## 2D Complex ##

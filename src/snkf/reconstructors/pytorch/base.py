@@ -6,7 +6,7 @@ for its streamlined handling of tensors and GPU support.
 
 from __future__ import annotations
 import logging
-from typing import Literal, Any, Mapping
+from typing import Literal, Any
 from tqdm.auto import tqdm
 
 import numpy as np
@@ -15,7 +15,7 @@ from mrinufft import get_operator
 from ...simulation import SimData
 from ..base import BaseReconstructor
 from .wavelet import TorchWaveletTransform
-from .prox import WaveletSoftThreshold
+from .prox import WaveletSoftThreshold, AutoWaveletSoftThreshold
 
 TORCH_AVAILABLE = True
 try:
@@ -61,7 +61,10 @@ class TorchSequentialReconstructor(BaseReconstructor):
             level=3,
             mode="zero",
         )
-        self.prox = WaveletSoftThreshold(self.threshold)
+        if self.threshold == "sure":
+            self.prox: WaveletSoftThreshold = AutoWaveletSoftThreshold()
+        else:
+            self.prox = WaveletSoftThreshold(self.threshold)
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct data."""
@@ -71,11 +74,19 @@ class TorchSequentialReconstructor(BaseReconstructor):
         smaps = cp.array(sim.smaps) if sim.smaps is not None else None
 
         # TODO: Parallel ?
-        for i in tqdm(range(n_frames), position=0):
+        final[0] = self._reconstruct(
+            sim.kspace_data[0],
+            sim.kspace_mask[0],
+            previous_frame=init_frame,
+            smaps=smaps,
+            shape=sim.shape,
+            n_coils=sim.n_coils,
+        )
+        for i in tqdm(range(1, n_frames), position=0):
             final[i] = self._reconstruct(
                 sim.kspace_data[i],
                 sim.kspace_mask[i],
-                previous_frame=init_frame,
+                previous_frame=final[i - 1],
                 smaps=smaps,
                 shape=sim.shape,
                 n_coils=sim.n_coils,
@@ -92,7 +103,9 @@ class TorchSequentialReconstructor(BaseReconstructor):
         n_coils: int = 1,
     ) -> np.ndarray:
         """Reconstruct a single frame of data using FISTA."""
-        nufft = get_operator("cufinufft")(
+        if "backend" not in self.nufft_kwargs:
+            self.nufft_kwargs["backend"] = "cufinufft"
+        nufft = get_operator(
             kspace_mask,
             shape=shape,
             n_coils=n_coils,
@@ -102,17 +115,19 @@ class TorchSequentialReconstructor(BaseReconstructor):
         )
         logger.debug("Estimating Lipschitz constant...")
         L = nufft.get_lipschitz_cst(max_iter=10)
-        eta = L  # HACK was 1/L
+        eta = 1 / L  #
         logger.debug(f"step_size: {eta}")
         xk = torch.empty(1, 1, *shape, dtype=torch.complex64, device="cuda")
         xk.copy_(torch.from_numpy(previous_frame))
         tk = 1
         kspace_data = torch.from_numpy(kspace_data).to("cuda")
-        for i in tqdm(range(self.max_iter_per_frame), position=1, leave=False):
+        for _ in tqdm(range(self.max_iter_per_frame), position=1, leave=False):
             # Fista loop
             grad = nufft.data_consistency(xk, kspace_data)
             x_tmp = xk - eta * grad
-            x_tmp = self.wavelet.adj_op(self.prox.op(self.wavelet.op(x_tmp)))
+            x_tmp = self.wavelet.adj_op(
+                self.prox.op(self.wavelet.op(x_tmp), extra_factor=eta)
+            )
             tkk = (1 + np.sqrt(1 + 4 * tk**2)) // 2
             xkk = x_tmp + ((tk - 1) / tkk) * (x_tmp - xk)
             xk.copy_(xkk)
