@@ -140,9 +140,10 @@ class SequentialReconstructor(BaseReconstructor):
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
+        if "backend" not in self.nufft_kwargs:
+            self.nufft_kwargs["backend"] = "stacked-cufinufft"
         self.fourier_op = get_fourier_operator(
             sim,
-            backend=self.nufft_backend,
             **self.nufft_kwargs,
         )
 
@@ -170,8 +171,6 @@ class SequentialReconstructor(BaseReconstructor):
 
     def reconstruct(self, sim: SimData, fourier_op: None = None) -> np.ndarray:
         """Reconstruct with Sequential."""
-        if fourier_op is not None:
-            self.fourier_op = fourier_op
         if self.reconstructor is None:
             self.setup(sim)
 
