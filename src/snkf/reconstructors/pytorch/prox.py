@@ -23,6 +23,15 @@ class WaveletSoftThreshold:
             d.copy_(max_val * d)
         return data
 
+    def cost(self, data: list[torch.Tensor]) -> float:
+        """Compute weighted L1 Norm cost."""
+        if isinstance(self.thresh, float):
+            self.thresh = [self.thresh] * (len(data) - 1)
+        cost = torch.Tensor([0]).to(data[0].device)
+        for i, d in enumerate(data):
+            cost += torch.sum(self.thresh[i] * d.abs())
+        return cost.item()
+
 
 def _sigma_mad(data: torch.Tensor, centered: bool = True) -> float:
     r"""Return a robust estimation of the standard deviation.

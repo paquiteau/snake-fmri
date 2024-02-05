@@ -14,7 +14,7 @@ from mrinufft import get_operator
 
 from ...simulation import SimData
 from ..base import BaseReconstructor
-from .wavelet import TorchWaveletTransform
+from ..gpu_wavelet import TorchWaveletTransform
 from .prox import WaveletSoftThreshold, AutoWaveletSoftThreshold
 
 TORCH_AVAILABLE = True
@@ -81,6 +81,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
             smaps=smaps,
             shape=sim.shape,
             n_coils=sim.n_coils,
+            max_iter=self.max_iter_per_frame * 10,
         )
         for i in tqdm(range(1, n_frames), position=0):
             final[i] = self._reconstruct(
@@ -90,6 +91,7 @@ class TorchSequentialReconstructor(BaseReconstructor):
                 smaps=smaps,
                 shape=sim.shape,
                 n_coils=sim.n_coils,
+                max_iter=self.max_iter_per_frame,
             )
         return final
 
@@ -101,12 +103,13 @@ class TorchSequentialReconstructor(BaseReconstructor):
         shape: tuple,
         smaps: cp.ndarray | None = None,
         n_coils: int = 1,
+        max_iter: int = 20,
     ) -> np.ndarray:
         """Reconstruct a single frame of data using FISTA."""
-        if "backend" not in self.nufft_kwargs:
-            self.nufft_kwargs["backend"] = "cufinufft"
+        if "backend_name" not in self.nufft_kwargs:
+            self.nufft_kwargs["backend_name"] = "cufinufft"
         nufft = get_operator(
-            kspace_mask,
+            samples=kspace_mask,
             shape=shape,
             n_coils=n_coils,
             smaps=smaps,
@@ -114,14 +117,15 @@ class TorchSequentialReconstructor(BaseReconstructor):
             **self.nufft_kwargs,
         )
         logger.debug("Estimating Lipschitz constant...")
-        L = nufft.get_lipschitz_cst(max_iter=10)
-        eta = 1 / L  #
-        logger.debug(f"step_size: {eta}")
+        L = nufft.get_lipschitz_cst(max_iter=20)
+        eta = 1 / L
+        logger.debug(f"Lipschitz constant is {L}, step size {eta}")
         xk = torch.empty(1, 1, *shape, dtype=torch.complex64, device="cuda")
         xk.copy_(torch.from_numpy(previous_frame))
         tk = 1
         kspace_data = torch.from_numpy(kspace_data).to("cuda")
-        for _ in tqdm(range(self.max_iter_per_frame), position=1, leave=False):
+        cost_prev = np.inf
+        for _ in tqdm(range(max_iter), position=1, leave=False):
             # Fista loop
             grad = nufft.data_consistency(xk, kspace_data)
             x_tmp = xk - eta * grad
@@ -132,5 +136,12 @@ class TorchSequentialReconstructor(BaseReconstructor):
             xkk = x_tmp + ((tk - 1) / tkk) * (x_tmp - xk)
             xk.copy_(xkk)
             tk = tkk
+            cost = self.prox.cost(self.wavelet.op(xkk)) + torch.linalg.norm(
+                nufft.op(xkk) - kspace_data
+            )
+            if (cost - cost_prev) / cost_prev < 1e-4:
+                break
+            else:
+                cost_prev = cost
 
         return xkk.to("cpu").numpy().squeeze()

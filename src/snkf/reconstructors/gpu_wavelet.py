@@ -2,6 +2,8 @@
 
 import torch
 import ptwt
+import cupy as cp
+import numpy as np
 
 
 class TorchWaveletTransform:
@@ -137,3 +139,49 @@ class TorchWaveletTransform:
         ]
         data = ptwt.waverec3(coeffs_, wavelet=self.wavelet, axes=(-3, -2, -1))
         return data
+
+
+class CupyWaveletTransform:
+    """Wrapper around torch wavelet transform."""
+
+    def __init__(
+        self,
+        shape: tuple[int, ...],
+        wavelet: str,
+        level: int,
+        mode: str,
+    ):
+        self.wavelet = wavelet
+        self.level = level
+        self.shape = shape
+        self.mode = mode
+
+        self.operator = TorchWaveletTransform(shape, wavelet, level, mode)
+
+    def op(self, data: cp.array) -> cp.ndarray:
+        """Apply Forward Wavelet transform on cupy array."""
+        data_ = torch.as_tensor(data)
+        tensor_list = self.operator.op(data_)
+        # flatten the list of tensor to a cupy array
+        # this requires an on device copy...
+        self.coeffs_shape = [c.shape for c in tensor_list]
+        n_tot_coeffs = np.sum([np.prod(s) for s in self.coeffs_shape])
+        ret = cp.zeros(n_tot_coeffs, dtype=np.complex64)  # FIXME get dtype from torch
+        start = 0
+        for t in tensor_list:
+            stop = start + np.prod(t.shape)
+            ret[start:stop] = cp.asarray(t.flatten())
+            start = stop
+
+        return ret
+
+    def adj_op(self, data: cp.ndarray) -> cp.ndarray:
+        """Apply Adjoint Wavelet transform on cupy array."""
+        start = 0
+        tensor_list = [None] * len(self.coeffs_shape)
+        for i, s in enumerate(self.coeffs_shape):
+            stop = start + np.prod(s)
+            tensor_list[i] = torch.as_tensor(data[start:stop].reshape(s), device="cuda")
+            start = stop
+        ret_tensor = self.operator.adj_op(tensor_list)
+        return cp.from_dlpack(ret_tensor)
