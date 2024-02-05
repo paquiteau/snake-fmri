@@ -42,7 +42,10 @@ def main_app(cfg: DictConfig) -> None:
 
     cache_dir = Path(cfg.cache_dir or os.getcwd())
     hash_sim = hash_config(
-        dict(sim_params=cfg.sim_params, handlers=cfg.handlers),
+        dict(
+            sim_params=OmegaConf.to_container(cfg.sim_params),
+            handlers=OmegaConf.to_container(cfg.handlers),
+        ),
         *getattr(cfg, "ignore_patterns", []),
     )
     sim_file = cache_dir / f"{hash_sim}.pkl"
@@ -69,6 +72,7 @@ def main_app(cfg: DictConfig) -> None:
     for rec_name, params in reconstructors.items():
         if params is None:
             logger.debug(f"Skipped {rec_name}, no parametrization")
+            continue
         data_test, rec_str = reconstruct(sim_file, rec_name, params)
         logger.debug("Current simulation state: %s", sim)
         with PerfLogger(logger, name="Analysis " + str(rec_str)):

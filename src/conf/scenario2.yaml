@@ -32,29 +32,30 @@ handlers:
     shot_time_ms: 50
     acsz: 0.125
     accelz: 4
-    n_samples: 8000
+    n_samples: 25000
     constant: false
     directionz: center-out
     backend: cufinufft
     n_jobs: 2
 
 reconstructors:
-  # adjoint:
-  #   nufft_backend: cufinufft
-  #   nufft_kwargs: {}
   sequential:
-    nufft_backend: stacked-cufinufft
     nufft_kwargs:
+      backend_name: stacked-cufinufft
       density: voronoi
+      z_index: auto
     optimizer: pogm
-    wavelet: sym8
+    wavelet: sym4
     threshold: sure
-    max_iter_per_frame: 30
-  sequential-torch:
-    threshold: 1e-5
     max_iter_per_frame: 40
-    backend: stacked-cufinufft
-
+  sequential-torch:
+    threshold: sure
+    wavelet: sym4
+    max_iter_per_frame: 40
+    nufft_kwargs:
+      backend_name: stacked-cufinufft
+      density: voronoi
+      z_index: auto
 stats:
   contrast_name: block_on
 
