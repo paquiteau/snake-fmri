@@ -5,7 +5,7 @@ and returns a reconstructed fMRI array.
 """
 
 from __future__ import annotations
-from typing import Literal, Any
+from typing import Literal, Any, Mapping
 import logging
 import warnings
 import numpy as np
@@ -14,6 +14,7 @@ from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
 
 from .base import BaseReconstructor, SpaceFourierProto
+from .gpu_wavelet import CupyWaveletTransform
 from snkf.simulation import SimData
 
 logger = logging.getLogger(__name__)
@@ -21,24 +22,23 @@ logger = logging.getLogger(__name__)
 
 def get_fourier_operator(
     sim: SimData,
-    backend: str | None,
+    backend_name: str | None = None,
     density: str = "cell_count",
     **kwargs: Any,
 ) -> SpaceFourierProto:
     """Return a Fourier operator for the given simulation."""
     kwargs = kwargs.copy() if kwargs is not None else {}
 
-    from mrinufft.operators import get_operator
     from fmri.operators.fourier import (
         CartesianSpaceFourier,
         LazySpaceFourier,
         PooledgpuNUFFTSpaceFourier,
     )
 
-    if backend is None:
-        backend = ""
+    if backend_name is None:
+        backend_name = ""
 
-    if backend == "gpunufft":
+    if backend_name == "gpunufft":
         return PooledgpuNUFFTSpaceFourier(
             sim.kspace_mask,
             sim.shape,
@@ -51,18 +51,18 @@ def get_fourier_operator(
         )
 
     smaps = sim.smaps
-    if "cufinufft" in backend:
+    if "cufinufft" in backend_name:
         import cupy as cp
 
         smaps = cp.array(smaps)
         kwargs["smaps_cached"] = True
 
-    if "stacked" in backend:
+    if "stacked" in backend_name:
         kwargs["z_index"] = "auto"
-    if "nufft" in backend or "stacked" in backend:
+    if "nufft" in backend_name or "stacked" in backend_name:
 
         return LazySpaceFourier(
-            backend=backend,
+            backend=backend_name,
             samples=sim.kspace_mask,
             shape=sim.shape,
             n_frames=len(sim.kspace_data),
@@ -93,9 +93,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        self.fourier_op = get_fourier_operator(
-            sim, self.nufft_backend, **self.nufft_kwargs
-        )
+        self.fourier_op = get_fourier_operator(sim, **self.nufft_kwargs)
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
@@ -125,14 +123,15 @@ class SequentialReconstructor(BaseReconstructor):
         optimizer: str = "pogm",
         wavelet: str = "sym8",
         threshold: float | Literal["sure"] = "sure",
-        nufft_backend: str | None = None,
         nufft_kwargs: dict | None = None,
+        compute_backend: str = "cupy",
     ):
-        super().__init__(nufft_backend, nufft_kwargs)
+        super().__init__(nufft_kwargs)
         self.max_iter_per_frame = max_iter_per_frame
         self.optimizer = optimizer
         self.wavelet = wavelet
         self.threshold = threshold
+        self.compute_backend = compute_backend
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -140,22 +139,32 @@ class SequentialReconstructor(BaseReconstructor):
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
-        if "backend" not in self.nufft_kwargs:
-            self.nufft_kwargs["backend"] = "stacked-cufinufft"
+        if "backend_name" not in self.nufft_kwargs:
+            self.nufft_kwargs["backend_name"] = "stacked-cufinufft"
         self.fourier_op = get_fourier_operator(
             sim,
             **self.nufft_kwargs,
         )
 
+        if (
+            self.compute_backend == "cupy"
+            and "cufinufft" not in self.nufft_kwargs["backend_name"]
+        ):
+            raise ValueError("Cupy backend requires cufinufft.")
+
         space_linear_op = WaveletTransform(
-            self.wavelet, shape=sim.shape, level=3, mode="zero"
+            self.wavelet,
+            shape=sim.shape,
+            level=3,
+            mode="zero",
+            compute_backend=self.compute_backend,
         )
 
-        coeffs = space_linear_op.op(np.zeros_like(sim.data_ref[0]))
+        _ = space_linear_op.op(np.zeros_like(sim.data_ref[0]))
 
         if self.threshold == "sure":
             space_prox_op = AutoWeightedSparseThreshold(
-                space_linear_op.coeffs_shape_list,
+                space_linear_op.coeffs_shape,
                 linear=None,
                 threshold_estimation="hybrid-sure",
                 threshold_scaler=0.6,
@@ -175,7 +184,10 @@ class SequentialReconstructor(BaseReconstructor):
             self.setup(sim)
 
         seq_rec = self.reconstructor.reconstruct(
-            sim.kspace_data, max_iter_per_frame=self.max_iter_per_frame, warm_x=True
+            sim.kspace_data,
+            max_iter_per_frame=self.max_iter_per_frame,
+            warm_x=True,
+            compute_backend=self.compute_backend,
         )
         return seq_rec
 
@@ -205,9 +217,9 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         time_prox_op: ProximityParent = None,
         space_prox_op: ProximityParent = None,
         fourier_op: SpaceFourierProto = None,
-        nufft_backend: str | None = None,
+        nufft_kwargs: Mapping[str, Any] | None = None,
     ):
-        super().__init__(nufft_backend)
+        super().__init__(nufft_kwargs)
         self.lambda_l = lambda_l
         self.lambda_s = lambda_s
         self.max_iter = max_iter
@@ -233,7 +245,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(
-                sim, cartesian_repeat=False, backend=self.nufft_backend
+                sim, cartesian_repeat=False, backend_name=self.nufft_backend
             )
 
         logger.debug("Space Fourier operator initialized")

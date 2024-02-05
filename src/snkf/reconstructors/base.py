@@ -32,11 +32,8 @@ class BaseReconstructor:
     name: None | str = None
     fourier_op: SpaceFourierProto
 
-    def __init__(
-        self, nufft_backend: str | None = None, nufft_kwargs: dict | None = None
-    ):
+    def __init__(self, nufft_kwargs: dict | None = None):
         self.reconstructor = None
-        self.nufft_backend = nufft_backend  # optional nufft backend
         self.nufft_kwargs = nufft_kwargs or {}
 
     def __init_subclass__(cls):
