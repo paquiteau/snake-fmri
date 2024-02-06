@@ -8,6 +8,7 @@ from numpy.typing import DTypeLike, NDArray
 
 import numpy as np
 from fmri.operators.fourier import FFT_Sense
+from joblib.externals.loky import get_reusable_executor
 from joblib import Parallel, delayed
 from mrinufft import get_operator
 
@@ -104,7 +105,7 @@ def acq_cartesian(
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
 
     shot_batches, shot_pos, kdata_t = zip(
-        *Parallel(n_jobs=n_jobs, backend="multiprocessing")(
+        *Parallel(n_jobs=n_jobs, backend="loky")(
             delayed(_cart_worker)(
                 sim_frame, shot_batch, shot_pos, smaps=sim.smaps, n_coils=sim.n_coils
             )
@@ -113,6 +114,9 @@ def acq_cartesian(
             )
         )
     )
+
+    get_reusable_executor().shutdown(wait=True)
+
     # reorganize the data
     kdata = np.zeros((n_kspace_frame, sim.n_coils, *sim.shape), np.complex64)
     kmask = np.zeros((n_kspace_frame, *sim.shape), np.float32)
@@ -159,7 +163,10 @@ def acq_noncartesian(
 
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
     shot_batches, shot_pos, kdata_t = zip(
-        *Parallel(n_jobs=n_jobs, backend="multiprocessing",)(
+        *Parallel(
+            n_jobs=n_jobs,
+            backend="loky",
+        )(
             delayed(_nufft_worker)(
                 sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
             )
@@ -168,6 +175,8 @@ def acq_noncartesian(
             )
         )
     )
+
+    get_reusable_executor().shutdown(wait=True)
 
     # reorganize the data
     kdata = np.zeros((n_kspace_frame, sim.n_coils, n_samples), np.complex64)
