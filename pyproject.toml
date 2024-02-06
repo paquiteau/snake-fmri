@@ -42,6 +42,7 @@ dependencies = [ # Optional
   "numpy",
   "scipy",
   "nilearn",
+  "pandas",
   "scikit-image", # problems on install otherwise ?
   "matplotlib",
   "seaborn",
