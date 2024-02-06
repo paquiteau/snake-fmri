@@ -491,6 +491,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         in_out: bool = True,
         pdfz: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
+        rotate_spirals: str | float = 0.0,
         smaps: bool = True,
         backend: str = "finufft",
         shot_time_ms: int = 50,
@@ -510,6 +511,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             "n_samples": n_samples,
             "nb_revolutions": nb_revolutions,
             "in_out": in_out,
+            "rotate_spirals": rotate_spirals,
         }
 
     def _handle(self, sim: SimData) -> SimData:

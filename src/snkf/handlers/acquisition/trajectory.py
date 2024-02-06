@@ -16,6 +16,7 @@ from mrinufft.trajectories.trajectory2D import (
 )
 
 from mrinufft.trajectories.tools import stack, rotate
+from mrinufft.trajectories.utils import R2D
 from mrinufft.trajectories.utils import (
     check_hardware_constraints,
     compute_gradients_and_slew_rates,
@@ -125,6 +126,7 @@ def stack_spiral_factory(
     directionz: Literal["center-out", "random"] = "center-out",
     pdfz: Literal["gaussian", "uniform"] = "gaussian",
     rng: RngType = None,
+    rotate_spirals: str | float = 0.0,
 ) -> np.ndarray:
     """Generate a trajectory of stack of spiral."""
     sizeZ = shape[-1]
@@ -133,6 +135,12 @@ def stack_spiral_factory(
         sizeZ, acsz, accelz, pdf=pdfz, rng=rng, direction=directionz
     )
 
+    if isinstance(rotate_spirals, str):
+        rotate_spirals = ROTATE_ANGLES[rotate_spirals]
+    elif not isinstance(rotate_spirals, float):
+        raise ValueError(
+            "rotate_spirals should be a float or a valid key in ROTATE_ANGLES."
+        )
     spiral2D = initialize_2D_spiral(
         Nc=1,
         Ns=n_samples,
@@ -146,7 +154,8 @@ def stack_spiral_factory(
     kspace_locs3d = np.zeros((nz, nsamples, 3), dtype=np.float32)
     # TODO use numpy api for this ?
     for i in range(nz):
-        kspace_locs3d[i, :, :2] = spiral2D
+        rotated_spiral = rotate_trajectory(spiral2D)
+        kspace_locs3d[i, :, :2] = rotated_spiral
         kspace_locs3d[i, :, 2] = z_kspace[i]
 
     return kspace_locs3d.astype(np.float32)
