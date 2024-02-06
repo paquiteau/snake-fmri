@@ -35,6 +35,9 @@ class ActivationHandler(AbstractHandler):
         Minimal onset relative to frame_times[0] (in seconds)
         events that start before frame_times[0] + min_onset are not considered.
         Default=-24.
+    roi_threshold: float, default 0.0
+        If greated than 0, the roi becomes a binary mask, with roi_threshold
+        as separation.
 
     See Also
     --------
@@ -49,6 +52,7 @@ class ActivationHandler(AbstractHandler):
         hrf_model: HrfType = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
+        roi_threshold: float = 0.0,
     ):
         super().__init__()
         if hrf_model not in get_args(HrfType):
@@ -60,6 +64,7 @@ class ActivationHandler(AbstractHandler):
         self._oversampling = oversampling
         self._bold_strength = bold_strength
         self._roi: np.ndarray | None = roi
+        self._roi_threshold = roi_threshold
         self._min_onset = min_onset
 
     @classmethod
@@ -128,8 +133,12 @@ class ActivationHandler(AbstractHandler):
         elif self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
 
+        if self._roi_threshold:  # optional binarization of the roi
+            roi = roi > self._roi_threshold
+
         if np.sum(abs(roi)) == 0:
             raise ValueError("roi is empty.")
+        # create HRF regressors.
         regressor, _ = compute_regressor(
             self._event_condition[["onset", "duration", "modulation"]].to_numpy().T,
             self._hrf_model,
@@ -197,6 +206,7 @@ class ActivationBlockHandler(ActivationHandler):
         hrf_model: HrfType = "glover",
         oversampling: int = 50,
         min_onset: float = -24.0,
+        roi_threshold: float = 0.0,
     ):
         super().__init__(
             block_design(block_on, block_off, duration, offset, event_name),
@@ -205,6 +215,7 @@ class ActivationBlockHandler(ActivationHandler):
             hrf_model=hrf_model,
             oversampling=oversampling,
             min_onset=min_onset,
+            roi_threshold=roi_threshold,
         )
 
 
