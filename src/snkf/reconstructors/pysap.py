@@ -5,16 +5,14 @@ and returns a reconstructed fMRI array.
 """
 
 from __future__ import annotations
-from typing import Literal, Any, Mapping
+from typing import Literal, Any
 import logging
-import warnings
 import numpy as np
 
 from modopt.opt.linear import LinearParent
 from modopt.opt.proximity import ProximityParent
 
 from .base import BaseReconstructor, SpaceFourierProto
-from .gpu_wavelet import CupyWaveletTransform
 from snkf.simulation import SimData
 
 logger = logging.getLogger(__name__)
@@ -93,7 +91,9 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
-        self.fourier_op = get_fourier_operator(sim, **self.nufft_kwargs)
+        self.fourier_op: SpaceFourierProto = get_fourier_operator(
+            sim, **self.nufft_kwargs
+        )
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
@@ -123,8 +123,9 @@ class SequentialReconstructor(BaseReconstructor):
         optimizer: str = "pogm",
         wavelet: str = "sym8",
         threshold: float | Literal["sure"] = "sure",
-        nufft_kwargs: dict | None = None,
+        nufft_kwargs: dict[str, Any] | None = None,
         compute_backend: str = "cupy",
+        restart_strategy: str = "warm",
     ):
         super().__init__(nufft_kwargs)
         self.max_iter_per_frame = max_iter_per_frame
@@ -132,6 +133,7 @@ class SequentialReconstructor(BaseReconstructor):
         self.wavelet = wavelet
         self.threshold = threshold
         self.compute_backend = compute_backend
+        self.restart_strategy = restart_strategy
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -174,20 +176,19 @@ class SequentialReconstructor(BaseReconstructor):
             space_prox_op = SparseThreshold(self.threshold)
         from fmri.reconstructors.frame_based import SequentialReconstructor
 
-        self.reconstructor = SequentialReconstructor(
+        self.reconstructor: SequentialReconstructor = SequentialReconstructor(
             self.fourier_op, space_linear_op, space_prox_op, optimizer=self.optimizer
         )
 
     def reconstruct(self, sim: SimData, fourier_op: None = None) -> np.ndarray:
         """Reconstruct with Sequential."""
-        if self.reconstructor is None:
-            self.setup(sim)
+        self.setup(sim)
 
         seq_rec = self.reconstructor.reconstruct(
             sim.kspace_data,
             max_iter_per_frame=self.max_iter_per_frame,
-            warm_x=True,
             compute_backend=self.compute_backend,
+            restart_strategy=self.restart_strategy,
         )
         return seq_rec
 
@@ -216,8 +217,8 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         time_linear_op: LinearParent = None,
         time_prox_op: ProximityParent = None,
         space_prox_op: ProximityParent = None,
-        fourier_op: SpaceFourierProto = None,
-        nufft_kwargs: Mapping[str, Any] | None = None,
+        fourier_op: SpaceFourierProto | None = None,
+        nufft_kwargs: dict[str, Any] | None = None,
     ):
         super().__init__(nufft_kwargs)
         self.lambda_l = lambda_l
@@ -245,7 +246,9 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
 
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(
-                sim, cartesian_repeat=False, backend_name=self.nufft_backend
+                sim,
+                cartesian_repeat=False,
+                **self.nufft_kwargs,
             )
 
         logger.debug("Space Fourier operator initialized")
@@ -275,11 +278,13 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
             )
         logger.debug("Prox Space operator initialized")
 
-        self.reconstructor = LowRankPlusSparseReconstructor(
-            self.fourier_op,
-            space_prox_op=self.space_prox_op,
-            time_prox_op=self.time_prox_op,
-            cost="auto",
+        self.reconstructor: LowRankPlusSparseReconstructor = (
+            LowRankPlusSparseReconstructor(
+                self.fourier_op,
+                space_prox_op=self.space_prox_op,
+                time_prox_op=self.time_prox_op,
+                cost="auto",
+            )
         )
         logger.debug("Reconstructor initialized")
 
@@ -289,8 +294,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         """Reconstruct using LowRank+Sparse Method."""
         if fourier_op is not None:
             self.fourier_op = fourier_op
-        if self.reconstructor is None:
-            self.setup(sim)
+        self.setup(sim)
         M, L, S, costs = self.reconstructor.reconstruct(
             sim.kspace_data,
             grad_step=0.5,
@@ -300,10 +304,15 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         return M
 
 
-class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor): ...
+class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor):
+    """Low Rank + TV."""
+
+    ...
 
 
 class LowRankPlusWaveletReconstructor(LowRankPlusSparseReconstructor):
+    """Low Rank + Wavelet."""
+
     ...
     # SURE threhsold estimated properly with the AutoWeighted Sparse Threhsold.
 
@@ -329,9 +338,9 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
         patch_shape: int,
         patch_overlap: int,
         recombination: str = "weighted",
-        nufft_backend: str | None = None,
+        nufft_kwargs: dict[str, Any] | None = None,
     ):
-        super().__init__(nufft_backend)
+        super().__init__(nufft_kwargs)
         self.patch_shape = patch_shape
         self.patch_overlap = patch_overlap
         self.recombination = recombination
