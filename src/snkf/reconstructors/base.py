@@ -2,7 +2,7 @@
 
 import logging
 import numpy as np
-from typing import Protocol
+from typing import Protocol, Any
 from snkf.simulation import SimData
 
 logger = logging.getLogger("Reconstructor")
@@ -30,9 +30,9 @@ class BaseReconstructor:
     """Represents the interface required to be benchmark-able."""
 
     name: None | str = None
-    fourier_op: SpaceFourierProto
+    fourier_op: SpaceFourierProto | None
 
-    def __init__(self, nufft_kwargs: dict | None = None):
+    def __init__(self, nufft_kwargs: dict[str, Any] | None = None):
         self.reconstructor = None
         self.nufft_kwargs = nufft_kwargs or {}
 

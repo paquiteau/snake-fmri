@@ -1,4 +1,5 @@
 """Multiprocessing module for the acquisition of data."""
+
 from __future__ import annotations
 
 import logging
@@ -34,6 +35,9 @@ def kspace_bulk_shot(
     n_batch: int = 3,
 ) -> Generator[tuple[int, np.ndarray, list[tuple[int, int]]], None, None]:
     """Generate a stream of shot, delivered in batch.
+
+    This function is a generator that yield a tuple of (sim_frame shots, shot_pos) where
+    shot_pos is a tuple describing the absolute position
 
     Parameters
     ----------
