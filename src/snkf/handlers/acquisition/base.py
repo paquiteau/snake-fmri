@@ -74,10 +74,11 @@ class BaseAcquisitionHandler(AbstractHandler):
 
     def __init__(self, constant: bool, smaps: bool, shot_time_ms: int):
         super().__init__()
-        self.constant = constant
         self.smaps = smaps
         self.shot_time_ms = shot_time_ms
-        self._traj_params: dict[str, Any] = dict()
+        self._traj_params: dict[str, Any] = dict(
+            constant=constant,
+        )
 
     def _acquire(
         self,
@@ -134,7 +135,6 @@ class BaseAcquisitionHandler(AbstractHandler):
 
         sim.extra_infos["TR_ms"] = kframe_tr
         sim.extra_infos["traj_name"] = "vds"
-        sim.extra_infos["traj_constant"] = self.constant
         sim.extra_infos["traj_params"] = self._traj_params
         sim.extra_infos["n_shot_per_frame"] = n_shot_traj
 
@@ -231,7 +231,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
         n_jobs: int = 1,
     ):
         super().__init__(constant=constant, shot_time_ms=shot_time_ms, smaps=smaps)
-        self._traj_params = {
+        self._traj_params |= {
             "acs": acs,
             "accel": accel,
             "accel_axis": accel_axis,
@@ -350,7 +350,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
         self.traj_factory = trajectory_factory
         self.traj_generator = traj_generator or trajectory_generator
         self.shot_time_ms = shot_time_ms
-        self._traj_params = traj_params
+        self._traj_params |= traj_params
         self.n_jobs = n_jobs
 
     def _handle(self, sim: SimData) -> SimData:
@@ -429,7 +429,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
             n_jobs=n_jobs,
         )
 
-        self._traj_params = {
+        self._traj_params |= {
             "n_shots": n_shots,
             "n_points": n_points,
             "expansion": expansion,
@@ -491,7 +491,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         in_out: bool = True,
         pdfz: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
-        rotate_spirals: str | float = 0.0,
+        rotate_angle: str | float = 0.0,
         smaps: bool = True,
         backend: str = "finufft",
         shot_time_ms: int = 50,
@@ -503,7 +503,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             shot_time_ms=shot_time_ms,
             n_jobs=n_jobs,
         )
-        self._traj_params = {
+        self._traj_params |= {
             "acsz": acsz,
             "accelz": accelz,
             "directionz": directionz,
@@ -511,7 +511,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             "n_samples": n_samples,
             "nb_revolutions": nb_revolutions,
             "in_out": in_out,
-            "rotate_spirals": rotate_spirals,
+            "rotate_angle": rotate_angle,
         }
 
     def _handle(self, sim: SimData) -> SimData:
