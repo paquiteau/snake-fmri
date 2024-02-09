@@ -9,8 +9,8 @@ import copy
 import os
 import logging
 from abc import ABCMeta, abstractmethod
-from typing import Callable, Any, Mapping, IO
-from typing_extensions import TypedDict
+from typing import Callable, Any, Mapping, IO, TYPE_CHECKING
+
 import yaml
 
 from ..simulation import SimData, SimParams, UndefinedArrayError
@@ -18,12 +18,14 @@ from ..simulation import SimData, SimParams, UndefinedArrayError
 
 CallbackType = Callable[[SimData, SimData], Any]
 
+if TYPE_CHECKING:
+    from typing_extensions import TypedDict
 
-class ConfigDict(TypedDict):
-    """ConfigDict Class."""
+    class ConfigDict(TypedDict):
+        """ConfigDict Class."""
 
-    sim_params: dict
-    handlers: dict[str, dict[str, Any]]
+        sim_params: dict
+        handlers: dict[str, dict[str, Any]]
 
 
 class MetaHandler(ABCMeta):
