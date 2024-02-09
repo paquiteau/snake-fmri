@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, Callable, Generator, Mapping
-from numpy.typing import DTypeLike, NDArray
+from typing import Any, Generator, Mapping
+from numpy.typing import NDArray
 
 import numpy as np
 from fmri.operators.fourier import FFT_Sense
@@ -126,7 +126,7 @@ def acq_cartesian(
     kmask = np.zeros((n_kspace_frame, *sim.shape), np.float32)
 
     for i, sp in enumerate(shot_pos):
-        for ii, (kk, ss) in enumerate(sp):
+        for ii, (kk, _) in enumerate(sp):
             mask = np.zeros(sim.shape, dtype=bool)
             mask[_get_slicer(shot_batches[i][ii])] = 1
             if sim.n_coils == 1:
@@ -152,17 +152,13 @@ def acq_noncartesian(
     n_samples = np.prod(test_traj.shape[:-1])
     dim = test_traj.shape[-1]
 
-    nufft_backend = kwargs.pop("backend")
-    logger.debug("Using backend %s", nufft_backend)
-    kwargs["nufft_backend"] = nufft_backend
-    if nufft_backend == "stacked":
-        kwargs["z_index"] = "auto"
     logger.debug("extra kwargs %s", kwargs)
     op_kwargs = dict(
         shape=sim.shape,
         n_coils=sim.n_coils,
         density=False,
-        backend_name=nufft_backend,
+        smaps=sim.smaps,
+        **kwargs,
     )
 
     scheduler = kspace_bulk_shot(trajectory_gen, sim.n_frames, n_shot_sim_frame)
@@ -171,9 +167,7 @@ def acq_noncartesian(
             n_jobs=n_jobs,
             backend="loky",
         )(
-            delayed(_nufft_worker)(
-                sim_frame, shot_batch, shot_pos, op_kwargs, sim.smaps
-            )
+            delayed(_nufft_worker)(sim_frame, shot_batch, shot_pos, op_kwargs)
             for sim_frame, shot_batch, shot_pos in tqdm(
                 work_generator(sim.data_acq, scheduler)
             )
@@ -208,9 +202,12 @@ def _nufft_worker(
     shot_batch: NDArray[np.int_],
     shot_pos: tuple[int, int],
     op_kwargs: Mapping[str, Any],
-    smaps: np.ndarray,
 ) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
     """Perform a shot acquisition."""
+
+    import cupy as cp
+
+    cp.arange(50).get()
     with warnings.catch_warnings():
         warnings.filterwarnings(
             "ignore",
@@ -218,7 +215,7 @@ def _nufft_worker(
             module="mrinufft",
         )
 
-        fourier_op = get_operator(samples=shot_batch, smaps=smaps, **op_kwargs)
+        fourier_op = get_operator(samples=shot_batch, **op_kwargs)
         kspace = fourier_op.op(sim_frame)
     #  write to share memory shots location and values.
     return shot_batch, shot_pos, kspace

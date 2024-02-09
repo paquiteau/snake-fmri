@@ -72,13 +72,15 @@ class BaseAcquisitionHandler(AbstractHandler):
     acquire_mp = staticmethod(acq_cartesian)
     cartesian = True
 
-    def __init__(self, constant: bool, smaps: bool, shot_time_ms: int):
+    def __init__(self, constant: bool, smaps: bool, shot_time_ms: int, n_jobs: int = 1):
         super().__init__()
         self.smaps = smaps
         self.shot_time_ms = shot_time_ms
         self._traj_params: dict[str, Any] = dict(
             constant=constant,
         )
+
+        self.n_jobs = n_jobs
 
     def _acquire(
         self,
@@ -143,6 +145,7 @@ class BaseAcquisitionHandler(AbstractHandler):
             trajectory_generator,
             n_shot_sim_frame,
             n_kspace_frame,
+            n_jobs=self.n_jobs,
             **kwargs,
         )
 
@@ -230,7 +233,9 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
         smaps: bool = True,
         n_jobs: int = 1,
     ):
-        super().__init__(constant=constant, shot_time_ms=shot_time_ms, smaps=smaps)
+        super().__init__(
+            constant=constant, shot_time_ms=shot_time_ms, smaps=smaps, n_jobs=n_jobs
+        )
         self._traj_params |= {
             "acs": acs,
             "accel": accel,
@@ -239,8 +244,6 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
             "pdf": pdf,
         }
 
-        self.n_jobs = n_jobs
-
     def _handle(self, sim: SimData) -> SimData:
         self._traj_params["rng"] = validate_rng(sim.rng)
         return self._acquire(
@@ -248,7 +251,6 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
             trajectory_generator=trajectory_generator(
                 vds_factory, sim.shape, **self._traj_params
             ),
-            n_jobs=self.n_jobs,
         )
 
 
@@ -296,9 +298,10 @@ class NonCartesianAcquisitionHandler(BaseAcquisitionHandler):
         shot_time_ms: int = 50,
         n_jobs: int = 4,
     ):
-        super().__init__(constant=constant, smaps=smaps, shot_time_ms=shot_time_ms)
+        super().__init__(
+            constant=constant, smaps=smaps, shot_time_ms=shot_time_ms, n_jobs=n_jobs
+        )
         self._backend = backend
-        self.n_jobs = n_jobs
 
 
 class GenericAcquisitionHandler(BaseAcquisitionHandler):
@@ -344,6 +347,9 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
         constant: bool = True,
         n_jobs: int = 1,
     ):
+        super().__init__(
+            constant=constant, smaps=smaps, shot_time_ms=shot_time_ms, n_jobs=n_jobs
+        )
         self.acquire_mp = staticmethod(
             acq_cartesian if self.cartesian else acq_noncartesian
         )
@@ -351,7 +357,6 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
         self.traj_generator = traj_generator or trajectory_generator
         self.shot_time_ms = shot_time_ms
         self._traj_params |= traj_params
-        self.n_jobs = n_jobs
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
@@ -359,7 +364,6 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
             trajectory_generator=self.traj_generator(
                 self.traj_factory, sim.shape, **self._traj_params
             ),
-            n_jobs=self.n_jobs,
         )
 
 
@@ -368,17 +372,32 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     name = "acquisition-generic-noncartesian"
 
-    def __init__(self, traj_files: list[str] | str, smaps: bool, shot_time_ms: int):
+    def __init__(
+        self,
+        traj_files: list[str] | str,
+        smaps: bool,
+        shot_time_ms: int,
+        backend: str,
+        n_jobs: int = 1,
+    ):
         if isinstance(traj_files, str):
             traj_files = [traj_files]
 
         super().__init__(
-            constant=len(traj_files) == 1, shot_time_ms=shot_time_ms, smaps=smaps
+            constant=len(traj_files) == 1,
+            shot_time_ms=shot_time_ms,
+            smaps=smaps,
+            n_jobs=n_jobs,
+            backend=backend,
         )
         self.traj_files = traj_files
 
     def _handle(self, sim: SimData) -> SimData:
-        return self._acquire(sim, trajectory_generator=self.traj_generator)
+        return self._acquire(
+            sim,
+            trajectory_generator=self.traj_generator(),
+            backend_name=self._backend,
+        )
 
     def traj_generator(self) -> Generator[np.ndarray, None, None]:
         """Generate trajectory by cycling over the files."""
@@ -449,7 +468,6 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
                 trajectory_generator(radial_factory, sim.shape, **self._traj_params),
                 self._angle,
             ),
-            n_jobs=self.n_jobs,
         )
 
 
@@ -526,8 +544,6 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
                 stack_spiral_factory, **self._traj_params
             ),
             # extra kwargs for the nufft operator
-            op_backend="stacked",
             z_index="auto",
-            backend=self._backend,
-            n_jobs=self.n_jobs,
+            backend_name=self._backend,
         )
