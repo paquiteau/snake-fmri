@@ -1,4 +1,5 @@
-# This files contains the configuration to reproduce the scenario 2 of the Simfmri paper.
+# This files contains the configuration to reproduce the scenario 3 of the Simfmri paper.
+# it requires a SPARKLING trajectory.
 
 force_sim: false
 cache_dir: ${oc.env:PWD}/cache
@@ -11,7 +12,7 @@ sim_params:
   sim_time: 300
   shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
   fov: [-1,-1,-1]
-  n_coils: 8
+  n_coils: 32
   rng: 19980408
   lazy: true
 handlers:
@@ -28,34 +29,22 @@ handlers:
     bold_strength: 0.02
   noise-gaussian:
     snr: 100
-  acquisition-sos:
-    shot_time_ms: 50
-    acsz: 0.125
-    accelz: 4
-    n_samples: 25000
-    constant: false
-    directionz: center-out
-    backend: stacked-cufinufft
-    n_jobs: 2
+  acquisition-generic-noncartesian:
+    shot_time_ms: 20
+    n_jobs: 4
+    traj_files: ${oc.env:PWD}/cache/trajectory/sparkling3d-48-2688x5.bin
+    smaps: true
+    backend: "cufinufft"
 
 reconstructors:
   sequential:
     nufft_kwargs:
-      backend_name: stacked-cufinufft
-      density: voronoi
-      z_index: auto
+      backend_name: cufinufft
+      density: cell_count
     optimizer: pogm
     wavelet: sym4
     threshold: sure
     max_iter_per_frame: 40
-  sequential-torch:
-    threshold: sure
-    wavelet: sym4
-    max_iter_per_frame: 40
-    nufft_kwargs:
-      backend_name: stacked-cufinufft
-      density: voronoi
-      z_index: auto
 stats:
   contrast_name: block_on
 
