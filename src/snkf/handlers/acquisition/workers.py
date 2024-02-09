@@ -204,7 +204,6 @@ def _nufft_worker(
     op_kwargs: Mapping[str, Any],
 ) -> tuple[np.ndarray, tuple[int, int], np.ndarray]:
     """Perform a shot acquisition."""
-
     import cupy as cp
 
     cp.arange(50).get()

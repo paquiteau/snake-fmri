@@ -34,7 +34,7 @@ handlers:
     n_jobs: 4
     traj_files: ${oc.env:PWD}/cache/trajectory/sparkling3d-48-2688x5.bin
     smaps: true
-    backend: "cufinufft"
+    backend: "gpunufft"
 
 reconstructors:
   sequential:
