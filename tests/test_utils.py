@@ -1,10 +1,11 @@
 """Test utilities."""
+
 import pytest
 import numpy as np
 
 from snkf.handlers.phantom._big import _is_in_triangle, _is_in_triangle_mplt
 
-from snkf.utils.utils import validate_rng, cplx_type
+from snkf.base import validate_rng, cplx_type
 
 
 @pytest.mark.parametrize("triangle_check", [_is_in_triangle, _is_in_triangle_mplt])

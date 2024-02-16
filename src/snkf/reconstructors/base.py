@@ -2,11 +2,11 @@
 
 import logging
 import numpy as np
-from typing import Protocol, Any
+from typing import Protocol, Any, ClassVar
 from snkf.simulation import SimData
+from snkf.base import MetaDCRegister
 
 logger = logging.getLogger("Reconstructor")
-RECONSTRUCTORS = {}
 
 
 class SpaceFourierProto(Protocol):
@@ -26,20 +26,19 @@ class SpaceFourierProto(Protocol):
         ...
 
 
-class BaseReconstructor:
+class MetaReconstructor(MetaDCRegister):
+    """MetaClass Reconstructor."""
+
+    dunder_name = "reconstructor"
+
+
+class BaseReconstructor(metaclass=MetaReconstructor):
     """Represents the interface required to be benchmark-able."""
 
-    name: None | str = None
-    fourier_op: SpaceFourierProto | None
+    __registry__: ClassVar[dict]
+    __reconstructor_name__: ClassVar[str]
 
-    def __init__(self, nufft_kwargs: dict[str, Any] | None = None):
-        self.reconstructor = None
-        self.nufft_kwargs = nufft_kwargs or {}
-
-    def __init_subclass__(cls):
-        """Register reconstructors."""
-        if cls_name := getattr(cls, "name", None):
-            RECONSTRUCTORS[cls_name] = cls
+    nufft_kwargs: dict[str, Any]
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -56,7 +55,7 @@ class BaseReconstructor:
 def get_reconstructor(name: str) -> type[BaseReconstructor]:
     """Get a handler from its name."""
     try:
-        return RECONSTRUCTORS[name]
+        return BaseReconstructor.__registry__[name]
     except KeyError as e:
         raise ValueError(
             f"Unknown Reconstructor, {name}, available are {list_reconstructors()}"
@@ -65,4 +64,4 @@ def get_reconstructor(name: str) -> type[BaseReconstructor]:
 
 def list_reconstructors() -> list[str]:
     """List available reconstructors."""
-    return list(RECONSTRUCTORS.keys())
+    return list(BaseReconstructor.__registry__.keys())

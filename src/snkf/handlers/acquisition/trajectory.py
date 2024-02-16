@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal, Mapping, Any
 from collections.abc import Generator
 import numpy as np
-from snkf.utils.typing import RngType, AnyShape
+from snkf.base import RngType, AnyShape
 from numpy.typing import NDArray
 
 from .cartesian_sampling import get_kspace_slice_loc

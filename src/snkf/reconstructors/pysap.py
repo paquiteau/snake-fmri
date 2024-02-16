@@ -84,7 +84,7 @@ def get_fourier_operator(
 class ZeroFilledReconstructor(BaseReconstructor):
     """Reconstruction using zero-filled (ifft) method."""
 
-    name = "adjoint"
+    __reconstructor_name__ = "adjoint"
 
     def __str__(self):
         return "Adjoint"
@@ -115,25 +115,15 @@ class SequentialReconstructor(BaseReconstructor):
         Threshold value for the wavelet regularisation.
     """
 
-    name = "sequential"
+    __reconstructor_name__ = "sequential"
 
-    def __init__(
-        self,
-        max_iter_per_frame: int = 15,
-        optimizer: str = "pogm",
-        wavelet: str = "sym8",
-        threshold: float | Literal["sure"] = "sure",
-        nufft_kwargs: dict[str, Any] | None = None,
-        compute_backend: str = "cupy",
-        restart_strategy: str = "warm",
-    ):
-        super().__init__(nufft_kwargs)
-        self.max_iter_per_frame = max_iter_per_frame
-        self.optimizer = optimizer
-        self.wavelet = wavelet
-        self.threshold = threshold
-        self.compute_backend = compute_backend
-        self.restart_strategy = restart_strategy
+    max_iter_per_frame: int = 15
+    optimizer: str = "pogm"
+    wavelet: str = "sym8"
+    threshold: float | str = "sure"
+    nufft_kwargs: dict[str, Any] | None = None
+    compute_backend: str = "cupy"
+    restart_strategy: str = "warm"
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -217,7 +207,7 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         maximal number of interation.
     """
 
-    name = "lr_f"
+    __reconstructor_name__ = "lr_f"
 
     def __init__(
         self,

@@ -8,56 +8,21 @@ import copy
 import os
 import logging
 from abc import abstractmethod
-from typing import Callable, Any, Mapping, TYPE_CHECKING, ClassVar
+from typing import Callable, Any, Mapping, ClassVar, IO
 
 import yaml
 
 from ..simulation import SimData, SimParams, UndefinedArrayError
+from ..base import MetaDCRegister
 
 
 CallbackType = Callable[[SimData, SimData], Any]
 
-if TYPE_CHECKING:
-    from typing_extensions import TypedDict
-    from typing_extensions import dataclass_transform
 
-    class ConfigDict(TypedDict):
-        """ConfigDict Class."""
+class MetaHandler(MetaDCRegister):
+    """MetaClass for Handlers."""
 
-        sim_params: dict
-        handlers: dict[str, dict[str, Any]]
-
-
-@dataclass_transform(kw_only_default=True)
-class MetaHandler(type):
-    """A Metaclass for Handlers.
-
-    This metaclass does 3 things:
-    - Register all the handlers that have a ``name`` class attribute
-    - Save the call to init ( for conversion to config string ) in a `_init_params`
-      attribute.
-    - Add a _callback = [] attribute, to store possible callbacks
-
-    """
-
-    registry: dict[str, type[AbstractHandler]] = {}
-
-    def __new__(
-        meta: type[MetaHandler],
-        clsname: str,
-        bases: tuple,
-        class_dict: dict,
-    ) -> type[AbstractHandler]:
-        """Create Handler Class as a dataclass, and register it.
-
-        No need for @dataclass decorator
-        """
-        cls: type[AbstractHandler] = dataclasses.dataclass(kw_only=True)(
-            super().__new__(meta, clsname, bases, class_dict)  # type: ignore
-        )
-        if cls.__handler_name__ is not None:
-            meta.registry[cls.__handler_name__] = cls
-        return cls
+    dunder_name = "handler"
 
 
 class AbstractHandler(metaclass=MetaHandler):
@@ -79,8 +44,11 @@ class AbstractHandler(metaclass=MetaHandler):
 
     """
 
+    __registry__: ClassVar[dict]
     __handler_name__: ClassVar[str]
-    _callbacks: list[Callable] = dataclasses.field(default_factory=list, repr=False)
+
+    def __post_init__(self):
+        self._callbacks: list[Callable] = []
 
     def __rshift__(self, other: AbstractHandler | HandlerChain):
         """Perform self >> other."""
@@ -189,9 +157,8 @@ class AbstractHandler(metaclass=MetaHandler):
         """Get a logger."""
         return logging.getLogger(f"simulation.handlers.{self.__class__.__name__}")
 
-    @abstractmethod
     def _handle(self, sim: SimData) -> SimData:
-        pass
+        raise NotImplementedError
 
 
 class DummyHandler(AbstractHandler):
@@ -330,11 +297,11 @@ class HandlerChain:
         }
         return yaml.dump(conf, filename)  # type: ignore
 
-    # @classmethod
-    # def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
-    #     """Convert a yaml config to a chain of handlers."""
-    #     conf = yaml.safe_load(stream)
-    #     return cls.from_conf(conf["sim_param"], conf["handlers"])
+    @classmethod
+    def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
+        """Convert a yaml config to a chain of handlers."""
+        conf = yaml.safe_load(stream)
+        return cls.from_conf(conf["sim_param"], conf["handlers"])
 
     @classmethod
     def from_conf(
@@ -344,23 +311,23 @@ class HandlerChain:
         sim = SimData(**sim_param)
         handlers = []
         for h_name, h_conf in handlers_conf.items():
-            handlers.append(MetaHandler.registry[h_name](**h_conf))
+            handlers.append(AbstractHandler.__registry__[h_name](**h_conf))
         return HandlerChain(*handlers), sim
 
 
 # short alias
-H = MetaHandler.registry
+H = AbstractHandler.__registry__
 handler = H
 
 
 def list_handlers() -> list[str]:
     """List all available handlers."""
-    return list(MetaHandler.registry.keys())
+    return list(H.keys())
 
 
 def get_handler(name: str) -> type[AbstractHandler]:
     """Get a handler from its name."""
-    return MetaHandler.registry[name]
+    return H[name]
 
 
 def requires_field(

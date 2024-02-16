@@ -14,7 +14,7 @@ import logging
 
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
-from snkf.utils import cplx_type
+from snkf.base import cplx_type
 from .lazy import LazySimArray
 
 logger = logging.getLogger(__name__)

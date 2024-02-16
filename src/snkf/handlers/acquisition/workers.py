@@ -21,7 +21,7 @@ except ImportError:
 from tqdm.auto import tqdm
 
 from snkf.simulation import SimData, LazySimArray
-from snkf.utils import DuplicateFilter
+from snkf.base import DuplicateFilter
 from ._tools import TrajectoryGeneratorType
 
 # from mrinufft import get_operator

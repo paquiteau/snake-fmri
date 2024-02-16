@@ -1,5 +1,6 @@
 """Activation handlers."""
-from .activation import ActivationHandler
+
+from .activation import ActivationBlockHandler
 
 
-__all__ = ["ActivationHandler"]
+__all__ = ["ActivationBlockHandler"]
