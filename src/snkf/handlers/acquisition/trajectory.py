@@ -123,6 +123,7 @@ def stack_spiral_factory(
     nb_revolutions: int,
     shot_time_ms: int | None = None,
     in_out: bool = True,
+    spiral: str = "archimedes",
     directionz: Literal["center-out", "random"] = "center-out",
     pdfz: Literal["gaussian", "uniform"] = "gaussian",
     rng: RngType = None,
@@ -146,6 +147,7 @@ def stack_spiral_factory(
         Nc=1,
         Ns=n_samples,
         nb_revolutions=nb_revolutions,
+        spiral=spiral,
         in_out=in_out,
     ).reshape(-1, 2)
     z_kspace = (z_index - sizeZ // 2) / sizeZ

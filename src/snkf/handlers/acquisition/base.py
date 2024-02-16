@@ -506,6 +506,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         directionz: Literal["center-out", "random"],
         n_samples: int = 3000,
         nb_revolutions: int = 10,
+        spiral_name: str = "archimedes",
         in_out: bool = True,
         pdfz: Literal["gaussian", "uniform"] = "gaussian",
         constant: bool = False,
@@ -528,6 +529,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             "pdfz": pdfz,
             "n_samples": n_samples,
             "nb_revolutions": nb_revolutions,
+            "spiral": spiral_name,
             "in_out": in_out,
             "rotate_angle": rotate_angle,
         }
