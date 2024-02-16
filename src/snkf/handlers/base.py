@@ -28,7 +28,7 @@ if TYPE_CHECKING:
         handlers: dict[str, dict[str, Any]]
 
 
-@dataclass_transform()
+@dataclass_transform(kw_only_default=True)
 class MetaHandler(type):
     """A Metaclass for Handlers.
 

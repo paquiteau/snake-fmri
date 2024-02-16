@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import dataclasses
 from collections.abc import Generator
 from itertools import cycle
 from typing import Any, Literal, Callable
@@ -69,18 +70,15 @@ class BaseAcquisitionHandler(AbstractHandler):
         s(t) = \sum_{x \in \Omega} \rho(x,t) \exp(-2i\pi k(t) \cdot x) \Delta x
     """
 
+    shot_time_ms: int
+    constant: bool = False
+    smaps: bool = True
+    n_jobs: int = 1
+
     acquire_mp = staticmethod(acq_cartesian)
-    cartesian = True
 
-    def __init__(self, constant: bool, smaps: bool, shot_time_ms: int, n_jobs: int = 1):
-        super().__init__()
-        self.smaps = smaps
-        self.shot_time_ms = shot_time_ms
-        self._traj_params: dict[str, Any] = dict(
-            constant=constant,
-        )
-
-        self.n_jobs = n_jobs
+    def __post_init__(self):
+        self._traj_params = {"constant": self.constant}
 
     def _acquire(
         self,
@@ -221,27 +219,26 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
 
     __handler_name__ = "acquisition-vds"
 
-    def __init__(
+    acs: float | int
+    accel: int
+    accel_axis: int
+    shot_time_ms: int
+    direction: Literal["center-out", "random"] = "center-out"
+    pdf: Literal["gaussian", "uniform"] = "gaussian"
+    constant: bool = False
+    smaps: bool = True
+    n_jobs: int = 1
+
+    def __post_init__(
         self,
-        acs: float | int,
-        accel: int,
-        accel_axis: int,
-        direction: Literal["center-out", "random"],
-        shot_time_ms: int,
-        pdf: Literal["gaussian", "uniform"] = "gaussian",
-        constant: bool = False,
-        smaps: bool = True,
-        n_jobs: int = 1,
     ):
-        super().__init__(
-            constant=constant, shot_time_ms=shot_time_ms, smaps=smaps, n_jobs=n_jobs
-        )
+        super().__post_init__()
         self._traj_params |= {
-            "acs": acs,
-            "accel": accel,
-            "accel_axis": accel_axis,
-            "direction": direction,
-            "pdf": pdf,
+            "acs": self.acs,
+            "accel": self.accel,
+            "accel_axis": self.accel_axis,
+            "direction": self.direction,
+            "pdf": self.pdf,
         }
 
     def _handle(self, sim: SimData) -> SimData:
@@ -289,19 +286,11 @@ class NonCartesianAcquisitionHandler(BaseAcquisitionHandler):
 
     acquire_mp = staticmethod(acq_noncartesian)
 
-    # TODO: add other trajectories sampling and refactor.
-    def __init__(
-        self,
-        constant: bool = False,
-        smaps: bool = True,
-        backend: str = "finufft",
-        shot_time_ms: int = 50,
-        n_jobs: int = 4,
-    ):
-        super().__init__(
-            constant=constant, smaps=smaps, shot_time_ms=shot_time_ms, n_jobs=n_jobs
-        )
-        self._backend = backend
+    constant: bool = False
+    smaps: bool = True
+    backend: str = "finufft"
+    shot_time_ms: int = 50
+    n_jobs: int = 4
 
 
 class GenericAcquisitionHandler(BaseAcquisitionHandler):
@@ -336,27 +325,21 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
 
     __handler_name__ = "acquisition-generic"
 
-    def __init__(
-        self,
-        trajectory_factory: TrajectoryFactoryProtocol,
-        traj_params: dict[str, Any],
-        shot_time_ms: int,
-        traj_generator: TrajectoryGeneratorType | None = None,
-        cartesian: bool = True,
-        smaps: bool = True,
-        constant: bool = True,
-        n_jobs: int = 1,
-    ):
-        super().__init__(
-            constant=constant, smaps=smaps, shot_time_ms=shot_time_ms, n_jobs=n_jobs
-        )
+    traj_factory: TrajectoryFactoryProtocol
+    traj_params: dict[str, Any]
+    shot_time_ms: int
+    traj_generator: TrajectoryGeneratorType
+    cartesian: bool = True
+    smaps: bool = True
+    constant: bool = True
+    n_jobs: int = 1
+
+    def __post_init__(self):
+        super().__post_init__()
         self.acquire_mp = staticmethod(
             acq_cartesian if self.cartesian else acq_noncartesian
         )
-        self.traj_factory = trajectory_factory
-        self.traj_generator = traj_generator or trajectory_generator
-        self.shot_time_ms = shot_time_ms
-        self._traj_params |= traj_params
+        self._traj_params |= self.traj_params
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
@@ -372,33 +355,23 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     __handler_name__ = "acquisition-generic-noncartesian"
 
-    def __init__(
-        self,
-        traj_files: list[str] | str,
-        smaps: bool,
-        shot_time_ms: int,
-        backend: str,
-        traj_osf: int = 1,
-        n_jobs: int = 1,
-    ):
-        if isinstance(traj_files, str):
-            traj_files = [traj_files]
+    traj_files: list[str] | str
+    smaps: bool
+    shot_time_ms: int
+    backend: str
+    traj_osf: int = 1
+    n_jobs: int = 1
 
-        super().__init__(
-            constant=len(traj_files) == 1,
-            shot_time_ms=shot_time_ms,
-            smaps=smaps,
-            n_jobs=n_jobs,
-            backend=backend,
-        )
-        self.traj_files = traj_files
-        self.traj_osf = traj_osf
+    def __post_init__(self):
+        super().__post_init__()
+        if isinstance(self.traj_files, str):
+            self.traj_files = [self.traj_files]
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
             sim,
             trajectory_generator=self.traj_generator(),
-            backend_name=self._backend,
+            backend_name=self.backend,
         )
 
     def traj_generator(self) -> Generator[np.ndarray, None, None]:
@@ -431,45 +404,37 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     __handler_name__ = "acquisition-radial"
 
-    def __init__(
-        self,
-        n_shots: int,
-        n_points: int,
-        expansion: str = "rotation",
-        n_repeat: int = 1,
-        angle: str = "constant",
-        shot_time_ms: int = 20,
-        smaps: bool = True,
-        backend: str = "finufft",
-        n_jobs: int = 4,
-    ) -> None:
-        super().__init__(
-            constant=angle == "constant",
-            shot_time_ms=shot_time_ms,
-            smaps=smaps,
-            backend=backend,
-            n_jobs=n_jobs,
-        )
+    n_shots: int
+    n_points: int
+    expansion: str = "rotation"
+    n_repeat: int = 1
+    angle: str = "constant"
+    shot_time_ms: int = 20
+    smaps: bool = True
+    backend: str = "finufft"
+    n_jobs: int = 4
+    constant: bool = dataclasses.field(init=False, repr=False)
 
+    def __post_init__(self):
+        super().__post_init__()
+
+        self.constant = self.angle == "constant"
         self._traj_params |= {
-            "n_shots": n_shots,
-            "n_points": n_points,
-            "expansion": expansion,
-            "n_repeat": n_repeat,
-            "shot_time_ms": shot_time_ms,
-            #            "TR_ms": shot_time_ms * n_shots,
+            "n_shots": self.n_shots,
+            "n_points": self.n_points,
+            "expansion": self.expansion,
+            "n_repeat": self.n_repeat,
+            "shot_time_ms": self.shot_time_ms,
         }
 
-        self._angle = angle
-
     def _handle(self, sim: SimData) -> SimData:
-        sim.extra_infos["operator"] = self._backend
+        sim.extra_infos["operator"] = self.backend
 
         return self._acquire(
             sim,
             trajectory_generator=rotate_trajectory(
                 trajectory_generator(radial_factory, sim.shape, **self._traj_params),
-                self._angle,
+                self.angle,
             ),
         )
 
@@ -502,46 +467,39 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     __handler_name__ = "acquisition-sos"
 
-    def __init__(
-        self,
-        acsz: float | int,
-        accelz: int,
-        directionz: Literal["center-out", "random"],
-        n_samples: int = 3000,
-        nb_revolutions: int = 10,
-        spiral_name: str = "archimedes",
-        in_out: bool = True,
-        pdfz: Literal["gaussian", "uniform"] = "gaussian",
-        constant: bool = False,
-        rotate_angle: str | float = 0.0,
-        smaps: bool = True,
-        backend: str = "finufft",
-        shot_time_ms: int = 50,
-        n_jobs: int = 4,
-    ):
-        super().__init__(
-            constant=constant,
-            backend=backend,
-            shot_time_ms=shot_time_ms,
-            n_jobs=n_jobs,
-        )
+    acsz: float | int
+    accelz: int
+    directionz: Literal["center-out", "random"]
+    n_samples: int = 3000
+    nb_revolutions: int = 10
+    spiral_name: str = "archimedes"
+    in_out: bool = True
+    pdfz: Literal["gaussian", "uniform"] = "gaussian"
+    constant: bool = False
+    rotate_angle: str | float = 0.0
+    smaps: bool = True
+    backend: str = "finufft"
+    shot_time_ms: int = 50
+    n_jobs: int = 4
+
+    def __post_init__(self):
         self._traj_params |= {
-            "acsz": acsz,
-            "accelz": accelz,
-            "directionz": directionz,
-            "pdfz": pdfz,
-            "n_samples": n_samples,
-            "nb_revolutions": nb_revolutions,
-            "spiral": spiral_name,
-            "in_out": in_out,
-            "rotate_angle": rotate_angle,
+            "acsz": self.acsz,
+            "accelz": self.accelz,
+            "directionz": self.directionz,
+            "pdfz": self.pdfz,
+            "n_samples": self.n_samples,
+            "nb_revolutions": self.nb_revolutions,
+            "spiral": self.spiral_name,
+            "in_out": self.in_out,
+            "rotate_angle": self.rotate_angle,
         }
 
     def _handle(self, sim: SimData) -> SimData:
         self._traj_params["shape"] = sim.shape
         self._traj_params["rng"] = validate_rng(sim.rng)
 
-        sim.extra_infos["operator"] = "stacked-" + self._backend
+        sim.extra_infos["operator"] = "stacked-" + self.backend
 
         return self._acquire(
             sim,
@@ -550,5 +508,5 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
             ),
             # extra kwargs for the nufft operator
             z_index="auto",
-            backend_name=self._backend,
+            backend_name=self.backend,
         )
