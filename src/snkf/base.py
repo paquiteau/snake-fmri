@@ -5,7 +5,7 @@ import logging
 import numpy as np
 from numpy.typing import DTypeLike
 from typing import Any
-from enum import EnumMeta
+from enum import EnumMeta, Enum
 import dataclasses
 from typing_extensions import dataclass_transform
 
@@ -49,6 +49,10 @@ class NoCaseEnumMeta(EnumMeta):
         if isinstance(item, str):
             item = item.upper()
         return super().__getitem__(item)
+
+
+class NoCaseEnum(Enum, metaclass=EnumMeta):
+    pass
 
 
 ################

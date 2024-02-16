@@ -6,8 +6,7 @@ import logging
 import dataclasses
 from collections.abc import Generator
 from itertools import cycle
-from typing import Any, Literal, Callable
-from enum import Enum
+from typing import Any, Callable
 
 import numpy as np
 from mrinufft.io import read_trajectory
@@ -15,16 +14,16 @@ from mrinufft.io import read_trajectory
 from snkf.simulation import SimData
 from snkf.base import AnyShape, validate_rng
 
-from snkf.base import NoCaseEnumMeta
 from ..base import AbstractHandler, requires_field
 from ._coils import get_smaps
-from ._tools import TrajectoryFactoryProtocol, TrajectoryGeneratorType
+from ._tools import TrajectoryGeneratorType
 from .trajectory import (
     radial_factory,
     rotate_trajectory,
     stack_spiral_factory,
     vds_factory,
 )
+from .cartesian_sampling import VDSorder, VDSpdf
 from .workers import acq_cartesian, acq_noncartesian
 
 logger = logging.getLogger("simulation.acquisition")
@@ -190,16 +189,6 @@ def trajectory_generator(
         yield traj_factory(shape, **kwargs)
 
 
-class VDSDirection(Enum, metaclass=NoCaseEnumMeta):
-    CENTER_OUT = "center-out"
-    RANDOM = "random"
-
-
-class VDSpdf(Enum, metaclass=NoCaseEnumMeta):
-    GAUSSIAN = "gaussian"
-    UNIFORM = "uniform"
-
-
 class VDSAcquisitionHandler(BaseAcquisitionHandler):
     """
     Variable Density Sampling Acquisition Handler to generate k-space data.
@@ -236,7 +225,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
     accel: int
     accel_axis: int
     shot_time_ms: int
-    direction: VDSDirection = VDSDirection.CENTER_OUT
+    order: VDSorder = VDSorder.CENTER_OUT
     pdf: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     smaps: bool = True
@@ -250,7 +239,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
             "acs": self.acs,
             "accel": self.accel,
             "accel_axis": self.accel_axis,
-            "direction": self.direction,
+            "order": self.order,
             "pdf": self.pdf,
         }
 
@@ -484,7 +473,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     acsz: float | int
     accelz: int
-    directionz: VDSDirection = VDSDirection.CENTER_OUT
+    orderz: VDSorder = VDSorder.CENTER_OUT
     n_samples: int = 3000
     nb_revolutions: int = 10
     spiral_name: str = "archimedes"
@@ -502,7 +491,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         self._traj_params |= {
             "acsz": self.acsz,
             "accelz": self.accelz,
-            "directionz": self.directionz,
+            "orderz": self.orderz,
             "pdfz": self.pdfz,
             "n_samples": self.n_samples,
             "nb_revolutions": self.nb_revolutions,

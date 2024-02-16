@@ -8,7 +8,7 @@ import numpy as np
 from snkf.base import RngType, AnyShape
 from numpy.typing import NDArray
 
-from .cartesian_sampling import get_kspace_slice_loc
+from .cartesian_sampling import get_kspace_slice_loc, VDSorder, VDSpdf
 
 from mrinufft.trajectories.trajectory2D import (
     initialize_2D_radial,
@@ -37,9 +37,9 @@ def vds_factory(
     acs: float | int,
     accel: int,
     accel_axis: int,
-    direction: Literal["center-out", "random"],
+    order: VDSorder = VDSorder.CENTER_OUT,
     shot_time_ms: int | None = None,
-    pdf: Literal["gaussian", "uniform"] = "gaussian",
+    pdf: VDSpdf = VDSpdf.GAUSSIAN,
     rng: RngType = None,
 ) -> np.ndarray:
     """
@@ -74,7 +74,7 @@ def vds_factory(
             "accel_axis should be lower than the number of spatial dimension."
         )
 
-    line_locs = get_kspace_slice_loc(shape[accel_axis], acs, accel, pdf, rng, direction)
+    line_locs = get_kspace_slice_loc(shape[accel_axis], acs, accel, pdf, rng, order)
     # initialize the trajetory. -1 is the default value,
     # and we put the line index in the correct axis (0-indexed)
     shots = -np.ones((len(line_locs), 1, len(shape)), dtype=np.int32)
@@ -124,7 +124,7 @@ def stack_spiral_factory(
     shot_time_ms: int | None = None,
     in_out: bool = True,
     spiral: str = "archimedes",
-    directionz: Literal["center-out", "random"] = "center-out",
+    orderz: VDSorder = VDSorder.CENTER_OUT,
     pdfz: Literal["gaussian", "uniform"] = "gaussian",
     rng: RngType = None,
     rotate_angle: str | float = 0.0,
@@ -132,9 +132,7 @@ def stack_spiral_factory(
     """Generate a trajectory of stack of spiral."""
     sizeZ = shape[-1]
 
-    z_index = get_kspace_slice_loc(
-        sizeZ, acsz, accelz, pdf=pdfz, rng=rng, direction=directionz
-    )
+    z_index = get_kspace_slice_loc(sizeZ, acsz, accelz, pdf=pdfz, rng=rng, order=orderz)
 
     if isinstance(rotate_angle, str):
         rotate_angle = ROTATE_ANGLES[rotate_angle]

@@ -2,29 +2,35 @@
 
 import numpy as np
 from scipy.stats import norm  # type: ignore
-from enum import Enum
 
-from typing import Sequence, Any, Literal
-from snkf.base import RngType, validate_rng, AnyShape
+from typing import Sequence, Any
+from snkf.base import RngType, validate_rng, AnyShape, NoCaseEnum
 
 SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
 
 
-class Direction(str, Enum):
-    """Direction of sampling."""
+class VDSorder(NoCaseEnum):
+    """Available ordering for variable density sampling."""
 
     CENTER_OUT = "center-out"
     RANDOM = "random"
     TOP_DOWN = "top-down"
 
 
+class VDSpdf(NoCaseEnum):
+    """Available law for variable density sampling."""
+
+    GAUSSIAN = "gaussian"
+    UNIFORM = "uniform"
+
+
 def get_kspace_slice_loc(
     dim_size: int,
     center_prop: int | float,
     accel: int = 4,
-    pdf: str = "gaussian",
+    pdf: VDSpdf = VDSpdf.GAUSSIAN,
     rng: RngType = None,
-    direction: Literal["center-out", "random", "top-down"] = "center-out",
+    order: VDSorder = VDSorder.CENTER_OUT,
 ) -> np.ndarray:
     """Get slice index at a random position.
 
@@ -66,9 +72,9 @@ def get_kspace_slice_loc(
         )
     rng = validate_rng(rng)
 
-    if pdf == "gaussian":
+    if pdf is VDSpdf.GAUSSIAN:
         p = norm.pdf(np.linspace(norm.ppf(0.001), norm.ppf(0.999), len(borders)))
-    elif pdf == "uniform":
+    elif pdf is VDSpdf.UNIFORM:
         p = np.ones(len(borders))
     else:
         raise ValueError("Unsupported value for pdf.")
@@ -81,16 +87,14 @@ def get_kspace_slice_loc(
 
     line_locs = np.array(sorted(center_indexes + sampled_in_border))
     # apply order of lines
-    if direction == Direction.CENTER_OUT:
+    if order == VDSorder.CENTER_OUT:
         line_locs = flip2center(sorted(line_locs), dim_size // 2)
-    elif direction == Direction.RANDOM:
+    elif order == VDSorder.RANDOM:
         line_locs = rng.permutation(line_locs)
-    elif direction == Direction.TOP_DOWN:
+    elif order == VDSorder.TOP_DOWN:
         line_locs = np.array(sorted(line_locs))
-    elif direction is None:
-        pass
     else:
-        raise ValueError(f"Unknown direction '{direction}'.")
+        raise ValueError(f"Unknown direction '{order}'.")
     return line_locs
 
 
@@ -102,7 +106,7 @@ def get_cartesian_mask(
     center_prop: float | int = 0.3,
     accel: int = 4,
     accel_axis: int = 0,
-    pdf: str = "gaussian",
+    pdf: VDSpdf = VDSpdf.GAUSSIAN,
 ) -> np.ndarray:
     """
     Get a cartesian mask for fMRI kspace data.
