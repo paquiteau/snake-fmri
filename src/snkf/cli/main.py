@@ -13,12 +13,13 @@ import pickle
 import hydra
 import numpy as np
 from hydra_callbacks import PerfLogger
-from omegaconf import DictConfig, OmegaConf
+from omegaconf import OmegaConf
 
 from snkf.analysis.stats import contrast_zscore, get_scores
 from snkf.handlers import HandlerChain
 from snkf.reconstructors import get_reconstructor
 from snkf.cli.utils import hash_config
+from snkf.config import ConfigSnakeFMRI
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ def reconstruct(
 
 
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
-def main_app(cfg: DictConfig) -> None:
+def main_app(cfg: ConfigSnakeFMRI) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
     logger.debug(OmegaConf.to_yaml(cfg))
     logging.captureWarnings(True)
