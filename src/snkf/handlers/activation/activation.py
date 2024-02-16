@@ -193,7 +193,7 @@ class ActivationBlockHandler(ActivationHandler):
         The helper function to create the block desing.
     """
 
-    name = "activation-block"
+    __handler_name__ = "activation-block"
 
     def __init__(
         cls,

@@ -1,15 +1,14 @@
 """Base Handler Interface."""
 
 from __future__ import annotations
-from dataclasses import fields
-import inspect
+import dataclasses
 import functools
 import time
 import copy
 import os
 import logging
-from abc import ABCMeta, abstractmethod
-from typing import Callable, Any, Mapping, IO, TYPE_CHECKING
+from abc import abstractmethod
+from typing import Callable, Any, Mapping, TYPE_CHECKING, ClassVar
 
 import yaml
 
@@ -20,6 +19,7 @@ CallbackType = Callable[[SimData, SimData], Any]
 
 if TYPE_CHECKING:
     from typing_extensions import TypedDict
+    from typing_extensions import dataclass_transform
 
     class ConfigDict(TypedDict):
         """ConfigDict Class."""
@@ -28,7 +28,8 @@ if TYPE_CHECKING:
         handlers: dict[str, dict[str, Any]]
 
 
-class MetaHandler(ABCMeta):
+@dataclass_transform()
+class MetaHandler(type):
     """A Metaclass for Handlers.
 
     This metaclass does 3 things:
@@ -41,29 +42,21 @@ class MetaHandler(ABCMeta):
 
     registry: dict[str, type[AbstractHandler]] = {}
 
-    def __new__(meta, name, bases, namespace, **class_dict):  # noqa
-        """Create new Handler class."""
-        cls = super().__new__(meta, name, bases, namespace, **class_dict)
-        cls_init = cls.__init__
+    def __new__(
+        meta: type[MetaHandler],
+        clsname: str,
+        bases: tuple,
+        class_dict: dict,
+    ) -> type[AbstractHandler]:
+        """Create Handler Class as a dataclass, and register it.
 
-        @functools.wraps(cls_init)
-        def wrap_init(self, *args, **kwargs):  # noqa
-            try:
-                input_params = inspect.getcallargs(cls_init, self, *args, **kwargs)
-            except TypeError as e:
-                # re raising from original call
-                cls_init(self, *args, **kwargs)
-                raise e
-            cls_init(self, *args, **kwargs)
-            input_params.pop(list(input_params.keys())[0])
-            self._init_params = input_params
-            self._callbacks = []
-
-        cls.__init__ = wrap_init
-
-        if handler_name := getattr(cls, "name", None):
-            meta.registry[handler_name] = cls
-
+        No need for @dataclass decorator
+        """
+        cls: type[AbstractHandler] = dataclasses.dataclass(kw_only=True)(
+            super().__new__(meta, clsname, bases, class_dict)  # type: ignore
+        )
+        if cls.__handler_name__ is not None:
+            meta.registry[cls.__handler_name__] = cls
         return cls
 
 
@@ -86,9 +79,8 @@ class AbstractHandler(metaclass=MetaHandler):
 
     """
 
-    _init_params: Mapping[str, Any]
-    name: str
-    _callbacks: list[Callable]
+    __handler_name__: ClassVar[str]
+    _callbacks: list[Callable] = dataclasses.field(default_factory=list, repr=False)
 
     def __rshift__(self, other: AbstractHandler | HandlerChain):
         """Perform self >> other."""
@@ -113,14 +105,11 @@ class AbstractHandler(metaclass=MetaHandler):
 
     def to_yaml(self) -> str:
         """Show the yaml config associated with the handler."""
-        if not self._init_params:
-            return self.name
-        else:
-            return yaml.dump({self.name: self._init_params})
+        return yaml.dump(dataclasses.asdict(self))
 
     def __str__(self) -> str:
         ret = ""
-        for k, v in self._init_params.items():
+        for k, v in dataclasses.asdict(self).items():
             ret += f"{k}={v},"
         name = getattr(self, "name", self.__class__.__name__)
         ret = f"H[{name}]({ret})"
@@ -208,7 +197,7 @@ class AbstractHandler(metaclass=MetaHandler):
 class DummyHandler(AbstractHandler):
     """A Handler that does nothing."""
 
-    name = "identity"
+    __handler_name__ = "identity"
 
     def __init__(self):
         pass
@@ -332,18 +321,20 @@ class HandlerChain:
         conf: dict = {
             "sim_params": {
                 f.name: getattr(sim, f.name)
-                for f in fields(SimParams)
+                for f in dataclasses.fields(SimParams)
                 if f.name != "extra_infos"
             },
-            "handlers": [{h.name: h._init_params for h in self._handlers}],
+            "handlers": [
+                {h.__handler_name__: dataclasses.asdict(h) for h in self._handlers}
+            ],
         }
         return yaml.dump(conf, filename)  # type: ignore
 
-    @classmethod
-    def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
-        """Convert a yaml config to a chain of handlers."""
-        conf = yaml.safe_load(stream)
-        return cls.from_conf(conf["sim_param"], conf["handlers"])
+    # @classmethod
+    # def from_yaml(cls, stream: bytes | IO[bytes]) -> tuple[HandlerChain, SimData]:
+    #     """Convert a yaml config to a chain of handlers."""
+    #     conf = yaml.safe_load(stream)
+    #     return cls.from_conf(conf["sim_param"], conf["handlers"])
 
     @classmethod
     def from_conf(

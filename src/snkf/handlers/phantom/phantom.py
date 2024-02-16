@@ -38,7 +38,7 @@ class SheppLoganGeneratorHandler(AbstractHandler):
     utils.phantom: Module defining the shepp logan phantom.
     """
 
-    name = "phantom-shepp_logan"
+    __handler_name__ = "phantom-shepp_logan"
 
     def __init__(
         self,
@@ -79,7 +79,7 @@ class BigPhantomGeneratorHandler(AbstractHandler):
         location of the phantom parameter.
     """
 
-    name = "phantom-big"
+    __handler_name__ = "phantom-big"
 
     def __init__(
         self,
@@ -123,7 +123,7 @@ class RoiDefinerHandler(AbstractHandler):
         roi definition
     """
 
-    name = "phantom-roi"
+    __handler_name__ = "phantom-roi"
     roi_data: str | dict | list[dict] | os.PathLike
 
     def __init__(
@@ -160,7 +160,7 @@ class BrainwebPhantomHandler(AbstractHandler):
         region of interest to extract.
     """
 
-    name = "phantom-brainweb"
+    __handler_name__ = "phantom-brainweb"
 
     def __init__(
         self,
@@ -353,7 +353,7 @@ class TextureAdderHandler(AbstractHandler):
         relative factor to compute the noise variance.
     """
 
-    name = "phantom-texture"
+    __handler_name__ = "phantom-texture"
 
     def __init__(self, var_texture: float = 0.001):
         super().__init__()
@@ -384,7 +384,7 @@ class SlicerHandler(AbstractHandler):
         index position on axis where the slice is perform.
     """
 
-    name = "phantom-slicer"
+    __handler_name__ = "phantom-slicer"
 
     def __init__(self, axis: int, index: int):
         super().__init__()

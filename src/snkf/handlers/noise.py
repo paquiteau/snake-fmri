@@ -2,6 +2,7 @@
 
 This module declares the various noise models availables.
 """
+
 from __future__ import annotations
 from .base import AbstractHandler, requires_field
 from ..simulation import SimData, LazySimArray
@@ -103,7 +104,7 @@ class BaseNoiseHandler(AbstractHandler):
 class GaussianNoiseHandler(BaseNoiseHandler):
     """Add gaussian Noise to the data."""
 
-    name = "noise-gaussian"
+    __handler_name__ = "noise-gaussian"
 
     def _add_noise(self, sim: SimData, rng_seed: RngType, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
@@ -134,7 +135,7 @@ class GaussianNoiseHandler(BaseNoiseHandler):
 class RicianNoiseHandler(BaseNoiseHandler):
     """Add rician noise to the data."""
 
-    name = "noise-rician"
+    __handler_name__ = "noise-rician"
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
@@ -152,7 +153,7 @@ class RicianNoiseHandler(BaseNoiseHandler):
 class KspaceNoiseHandler(BaseNoiseHandler):
     """Add gaussian in the kspace."""
 
-    name = "noise-kspace"
+    __handler_name__ = "noise-kspace"
 
     def _handle(self, sim: SimData) -> SimData:
         if self._snr == 0:

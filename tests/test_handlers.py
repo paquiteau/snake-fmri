@@ -1,4 +1,5 @@
 """Tests for the handler interface."""
+
 import pytest
 
 from snkf.handlers import AbstractHandler, list_handlers, get_handler
@@ -9,7 +10,7 @@ from snkf.simulation import SimData
 class DummyHandler(AbstractHandler):
     """A Dummy Handler"""
 
-    name = "dummy"
+    __handler_name__ = "dummy"
 
     def _handle(self, sim):
         pass

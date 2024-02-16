@@ -21,7 +21,7 @@ class LoadDataHandler(AbstractHandler):
 
     """
 
-    name = "load-data"
+    __handler_name__ = "load-data"
 
     def __init__(self, **kwargs: Mapping[str, os.PathLike]):
         self.fields = kwargs
@@ -45,7 +45,7 @@ class UpdateFieldHandler(AbstractHandler):
         The key is the field name, the value is the value to update it with.
     """
 
-    name = "load-field"
+    __handler_name__ = "load-field"
 
     def __init__(self, **kwargs: Mapping[str, os.PathLike]):
         self.field_updates = OmegaConf.to_container(kwargs)

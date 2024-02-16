@@ -219,7 +219,7 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
 
     """
 
-    name = "acquisition-vds"
+    __handler_name__ = "acquisition-vds"
 
     def __init__(
         self,
@@ -334,7 +334,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
 
     """
 
-    name = "acquisition-generic"
+    __handler_name__ = "acquisition-generic"
 
     def __init__(
         self,
@@ -370,7 +370,7 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
 class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
     """Generic Acquisition handlers based on a list of files."""
 
-    name = "acquisition-generic-noncartesian"
+    __handler_name__ = "acquisition-generic-noncartesian"
 
     def __init__(
         self,
@@ -429,7 +429,7 @@ class RadialAcquisitionHandler(NonCartesianAcquisitionHandler):
     TODO: For Radial we could implement the Radon Transform ?
     """
 
-    name = "acquisition-radial"
+    __handler_name__ = "acquisition-radial"
 
     def __init__(
         self,
@@ -500,7 +500,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
         Extra arguments (smaps, n_jobs, backend etc...)
     """
 
-    name = "acquisition-sos"
+    __handler_name__ = "acquisition-sos"
 
     def __init__(
         self,

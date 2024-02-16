@@ -1,6 +1,5 @@
 """Output Handlers for saving data from the simulation."""
 
-
 import os
 from pathlib import Path
 from typing import Any, Mapping
@@ -18,7 +17,7 @@ from .utils import save_data
 class SaveHandler(AbstractHandler):
     """Save data to a file."""
 
-    name = "save-sim"
+    __handler_name__ = "save-sim"
 
     def __init__(self, filename: os.PathLike):
         self.filename = Path(filename)
@@ -32,7 +31,7 @@ class SaveHandler(AbstractHandler):
 class SaveFieldHandler(AbstractHandler):
     """Save specific fields to files."""
 
-    name = "save-fields"
+    __handler_name__ = "save-fields"
 
     def __init__(self, **kwargs: os.PathLike[Any]):
         self.fields = kwargs
