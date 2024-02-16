@@ -378,6 +378,7 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
         smaps: bool,
         shot_time_ms: int,
         backend: str,
+        traj_osf: int = 1,
         n_jobs: int = 1,
     ):
         if isinstance(traj_files, str):
@@ -391,6 +392,7 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
             backend=backend,
         )
         self.traj_files = traj_files
+        self.traj_osf = traj_osf
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
@@ -402,7 +404,8 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
     def traj_generator(self) -> Generator[np.ndarray, None, None]:
         """Generate trajectory by cycling over the files."""
         for file in cycle(self.traj_files):
-            traj, params = read_trajectory(file)
+            # TODO: use the scanner config.
+            traj, params = read_trajectory(file, dwell_time=0.01 / self.traj_osf)
             yield traj
 
 
