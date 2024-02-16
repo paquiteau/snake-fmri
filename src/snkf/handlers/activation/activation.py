@@ -1,7 +1,7 @@
 """Handler to add activations."""
 
 from __future__ import annotations
-
+import dataclasses
 from typing import Literal, Mapping, get_args, Any
 
 import numpy as np
@@ -44,28 +44,13 @@ class ActivationHandler(AbstractHandler):
     nilearn.compute_regressors
     """
 
-    def __init__(
-        self,
-        event_condition: pd.DataFrame | np.ndarray,
-        roi: np.ndarray | None,
-        bold_strength: float = 0.02,
-        hrf_model: HrfType = "glover",
-        oversampling: int = 50,
-        min_onset: float = -24.0,
-        roi_threshold: float = 0.0,
-    ):
-        super().__init__()
-        if hrf_model not in get_args(HrfType):
-            raise ValueError(
-                f"Unsupported HRF `{hrf_model}`, available are: {get_args(HrfType)}"
-            )
-        self._event_condition = event_condition
-        self._hrf_model = hrf_model
-        self._oversampling = oversampling
-        self._bold_strength = bold_strength
-        self._roi: np.ndarray | None = roi
-        self._roi_threshold = roi_threshold
-        self._min_onset = min_onset
+    event_condition: pd.DataFrame | np.ndarray
+    roi: np.ndarray | None
+    bold_strength: float = 0.02
+    hrf_model: HrfType = "glover"
+    oversampling: int = 50
+    min_onset: float = -24.0
+    roi_threshold: float = 0.0
 
     @classmethod
     def from_multi_event(
@@ -114,12 +99,12 @@ class ActivationHandler(AbstractHandler):
         h = HandlerChain()
         for event, roi_event in zip(events, rois, strict=True):
             h_new = cls(
-                event,
-                rois[roi_event],
-                bold_strength,
-                hrf_model,
-                oversampling,
-                min_onset,
+                event_condition=event,
+                roi=rois[roi_event],
+                bold_strength=bold_strength,
+                hrf_model=hrf_model,
+                oversampling=oversampling,
+                min_onset=min_onset,
             )
             h = h >> h_new
         return h
@@ -133,21 +118,21 @@ class ActivationHandler(AbstractHandler):
         elif self._roi is None and sim.roi is None:
             raise ValueError("roi is not defined.")
 
-        if self._roi_threshold:  # optional binarization of the roi
-            roi = roi > self._roi_threshold
+        if self.roi_threshold:  # optional binarization of the roi
+            roi = roi > self.roi_threshold
 
         if np.sum(abs(roi)) == 0:
             raise ValueError("roi is empty.")
         # create HRF regressors.
         regressor, _ = compute_regressor(
-            self._event_condition[["onset", "duration", "modulation"]].to_numpy().T,
-            self._hrf_model,
+            self.event_condition[["onset", "duration", "modulation"]].to_numpy().T,
+            self.hrf_model,
             np.linspace(0, sim.sim_time, sim.n_frames),
-            oversampling=self._oversampling,
-            min_onset=self._min_onset,
+            oversampling=self.oversampling,
+            min_onset=self.min_onset,
         )
         regressor = np.squeeze(regressor)
-        regressor = regressor * self._bold_strength / regressor.max()
+        regressor = regressor * self.bold_strength / regressor.max()
         # apply the activations
         self.log.debug(f"Regressor values  {min(regressor)},{max(regressor)}")
 
@@ -162,9 +147,9 @@ class ActivationHandler(AbstractHandler):
 
         if "events" in sim._meta.extra_infos.keys():
             df = pd.Dataframe(sim._meta.extra_infos["events"])
-            df = df.concat(self._event_condition)
+            df = df.concat(self.event_condition)
         else:
-            df = self._event_condition
+            df = self.event_condition
         sim._meta.extra_infos["events"] = df.to_dict()
 
         self.log.info(f"Simulated block activations at sim_tr={sim.sim_tr}s")
@@ -195,27 +180,27 @@ class ActivationBlockHandler(ActivationHandler):
 
     __handler_name__ = "activation-block"
 
-    def __init__(
-        cls,
-        block_on: float,
-        block_off: float,
-        duration: float,
-        offset: float = 0,
-        event_name: str = "block_on",
-        bold_strength: float = 0.02,
-        hrf_model: HrfType = "glover",
-        oversampling: int = 50,
-        min_onset: float = -24.0,
-        roi_threshold: float = 0.0,
-    ):
-        super().__init__(
-            block_design(block_on, block_off, duration, offset, event_name),
-            roi=None,
-            bold_strength=bold_strength,
-            hrf_model=hrf_model,
-            oversampling=oversampling,
-            min_onset=min_onset,
-            roi_threshold=roi_threshold,
+    block_on: float
+    block_off: float
+    duration: float
+    offset: float = 0
+    event_name: str = "block_on"
+    bold_strength: float = 0.02
+    hrf_model: HrfType = "glover"
+    oversampling: int = 50
+    min_onset: float = -24.0
+    roi_threshold: float = 0.0
+    event_condition: pd.DataFrame | np.ndarray = dataclasses.field(
+        init=False, repr=False
+    )
+
+    def __post_init__(self):
+        self.event_condition = block_design(
+            self.block_on,
+            self.block_off,
+            self.duration,
+            self.offset,
+            self.event_name,
         )
 
 
