@@ -3,12 +3,34 @@
 import os
 from typing import Mapping
 
+from numpy.typing import DTypeLike
 from omegaconf import OmegaConf
 
 from snkf.handlers.base import AbstractHandler
 from snkf.simulation import SimData
 
 from .utils import load_data
+
+
+class LoadSimHandler(AbstractHandler):
+    """Handler to load a simulation from a file.
+
+    TODO Add support for hdf5 files.
+
+    Parameters
+    ----------
+    sim_pkl_file
+        Filepath to load the data
+    """
+
+    __handler_name__ = "load-sim"
+
+    sim_file: str
+    dtype: DTypeLike = "float32"
+
+    def _handle(self, sim: SimData) -> SimData:
+        """Load the simulation using pickle."""
+        return sim.load_from_file(self.sim_file, dtype=self.dtype)
 
 
 class LoadDataHandler(AbstractHandler):

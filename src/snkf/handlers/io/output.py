@@ -13,7 +13,7 @@ from snkf.handlers.base import AbstractHandler, requires_field
 from .utils import save_data
 
 
-class SaveHandler(AbstractHandler):
+class SaveSimHandler(AbstractHandler):
     """Save data to a file."""
 
     __handler_name__ = "save-sim"
