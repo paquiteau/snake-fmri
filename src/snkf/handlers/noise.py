@@ -54,22 +54,20 @@ class BaseNoiseHandler(AbstractHandler):
         If True, a callback function is setup to return the computed snr.
     """
 
-    def __init__(self, snr: float = 0):
-        super().__init__()
-        self._snr = snr
+    snr: float
 
     def _handle(self, sim: SimData) -> SimData:
-        if self._snr == 0:
+        if self.snr == 0:
             return sim
         else:
             # SNR is defined as average(brain signal) / noise_std
-            noise_std = np.mean(abs(sim.static_vol[sim.static_vol > 0])) / self._snr
+            noise_std = np.mean(abs(sim.static_vol[sim.static_vol > 0])) / self.snr
         if isinstance(sim.data_acq, LazySimArray):
             self._add_noise_lazy(sim.data_acq, sim.rng, noise_std)
         else:
             self._add_noise(sim, sim.rng, noise_std)
 
-        sim.extra_infos["input_snr"] = self._snr
+        sim.extra_infos["inputsnr"] = self.snr
         return sim
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
@@ -105,6 +103,7 @@ class GaussianNoiseHandler(BaseNoiseHandler):
     """Add gaussian Noise to the data."""
 
     __handler_name__ = "noise-gaussian"
+    snr: int | float
 
     def _add_noise(self, sim: SimData, rng_seed: RngType, noise_std: float) -> None:
         rng = validate_rng(rng_seed)
@@ -136,6 +135,7 @@ class RicianNoiseHandler(BaseNoiseHandler):
     """Add rician noise to the data."""
 
     __handler_name__ = "noise-rician"
+    snr: int | float
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
         if np.any(np.iscomplex(sim)):
@@ -154,16 +154,17 @@ class KspaceNoiseHandler(BaseNoiseHandler):
     """Add gaussian in the kspace."""
 
     __handler_name__ = "noise-kspace"
+    snr: int | float
 
     def _handle(self, sim: SimData) -> SimData:
-        if self._snr == 0:
+        if self.snr == 0:
             return sim
         else:
             # SNR is defined as average(brain signal) / noise_std
-            noise_std = np.mean(abs(sim.static_vol > 0)) / self._snr
+            noise_std = np.mean(abs(sim.static_vol > 0)) / self.snr
         self._add_noise(sim, sim.rng, noise_std)
 
-        sim.extra_infos["input_snr"] = self._snr
+        sim.extra_infos["inputsnr"] = self.snr
         return sim
 
     def _add_noise(self, sim: SimData, rng_seed: int, noise_std: float) -> None:
@@ -213,39 +214,39 @@ class ScannerDriftHandler(AbstractHandler):
     nilearn.glm.first_level.design_matrix._make_drift
     """
 
-    def __init__(
+    drift_model: str = "polynomial"
+    order: int = 1
+    high_pass: float | None = None
+    drift_intensities: float | np.ndarray = 0.01
+
+    def __post_init__(
         self,
         drift_model: str = "polynomial",
         order: int = 1,
         high_pass: float | None = None,
         drift_intensities: float | np.ndarray = 0.01,
     ):
-        super().__init__()
-        self._drift_model = drift_model
-        if not isinstance(drift_intensities, np.ndarray):
-            if isinstance(drift_intensities, (int, float)):
-                drift_intensities = np.array([drift_intensities] * order)
+        if not isinstance(self.drift_intensities, np.ndarray):
+            if isinstance(self.drift_intensities, (int, float)):
+                self.drift_intensities = np.array([drift_intensities] * order)
             else:
-                drift_intensities = np.array([drift_intensities])
-        self._drift_intensities = drift_intensities
-        self._drift_order = order
-        self._drift_high_pass = high_pass
+                self.drift_intensities = np.array([drift_intensities])
 
     def _handle(self, sim: SimData) -> SimData:
         # Nilearn does the heavy lifting for us
         from nilearn.glm.first_level.design_matrix import _make_drift
 
-        if self._drift_model is None:
+        if self.drift_model is None:
             return sim
         drift_matrix = _make_drift(
-            self._drift_model,
+            self.drift_model,
             frame_times=np.linspace(0, sim.sim_time, sim.n_frames),
-            order=self._drift_order,
-            high_pass=self._drift_high_pass,
+            order=self.order,
+            high_pass=self.high_pass,
         )
         drift_matrix = drift_matrix[:, :-1]  # remove the intercept column
 
-        drift_intensity = np.linspace(1, 1 + self._drift_intensities, sim.n_frames)
+        drift_intensity = np.linspace(1, 1 + self.drift_intensities, sim.n_frames)
 
         timeseries = drift_intensity @ drift_matrix
 
