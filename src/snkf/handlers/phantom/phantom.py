@@ -40,16 +40,9 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
     __handler_name__ = "phantom-shepp_logan"
 
-    def __init__(
-        self,
-        B0: int | float = 7,
-        roi_index: int = 10,
-        dtype: DTypeLike = np.float32,
-    ):
-        super().__init__()
-        self.B0 = B0
-        self.roi_index = roi_index
-        self.dtype = dtype
+    B0: int | float = 7
+    roi_index: int = 10
+    dtype: DTypeLike = np.float32
 
     def _handle(self, sim: SimData) -> SimData:
         if len(sim.shape) != 3:
@@ -81,18 +74,10 @@ class BigPhantomGeneratorHandler(AbstractHandler):
 
     __handler_name__ = "phantom-big"
 
-    def __init__(
-        self,
-        raster_osf: int = 4,
-        roi_index: int = 10,
-        dtype: DTypeLike = np.float32,
-        phantom_data: str = "big",
-    ):
-        super().__init__()
-        self.raster_osf = raster_osf
-        self.phantom_data = phantom_data
-        self.roi_index = roi_index
-        self.dtype = dtype
+    raster_osf: int = 4
+    roi_index: int = 10
+    dtype: DTypeLike = np.float32
+    phantom_data: str = "big"
 
     def _handle(self, sim: SimData) -> SimData:
         if len(sim.shape) > 2:
@@ -124,18 +109,7 @@ class RoiDefinerHandler(AbstractHandler):
     """
 
     __handler_name__ = "phantom-roi"
-    roi_data: str | dict | list[dict] | os.PathLike
-
-    def __init__(
-        self,
-        roi_data: str | dict | list[dict] | os.PathLike | None = None,
-        rng: RngType = None,
-    ):
-        super().__init__()
-        if roi_data is None:
-            self.roi_data = str(files("snkf.handlers.phantom") / "big_phantom_roi.json")
-        else:
-            self.roi_data = roi_data
+    roi_data: str | dict | list[dict] | os.PathLike = files("snkf.handlers.phantom") / "big_phantom_roi.json")
 
     def _handle(self, sim: SimData) -> SimData:
         sim.roi = raster_phantom(
@@ -162,24 +136,14 @@ class BrainwebPhantomHandler(AbstractHandler):
 
     __handler_name__ = "phantom-brainweb"
 
-    def __init__(
-        self,
-        subject_id: int,
-        brainweb_folder: os.PathLike | None = None,
-        roi: int = 1,
-        bbox: tuple[int, int, int, int, int, int] | None = None,
-        res: float | tuple[float, float, float] | None = None,
-        force: bool = False,
-        rng: RngType = None,
-    ):
-        super().__init__()
-        self.sub_id = subject_id
-        self.brainweb_folder = brainweb_folder
-        self.roi = roi
-        self.bbox = bbox
-        self.force = force
-        self.res = res
-        self.rng = rng
+    sub_id: int
+    brainweb_folder: os.PathLike | None = None
+    roi: int = 1
+    bbox: tuple[int, int, int, int, int, int] | None = None
+    res: float | tuple[float, float, float] | None = None
+    force: bool = False
+    rng: RngType = None
+
 
     def _handle(self, sim: SimData) -> SimData:
         # TODO hash and cache config with all the parameters of get_mri
@@ -354,13 +318,10 @@ class TextureAdderHandler(AbstractHandler):
     """
 
     __handler_name__ = "phantom-texture"
-
-    def __init__(self, var_texture: float = 0.001):
-        super().__init__()
-        self._var_texture = var_texture
+    var_texture: float = 0.001
 
     def _handle(self, sim: SimData) -> SimData:
-        sigma_noise = self._var_texture * sim.data_ref[0]
+        sigma_noise = self.var_texture * sim.data_ref[0]
         rng = validate_rng(sim.rng)
 
         sim.data_ref += sigma_noise * rng.standard_normal(
@@ -385,15 +346,13 @@ class SlicerHandler(AbstractHandler):
     """
 
     __handler_name__ = "phantom-slicer"
-
-    def __init__(self, axis: int, index: int):
-        super().__init__()
-        if not (0 <= axis <= 2):
+    axis: int
+    index: int
+    def __post_init__(self):
+        if not (0 <= self.axis <= 2):
             raise ValueError("only 3D array are supported.")
 
-        self.axis = axis
-        self.index = index
-
+        self.add_callback(self._run_callback)
     def _run_callback(self, old_sim: SimData, new_sim: SimData) -> None:
         """Notify that we are now in  2D."""
         self.log.warning("Simulation is now 2D")
