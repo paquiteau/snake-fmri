@@ -174,10 +174,21 @@ class SequentialReconstructor(BaseReconstructor):
         else:
             self.threshold = float(self.threshold)
             space_prox_op = SparseThreshold(self.threshold)
-        from fmri.reconstructors.frame_based import SequentialReconstructor
+        from fmri.reconstructors.frame_based import (
+            SequentialReconstructor,
+            DoubleSequentialReconstructor,
+        )
 
-        self.reconstructor: SequentialReconstructor = SequentialReconstructor(
-            self.fourier_op, space_linear_op, space_prox_op, optimizer=self.optimizer
+        if self.restart_strategy == "warm-double":
+            rec_klass = DoubleSequentialReconstructor
+        else:
+            rec_klass = SequentialReconstructor
+
+        self.reconstructor: SequentialReconstructor = rec_klass(
+            self.fourier_op,
+            space_linear_op,
+            space_prox_op,
+            optimizer=self.optimizer,
         )
 
     def reconstruct(self, sim: SimData, fourier_op: None = None) -> np.ndarray:
