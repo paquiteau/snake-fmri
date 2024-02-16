@@ -23,7 +23,7 @@ class LoadDataHandler(AbstractHandler):
 
     __handler_name__ = "load-data"
 
-    def __init__(self, **kwargs: Mapping[str, os.PathLike]):
+    def __init__(self, **kwargs: os.PathLike):
         self.fields = kwargs
 
     def _handle(self, sim: SimData) -> SimData:
@@ -47,7 +47,7 @@ class UpdateFieldHandler(AbstractHandler):
 
     __handler_name__ = "load-field"
 
-    def __init__(self, **kwargs: Mapping[str, os.PathLike]):
+    def __init__(self, **kwargs: None):
         self.field_updates = OmegaConf.to_container(kwargs)
 
     def _handle(self, sim: SimData) -> SimData:

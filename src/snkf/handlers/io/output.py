@@ -8,8 +8,7 @@ import pickle
 from omegaconf import OmegaConf
 
 from snkf.simulation import SimData
-from snkf.handlers.base import AbstractHandler
-from snkf.handlers import requires_field
+from snkf.handlers.base import AbstractHandler, requires_field
 
 from .utils import save_data
 
@@ -54,8 +53,8 @@ class ISMRMRDHandler(AbstractHandler):
         self.filename = Path(filename)
         self.header = OmegaConf.to_container(header)
 
-    def _handle(self, sim):
-        ...
+    def _handle(self, sim: SimData) -> SimData:
+        raise NotImplementedError
         # Complete the minimal header with user input
         # Create The ISMRMRD dataset
 
