@@ -7,13 +7,15 @@ import dataclasses
 from collections.abc import Generator
 from itertools import cycle
 from typing import Any, Literal, Callable
+from enum import Enum
 
 import numpy as np
 from mrinufft.io import read_trajectory
 
 from snkf.simulation import SimData
-from snkf.utils import AnyShape, validate_rng
+from snkf.base import AnyShape, validate_rng
 
+from snkf.base import NoCaseEnumMeta
 from ..base import AbstractHandler, requires_field
 from ._coils import get_smaps
 from ._tools import TrajectoryFactoryProtocol, TrajectoryGeneratorType
@@ -78,6 +80,7 @@ class BaseAcquisitionHandler(AbstractHandler):
     acquire_mp = staticmethod(acq_cartesian)
 
     def __post_init__(self):
+        super().__post_init__()
         self._traj_params = {"constant": self.constant}
 
     def _acquire(
@@ -187,6 +190,16 @@ def trajectory_generator(
         yield traj_factory(shape, **kwargs)
 
 
+class VDSDirection(Enum, metaclass=NoCaseEnumMeta):
+    CENTER_OUT = "center-out"
+    RANDOM = "random"
+
+
+class VDSpdf(Enum, metaclass=NoCaseEnumMeta):
+    GAUSSIAN = "gaussian"
+    UNIFORM = "uniform"
+
+
 class VDSAcquisitionHandler(BaseAcquisitionHandler):
     """
     Variable Density Sampling Acquisition Handler to generate k-space data.
@@ -223,8 +236,8 @@ class VDSAcquisitionHandler(BaseAcquisitionHandler):
     accel: int
     accel_axis: int
     shot_time_ms: int
-    direction: Literal["center-out", "random"] = "center-out"
-    pdf: Literal["gaussian", "uniform"] = "gaussian"
+    direction: VDSDirection = VDSDirection.CENTER_OUT
+    pdf: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     smaps: bool = True
     n_jobs: int = 1
@@ -325,10 +338,10 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
 
     __handler_name__ = "acquisition-generic"
 
-    traj_factory: TrajectoryFactoryProtocol
+    traj_factory: str
     traj_params: dict[str, Any]
     shot_time_ms: int
-    traj_generator: TrajectoryGeneratorType
+    traj_generator: str
     cartesian: bool = True
     smaps: bool = True
     constant: bool = True
@@ -340,6 +353,8 @@ class GenericAcquisitionHandler(BaseAcquisitionHandler):
             acq_cartesian if self.cartesian else acq_noncartesian
         )
         self._traj_params |= self.traj_params
+        self.traj_factory = eval(self.traj_factory)
+        self.traj_generator = eval(self.traj_generator)
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
@@ -355,7 +370,7 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     __handler_name__ = "acquisition-generic-noncartesian"
 
-    traj_files: list[str] | str
+    traj_files: list[str]
     smaps: bool
     shot_time_ms: int
     backend: str
@@ -469,12 +484,12 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
 
     acsz: float | int
     accelz: int
-    directionz: Literal["center-out", "random"]
+    directionz: VDSDirection = VDSDirection.CENTER_OUT
     n_samples: int = 3000
     nb_revolutions: int = 10
     spiral_name: str = "archimedes"
     in_out: bool = True
-    pdfz: Literal["gaussian", "uniform"] = "gaussian"
+    pdfz: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     rotate_angle: str | float = 0.0
     smaps: bool = True
@@ -483,6 +498,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
     n_jobs: int = 4
 
     def __post_init__(self):
+        super().__post_init__()
         self._traj_params |= {
             "acsz": self.acsz,
             "accelz": self.accelz,

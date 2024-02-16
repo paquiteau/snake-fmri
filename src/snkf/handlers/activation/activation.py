@@ -3,7 +3,7 @@
 from __future__ import annotations
 import dataclasses
 from typing import Literal, Mapping, get_args, Any
-
+from enum import Enum
 import numpy as np
 import pandas as pd
 from nilearn.glm.first_level import compute_regressor  # type: ignore
@@ -14,11 +14,12 @@ from ..base import AbstractHandler, HandlerChain, requires_field
 from ._block import block_design
 
 
-HrfType = Literal["glover", "spm", None]
+class HRF(str, Enum):
+    GLOVER = "glover"
+    SPM = "spm"
 
 
-@requires_field("data_ref")
-class ActivationHandler(AbstractHandler):
+class ActivationMixin:
     """Add activation inside the region of interest. for a single type of event.
 
     Parameters
@@ -45,69 +46,14 @@ class ActivationHandler(AbstractHandler):
     """
 
     event_condition: pd.DataFrame | np.ndarray
-    roi: np.ndarray | None
-    bold_strength: float = 0.02
-    hrf_model: HrfType = "glover"
-    oversampling: int = 50
-    min_onset: float = -24.0
-    roi_threshold: float = 0.0
-
-    @classmethod
-    def from_multi_event(
-        cls,
-        events: np.ndarray,
-        rois: Mapping[str, np.ndarray],
-        bold_strength: float = 0.02,
-        hrf_model: HrfType = "glover",
-        oversampling: int = 50,
-        min_onset: float = -24.0,
-    ) -> HandlerChain:
-        """
-        Create a sequence of handler from a sequence of event and associated rois.
-
-        The handlers are chained after prev_handler, and the last element of the chain
-        is returned.
-
-        Parameters
-        ----------
-        events
-            Dataframe following the design_matrix structure
-        rois
-            dict (n_types_of_event, **)
-        prev_handler
-            The previous handler in the chain
-        hrf_model
-            str, default is 'glover'
-            Choice for the HRF, FIR is not supported yet.
-        oversampling : int, optional
-            Oversampling factor to perform the convolution. Default=50.
-        min_onset : float, optional
-            Minimal onset relative to frame_times[0] (in seconds)
-            events that start before frame_times[0] + min_onset are not considered.
-            Default=-24.
-
-
-        See Also
-        --------
-        nilearn.glm.first_level.make_first_level_design_matrix
-            Design Matrix API.
-        """
-        if events.ndim != 3 or events.shape[1] != 3:
-            raise ValueError("Event array should be of shape N_cond, 3, N_events")
-        if len(events) != len(rois):
-            raise ValueError("Event and rois should have the same first dimension.")
-        h = HandlerChain()
-        for event, roi_event in zip(events, rois, strict=True):
-            h_new = cls(
-                event_condition=event,
-                roi=rois[roi_event],
-                bold_strength=bold_strength,
-                hrf_model=hrf_model,
-                oversampling=oversampling,
-                min_onset=min_onset,
-            )
-            h = h >> h_new
-        return h
+    duration: float
+    offset: float = 0
+    event_name: str
+    bold_strength: float
+    hrf_model: HRF = HRF.GLOVER
+    oversampling: int
+    min_onset: float
+    roi_threshold: float
 
     def _handle(self, sim: SimData) -> SimData:
         if sim.roi is None and self._roi is not None:
@@ -156,7 +102,8 @@ class ActivationHandler(AbstractHandler):
         return sim
 
 
-class ActivationBlockHandler(ActivationHandler):
+@requires_field("data_ref")
+class ActivationBlockHandler(ActivationMixin, AbstractHandler):
     """Create a activation handler from a block design.
 
     Parameters
@@ -174,7 +121,7 @@ class ActivationBlockHandler(ActivationHandler):
 
     See Also
     --------
-    snkf.utils.activations.block_design
+    snkf.base.activations.block_design
         The helper function to create the block desing.
     """
 
@@ -186,15 +133,16 @@ class ActivationBlockHandler(ActivationHandler):
     offset: float = 0
     event_name: str = "block_on"
     bold_strength: float = 0.02
-    hrf_model: HrfType = "glover"
+    hrf_model: HRF = HRF.GLOVER
     oversampling: int = 50
     min_onset: float = -24.0
     roi_threshold: float = 0.0
-    event_condition: pd.DataFrame | np.ndarray = dataclasses.field(
-        init=False, repr=False
-    )
+    # event_condition: pd.DataFrame | np.ndarray = dataclasses.field(
+    #    init=False, repr=False
+    # )
 
     def __post_init__(self):
+        super().__post_init__()
         self.event_condition = block_design(
             self.block_on,
             self.block_off,

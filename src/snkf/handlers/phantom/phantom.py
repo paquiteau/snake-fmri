@@ -1,18 +1,18 @@
 """Phantom Generation Handlers."""
 
 from importlib.resources import files
+from pathlib import Path
 import os
 
 import numpy as np
-from numpy.typing import DTypeLike, NDArray
+from numpy.typing import NDArray
 from joblib.hashing import hash as jbhash
 
 from brainweb_dl import get_mri
 from brainweb_dl._brainweb import get_brainweb_dir
 
 from snkf.simulation import SimData, LazySimArray
-from snkf.utils import validate_rng, real_type
-from snkf.utils.typing import RngType
+from snkf.base import validate_rng, real_type
 
 from ..base import AbstractHandler, requires_field
 from ._big import generate_phantom, raster_phantom
@@ -42,7 +42,10 @@ class SheppLoganGeneratorHandler(AbstractHandler):
 
     B0: int | float = 7
     roi_index: int = 10
-    dtype: DTypeLike = np.float32
+    dtype: str = "float32"
+
+    def __post_init__(self):
+        self.dtype = np.dtype(dtype)
 
     def _handle(self, sim: SimData) -> SimData:
         if len(sim.shape) != 3:
@@ -76,7 +79,7 @@ class BigPhantomGeneratorHandler(AbstractHandler):
 
     raster_osf: int = 4
     roi_index: int = 10
-    dtype: DTypeLike = np.float32
+    dtype: str = np.float32
     phantom_data: str = "big"
 
     def _handle(self, sim: SimData) -> SimData:
@@ -109,7 +112,7 @@ class RoiDefinerHandler(AbstractHandler):
     """
 
     __handler_name__ = "phantom-roi"
-    roi_data: str | dict | list[dict] | os.PathLike = files("snkf.handlers.phantom") / "big_phantom_roi.json")
+    roi_data: Path = files("snkf.handlers.phantom") / "big_phantom_roi.json"
 
     def _handle(self, sim: SimData) -> SimData:
         sim.roi = raster_phantom(
@@ -137,13 +140,12 @@ class BrainwebPhantomHandler(AbstractHandler):
     __handler_name__ = "phantom-brainweb"
 
     sub_id: int
-    brainweb_folder: os.PathLike | None = None
+    brainweb_folder: Path = get_brainweb_dir()
     roi: int = 1
-    bbox: tuple[int, int, int, int, int, int] | None = None
-    res: float | tuple[float, float, float] | None = None
+    bbox: tuple | None = None
+    res: tuple[float, float, float] | None = None
     force: bool = False
-    rng: RngType = None
-
+    rng: int | None = None
 
     def _handle(self, sim: SimData) -> SimData:
         # TODO hash and cache config with all the parameters of get_mri
@@ -348,11 +350,13 @@ class SlicerHandler(AbstractHandler):
     __handler_name__ = "phantom-slicer"
     axis: int
     index: int
+
     def __post_init__(self):
         if not (0 <= self.axis <= 2):
             raise ValueError("only 3D array are supported.")
 
         self.add_callback(self._run_callback)
+
     def _run_callback(self, old_sim: SimData, new_sim: SimData) -> None:
         """Notify that we are now in  2D."""
         self.log.warning("Simulation is now 2D")

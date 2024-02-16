@@ -26,7 +26,7 @@ class LoadSimHandler(AbstractHandler):
     __handler_name__ = "load-sim"
 
     sim_file: str
-    dtype: DTypeLike = "float32"
+    dtype: str = "float32"
 
     def _handle(self, sim: SimData) -> SimData:
         """Load the simulation using pickle."""
