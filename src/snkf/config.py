@@ -7,52 +7,41 @@ It uses hydra's structured config convention.
 from dataclasses import dataclass, field
 from typing import Any
 
-from hydra.core.config_store import ConfigStore
-from omegaconf import MISSING
-
-from snkf.handlers import H
-from snkf.reconstructors.base import BaseReconstructor
-
 
 @dataclass
-class SimParamsConf:
-    """Global parameters for the simulation."""
+class SimParams:
+    """Simulation metadata."""
 
-    sim_tr: float = MISSING
-    sim_time: float = MISSING
-    shape: tuple[int, ...] = (-1, -1, -1)
-    fov: tuple[int, ...] = (-1, -1, -1)
+    shape: tuple[int, ...]
+    """Shape of the volume of the simulation."""
+    sim_time: float
+    """Total Simulation time in seconds."""
+    sim_tr: float
+    """Time resolution for the simulation."""
     n_coils: int = 1
-    lazy: bool = True
-    rng: int = 19980804
+    """Number of coil of the simulation."""
+    rng: int = 19980408
+    """Random number generator seed."""
+    extra_infos: dict[str, Any] = field(default_factory=lambda: dict(), repr=False)
+    """Extra information, to add more information to the simulation"""
+    fov: tuple[float, ...] = (-1, -1, -1)
+    """Field of view of the volume in mm"""
+    lazy: bool = False
+    """Is the computations lazy ?"""
+
+    def __post_init__(self) -> None:
+        self.n_frames = int(self.sim_time / self.sim_tr)
 
 
 @dataclass
 class ConfigSnakeFMRI:
     """Configuration schema for snake-fmri CLI."""
 
-    sim_params: SimParamsConf
     handlers: Any
     reconstructors: Any
     stats: Any
+    sim_params: SimParams
     force_sim: bool = False
     cache_dir: str = "${oc.env:PWD}/cache"
     result_dir: str = "${oc.env:PWD}/results"
     ignore_pattern: list[str] = field(default_factory=lambda: ["n_jobs"])
-
-
-cs = ConfigStore.instance()
-
-cs.store(name="config", node=ConfigSnakeFMRI)
-
-# add all handlers to the config group
-for handler_name, cls in H.items():
-    print(handler_name)
-    cs.store(group="handlers", name=handler_name, node={handler_name: cls})
-
-# add all handlers to the config group
-for reconstructor_name, cls in BaseReconstructor.__registry__.items():
-    print(reconstructor_name)
-    cs.store(
-        group="reconstructors", name=reconstructor_name, node={reconstructor_name: cls}
-    )

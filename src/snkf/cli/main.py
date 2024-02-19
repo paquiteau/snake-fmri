@@ -13,34 +13,52 @@ import pickle
 import hydra
 import numpy as np
 from hydra_callbacks import PerfLogger
+
+from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf
 
 from snkf.analysis.stats import contrast_zscore, get_scores
-from snkf.handlers import HandlerChain
-from snkf.reconstructors import get_reconstructor
 from snkf.cli.utils import hash_config
 from snkf.config import ConfigSnakeFMRI
+
+from snkf.handlers import H, HandlerChain
+from snkf.reconstructors.base import BaseReconstructor, get_reconstructor
+
+
+cs = ConfigStore.instance()
+
+cs.store(name="config", node=ConfigSnakeFMRI)
+# add all handlers to the config group
+for handler_name, cls in H.items():
+    print(handler_name)
+    cs.store(group="handlers", name=handler_name, node={handler_name: cls})
+
+# add all handlers to the config group
+for reconstructor_name, cls in BaseReconstructor.__registry__.items():
+    print(reconstructor_name)
+    cs.store(
+        group="reconstructors", name=reconstructor_name, node={reconstructor_name: cls}
+    )
 
 logger = logging.getLogger(__name__)
 
 
 def reconstruct(
     sim_file: os.PathLike, rec_name: str, params: Mapping[str, Any]
-) -> tuple[np.ndarray, str]:
+) -> np.ndarray:
     """Reconstruct the data."""
     sim = pickle.load(open(sim_file, "rb"))
     rec = get_reconstructor(rec_name)(**params)
     with PerfLogger(logger, name="Reconstruction " + str(rec)):
         rec.setup(sim)
-        return rec.reconstruct(sim), str(rec)
+        return rec.reconstruct(sim)
 
 
 @hydra.main(version_base=None, config_path="../../conf", config_name="config")
 def main_app(cfg: ConfigSnakeFMRI) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
-    logger.debug(OmegaConf.to_yaml(cfg))
     logging.captureWarnings(True)
-
+    print(cfg)
     cache_dir = Path(cfg.cache_dir or os.getcwd())
     hash_sim = hash_config(
         dict(
@@ -74,7 +92,8 @@ def main_app(cfg: ConfigSnakeFMRI) -> None:
         if params is None:
             logger.debug(f"Skipped {rec_name}, no parametrization")
             continue
-        data_test, rec_str = reconstruct(sim_file, rec_name, params)
+        rec_str = rec_name + hash_config(params)[:5]
+        data_test = reconstruct(sim_file, rec_name, params)
         np.save(f"data_rec_{rec_str}.npy", data_test)
 
         logger.debug("Current simulation state: %s", sim)

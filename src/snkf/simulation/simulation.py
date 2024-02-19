@@ -5,16 +5,16 @@ The Simulation class holds all the information and data relative to a simulation
 """
 
 from __future__ import annotations
-from typing import Literal, Any, Union, Sequence
-from dataclasses import InitVar, dataclass, field
+from typing import Literal, Any, Union
+from dataclasses import dataclass, field
 import copy
 import pickle
-import dataclasses
 import logging
 
 import numpy as np
 from numpy.typing import DTypeLike, NDArray
 from snkf.base import cplx_type
+from snkf.config import SimParams
 from .lazy import LazySimArray
 
 logger = logging.getLogger(__name__)
@@ -26,33 +26,6 @@ OptionalArray = Union[NDArray, None]
 
 class UndefinedArrayError(ValueError):
     """Raise when an array is undefined."""
-
-
-@dataclass
-class SimParams:
-    """Simulation metadata."""
-
-    shape: tuple[int, ...]
-    """Shape of the volume of the simulation."""
-    n_frames: int
-    """Number of frame of the simulation."""
-    sim_tr: float
-    """Time resolution for the simulation."""
-    n_coils: int = 1
-    """Number of coil of the simulation."""
-    rng: int = 19980408
-    """Random number generator seed."""
-    extra_infos: dict[str, Any] = field(default_factory=lambda: dict(), repr=False)
-    """Extra information, to add more information to the simulation"""
-    fov_init: InitVar[tuple[float, ...] | float] = 0.192
-    """Field of view of the volume in mm"""
-    fov: tuple[float, ...] = field(init=False)
-
-    def __post_init__(self, fov_init: Sequence[float] | float) -> None:
-        if isinstance(fov_init, float):
-            self.fov = (fov_init,) * len(self.shape)
-        elif isinstance(fov_init, Sequence):
-            self.fov = tuple(fov_init)
 
 
 class SimData:
@@ -110,29 +83,8 @@ class SimData:
         If n_coils > 1 , describes the sensitivity maps of each coil.
     """
 
-    def __init__(
-        self,
-        shape: tuple[int, int, int],
-        fov: float | tuple[float],
-        sim_tr: float,
-        sim_time: float,
-        n_coils: int = 1,
-        rng: int = 19980408,
-        extra_infos: dict[str, Any] | None = None,
-        lazy: bool = False,
-    ) -> None:
-        n_frames = int(sim_time / sim_tr)
-        if extra_infos is None:
-            extra_infos = dict()
-        self._meta = SimParams(
-            shape,
-            fov_init=fov,
-            n_frames=n_frames,
-            sim_tr=sim_tr,
-            n_coils=n_coils,
-            rng=rng,
-            extra_infos=extra_infos,
-        )
+    def __init__(self, meta_params: SimParams) -> None:
+        self._meta = meta_params
         self._static_vol: NDArray | None = None
         self._roi: NDArray | None = None
         self._data_ref: NDArray | None | LazySimArray = None
@@ -141,7 +93,33 @@ class SimData:
         self._kspace_data: NDArray | None = None
         self._kspace_mask: NDArray | None = None
         self.smaps: NDArray | None = None
-        self.lazy = lazy
+
+    @classmethod
+    def from_params(
+        cls,
+        shape: tuple[int, int, int],
+        fov: tuple[float],
+        sim_tr: float,
+        sim_time: float,
+        n_coils: int = 1,
+        rng: int = 19980408,
+        extra_infos: dict[str, Any] | None = None,
+        lazy: bool = False,
+    ) -> SimData:
+        """Initialize the Simulation directly with Parameters."""
+        if extra_infos is None:
+            extra_infos = dict()
+        meta = SimParams(
+            shape,
+            fov=fov,
+            sim_time=sim_time,
+            sim_tr=sim_tr,
+            n_coils=n_coils,
+            rng=rng,
+            extra_infos=extra_infos,
+        )
+
+        return cls(meta)
 
     @property
     def static_vol(self) -> NDArray:
@@ -208,27 +186,6 @@ class SimData:
     @roi.setter
     def roi(self, value: NDArray) -> None:
         self._roi = value
-
-    @classmethod
-    def from_params(cls, sim_params: SimParams, in_place: bool = False) -> SimData:
-        """Create a Simulation from its meta parameters.
-
-        Parameters
-        ----------
-        sim_meta
-            The meta parameters structure, it must be convertible to a
-            dict with ``shape, TR, n_frames, n_coils`` attributes.
-        in_place
-            If True, the underlying _meta attribute is set to sim_meta.
-        """
-        if isinstance(sim_params, SimParams):
-            obj = cls(**dataclasses.asdict(sim_params))
-        else:
-            obj = cls(**dict(sim_params))
-        if in_place and isinstance(sim_params, SimParams):
-            obj._meta = sim_params
-
-        return obj
 
     @classmethod
     def load_from_file(cls, filename: str, dtype: DTypeLike) -> SimData:
@@ -325,6 +282,11 @@ class SimData:
             return np.arange(0, self.n_frames) * self.sim_tr_ms
         else:
             raise ValueError("unit must be s or ms")
+
+    @property
+    def lazy(self) -> int:
+        """Get Lazy status."""
+        return self._meta.lazy
 
     @property
     def n_coils(self) -> int:

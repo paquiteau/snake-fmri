@@ -48,9 +48,6 @@ class BaseReconstructor(metaclass=MetaReconstructor):
         """Reconstruct data."""
         raise NotImplementedError()
 
-    def __str__(self):
-        return self.name
-
 
 def get_reconstructor(name: str) -> type[BaseReconstructor]:
     """Get a handler from its name."""

@@ -1,5 +1,13 @@
-# This files contains the configuration to reproduce the scenario 3 of the Simfmri paper.
-# it requires a SPARKLING trajectory.
+# This files contains the configuration to reproduce the scenario 2 of the Simfmri paper.
+
+defaults:
+  - handlers:
+    - phantom-brainweb
+    - activation-block
+    - noise-gaussian
+    - acquisition-generic-noncartesian
+  - reconstructors: sequential
+  - _self_
 
 force_sim: false
 cache_dir: ${oc.env:PWD}/cache
@@ -17,7 +25,7 @@ sim_params:
   lazy: true
 handlers:
   phantom-brainweb:
-    subject_id: 5
+    sub_id: 5
     bbox: [0.225,-0.07, 0.06, -0.055, null, null]
     brainweb_folder: ${cache_dir}/brainweb
     res: [1.0, 1.0, 0.943]
@@ -30,11 +38,12 @@ handlers:
   noise-gaussian:
     snr: 100
   acquisition-generic-noncartesian:
-    shot_time_ms: 20
+    shot_time_ms: 50
     n_jobs: 4
     traj_files: ${oc.env:PWD}/cache/trajectory/sparkling3d-48-2688x5.bin
+    traj_osf: 5
     smaps: true
-    backend: "gpunufft"
+    backend: "cufinufft"
 
 reconstructors:
   sequential:
@@ -45,6 +54,8 @@ reconstructors:
     wavelet: sym4
     threshold: sure
     max_iter_per_frame: 40
+    compute_backend: "cupy"
+
 stats:
   contrast_name: block_on
 
@@ -70,3 +81,8 @@ hydra:
       _target_: hydra_callbacks.LatestRunLink
       run_base_dir:  ${result_dir}/outputs
       multirun_base_dir:  ${result_dir}/multirun
+
+    register_run:
+      _target_: hydra_callbacks.RegisterRunCallback
+      run_base_dir:  ${result_dir}/outputs/scenario2
+      multirun_base_dir:  ${result_dir}/multirun/scenario2

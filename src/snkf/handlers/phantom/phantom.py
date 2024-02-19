@@ -217,7 +217,7 @@ class BrainwebPhantomHandler(AbstractHandler):
                 new_fov[i] = fov[i] * (bmax - bmin)
             new_fov = np.roll(new_fov, 2)  # apply same roll as for axes.
             self.log.warning(f"sim.fov was  {sim.fov}, it is now {new_fov}.")
-            sim._meta.fov = tuple(new_fov)
+            sim._meta.fov = tuple(i.item() for i in new_fov)
 
         sim.static_vol = static_vol
         sim.roi = roi

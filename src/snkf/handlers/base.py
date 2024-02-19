@@ -7,12 +7,11 @@ import time
 import copy
 import os
 import logging
-from abc import abstractmethod
 from typing import Callable, Any, Mapping, ClassVar, IO
 
 import yaml
-
-from ..simulation import SimData, SimParams, UndefinedArrayError
+from snkf.config import SimParams
+from ..simulation import SimData, UndefinedArrayError
 from ..base import MetaDCRegister
 
 
@@ -308,7 +307,7 @@ class HandlerChain:
         cls, sim_param: Mapping[str, Any], handlers_conf: Mapping[str, Any]
     ) -> tuple[HandlerChain, SimData]:
         """Load a chain of handler from a configuration."""
-        sim = SimData(**sim_param)
+        sim = SimData(SimParams(**sim_param))
         handlers = []
         for h_name, h_conf in handlers_conf.items():
             handlers.append(AbstractHandler.__registry__[h_name](**h_conf))

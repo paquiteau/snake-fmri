@@ -1,5 +1,14 @@
 # This files contains the configuration to reproduce the scenario 2 of the Simfmri paper.
 
+defaults:
+  - handlers:
+    - phantom-brainweb
+    - activation-block
+    - noise-gaussian
+    - acquisition-sos
+  - reconstructors: sequential
+  - _self_
+
 force_sim: false
 cache_dir: ${oc.env:PWD}/cache
 result_dir: ${oc.env:PWD}/results
@@ -14,9 +23,10 @@ sim_params:
   n_coils: 8
   rng: 19980408
   lazy: true
+
 handlers:
   phantom-brainweb:
-    subject_id: 5
+    sub_id: 5
     bbox: [0.225,-0.07, 0.06, -0.055, null, null]
     brainweb_folder: ${cache_dir}/brainweb
     res: [1.0, 1.0, 0.943]
@@ -34,28 +44,19 @@ handlers:
     accelz: 4
     n_samples: 25000
     constant: false
-    directionz: center-out
+    orderz: CENTER_OUT
     backend: stacked-cufinufft
     n_jobs: 2
 
 reconstructors:
-  sequential:
-    nufft_kwargs:
-      backend_name: stacked-cufinufft
-      density: voronoi
-      z_index: auto
-    optimizer: pogm
-    wavelet: sym4
-    threshold: sure
-    max_iter_per_frame: 40
-  sequential-torch:
-    threshold: sure
-    wavelet: sym4
-    max_iter_per_frame: 40
-    nufft_kwargs:
-      backend_name: stacked-cufinufft
-      density: voronoi
-      z_index: auto
+  nufft_kwargs:
+    backend_name: stacked-cufinufft
+    density: voronoi
+    z_index: auto
+  optimizer: pogm
+  wavelet: sym4
+  threshold: sure
+  max_iter_per_frame: 40
 stats:
   contrast_name: block_on
 
@@ -81,3 +82,8 @@ hydra:
       _target_: hydra_callbacks.LatestRunLink
       run_base_dir:  ${result_dir}/outputs
       multirun_base_dir:  ${result_dir}/multirun
+
+    register_run:
+      _target_: hydra_callbacks.RegisterRunCallback
+      run_base_dir:  ${result_dir}/outputs/scenario2
+      multirun_base_dir:  ${result_dir}/multirun/scenario2

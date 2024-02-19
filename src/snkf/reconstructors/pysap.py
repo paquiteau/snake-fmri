@@ -5,11 +5,12 @@ and returns a reconstructed fMRI array.
 """
 
 from __future__ import annotations
+from dataclasses import field
 from typing import Literal, Any
 import logging
 import numpy as np
 
-from modopt.opt.linear import LinearParent
+from modopt.opt.linear import LinearParent, Identity
 from modopt.opt.proximity import ProximityParent
 
 from .base import BaseReconstructor, SpaceFourierProto
@@ -36,7 +37,7 @@ def get_fourier_operator(
     if backend_name is None:
         backend_name = ""
 
-    if backend_name == "gpunufft":
+    if backend_name == "gpunufft-cpu":
         return PooledgpuNUFFTSpaceFourier(
             sim.kspace_mask,
             sim.shape,
@@ -49,7 +50,7 @@ def get_fourier_operator(
         )
 
     smaps = sim.smaps
-    if "cufinufft" in backend_name:
+    if backend_name in ["cufinufft", "stacked-cufinufft"]:
         import cupy as cp
 
         smaps = cp.array(smaps)
@@ -121,7 +122,7 @@ class SequentialReconstructor(BaseReconstructor):
     optimizer: str = "pogm"
     wavelet: str = "sym8"
     threshold: float | str = "sure"
-    nufft_kwargs: dict[str, Any] | None = None
+    nufft_kwargs: dict[str, Any] = field(default_factory=dict)
     compute_backend: str = "cupy"
     restart_strategy: str = "warm"
 
@@ -131,18 +132,10 @@ class SequentialReconstructor(BaseReconstructor):
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.proximity import SparseThreshold
 
-        if "backend_name" not in self.nufft_kwargs:
-            self.nufft_kwargs["backend_name"] = "stacked-cufinufft"
         self.fourier_op = get_fourier_operator(
             sim,
             **self.nufft_kwargs,
         )
-
-        if (
-            self.compute_backend == "cupy"
-            and "cufinufft" not in self.nufft_kwargs["backend_name"]
-        ):
-            raise ValueError("Cupy backend requires cufinufft.")
 
         space_linear_op = WaveletTransform(
             self.wavelet,
@@ -163,7 +156,7 @@ class SequentialReconstructor(BaseReconstructor):
             )
         else:
             self.threshold = float(self.threshold)
-            space_prox_op = SparseThreshold(self.threshold)
+            space_prox_op = SparseThreshold(linear=Identity(), weights=self.threshold)
         from fmri.reconstructors.frame_based import (
             SequentialReconstructor,
             DoubleSequentialReconstructor,
