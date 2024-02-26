@@ -32,7 +32,9 @@ def get_fourier_operator(
         CartesianSpaceFourier,
         LazySpaceFourier,
         PooledgpuNUFFTSpaceFourier,
+        RepeatOperator,
     )
+    from mrinufft import get_operator
 
     if backend_name is None:
         backend_name = ""
@@ -55,6 +57,23 @@ def get_fourier_operator(
 
         smaps = cp.array(smaps)
         kwargs["smaps_cached"] = True
+    if sim.extra_infos["traj_params"]["constant"] is True:
+        logger.debug("using a duplicated operator.")
+        return RepeatOperator(
+            [
+                get_operator(
+                    backend_name=backend_name,
+                    samples=sim.kspace_mask[0],
+                    shape=sim.shape,
+                    n_coils=sim.n_coils,
+                    smaps=smaps,
+                    density=density,
+                    squeeze_dims=True,
+                    **kwargs,
+                )
+            ]
+            * len(sim.kspace_data)
+        )
 
     if "stacked" in backend_name:
         kwargs["z_index"] = "auto"
@@ -145,7 +164,7 @@ class SequentialReconstructor(BaseReconstructor):
             compute_backend=self.compute_backend,
         )
 
-        _ = space_linear_op.op(np.zeros_like(sim.data_ref[0]))
+        _ = space_linear_op.op(np.zeros(sim.shape, dtype=sim.kspace_data.dtype))
 
         if self.threshold == "sure":
             space_prox_op = AutoWeightedSparseThreshold(
