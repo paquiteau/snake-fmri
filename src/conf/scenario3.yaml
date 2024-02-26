@@ -48,8 +48,8 @@ handlers:
 reconstructors:
   sequential:
     nufft_kwargs:
-      backend_name: cufinufft
-      density: cell_count
+      backend_name: gpunufft
+      density: pipe
     optimizer: pogm
     wavelet: sym4
     threshold: sure

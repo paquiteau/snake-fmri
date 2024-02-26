@@ -30,12 +30,10 @@ cs = ConfigStore.instance()
 cs.store(name="config", node=ConfigSnakeFMRI)
 # add all handlers to the config group
 for handler_name, cls in H.items():
-    print(handler_name)
     cs.store(group="handlers", name=handler_name, node={handler_name: cls})
 
 # add all handlers to the config group
 for reconstructor_name, cls in BaseReconstructor.__registry__.items():
-    print(reconstructor_name)
     cs.store(
         group="reconstructors", name=reconstructor_name, node={reconstructor_name: cls}
     )

@@ -49,14 +49,15 @@ handlers:
     n_jobs: 2
 
 reconstructors:
-  nufft_kwargs:
-    backend_name: stacked-cufinufft
-    density: voronoi
-    z_index: auto
-  optimizer: pogm
-  wavelet: sym4
-  threshold: sure
-  max_iter_per_frame: 40
+  sequential:
+    nufft_kwargs:
+      backend_name: stacked-cufinufft
+      density: voronoi
+      z_index: auto
+    optimizer: pogm
+    wavelet: sym4
+    threshold: sure
+    max_iter_per_frame: 40
 stats:
   contrast_name: block_on
 
