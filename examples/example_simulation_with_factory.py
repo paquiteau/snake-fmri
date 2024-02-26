@@ -45,16 +45,12 @@ handlers:
 
 # %%
 # .. note::
-#     In the handlers section, the name of each handler does not matter.
+#     In the handlers section, the name of each handler matter!
+#     it is the key for finding the related handler object.
 #     They will be processed in order.
-#
-# .. tip::
-#     For more information on Hydra and its configuration be sure to check the sister
-#     package ``snkf_runner``.
-#
 
 # %%
-# Launching the.simulation
+# Launching the simulation
 # -----------------------
 #
 # Thanks to the detailled configuration it is as simple as:

@@ -4,7 +4,7 @@ import pytest
 
 from snkf.handlers import AbstractHandler, list_handlers, get_handler
 from snkf.handlers.base import MetaHandler, requires_field
-from snkf.simulation import SimData
+from snkf.simulation import SimData, SimParams
 
 
 class DummyHandler(AbstractHandler):
@@ -19,8 +19,7 @@ class DummyHandler(AbstractHandler):
 def test_handler_registration():
     """Test handlers registration"""
     assert "dummy" in list_handlers()
-    assert "dummy" in MetaHandler.registry
-    assert MetaHandler.registry["dummy"] == get_handler("dummy")
+    assert AbstractHandler.__registry__["dummy"] == get_handler("dummy")
 
 
 def test_handler_chaining():
@@ -63,7 +62,7 @@ def test_requires_field():
         def _handle(self, sim):
             sim.custom_field += 1
 
-    sim = SimData(shape=(48, 48, 32), fov=0.001, sim_time=12, sim_tr=1.0)
+    sim = SimData(SimParams(shape=(48, 48, 32), fov=0.001, sim_time=12, sim_tr=1.0))
 
     with pytest.raises(ValueError):
         A()(sim)

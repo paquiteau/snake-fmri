@@ -4,15 +4,16 @@ Simulation and Reconstruction
 
 This example shows how to simulate and reconstruct a simple 2D vds simulation.
 """
+
 import matplotlib.pyplot as plt
 import numpy as np
-from snkf.simulation import H, SimData, list_handlers
-from snkf.runner.reconstructor import (
+from snkf import H, SimData, list_handlers
+from snkf.reconstructors import (
     ZeroFilledReconstructor,
     SequentialReconstructor,
     LowRankPlusSparseReconstructor,
 )
-from fmri.visualisation import mosaic
+from fmri.viz import tile_view
 
 # %%
 # Create The simulation
@@ -21,8 +22,8 @@ from fmri.visualisation import mosaic
 # ``lazy=True`` means that the data will be generated on the fly when needed.
 # This is useful to avoid storing large data in memory.
 
-sim = SimData(
-    (64, 64), sim_tr=0.1, sim_time=300, fov=0.192, n_coils=4, rng=42, lazy=True
+sim = SimData.from_params(
+    shape=(64, 64), sim_tr=0.1, sim_time=300, fov=0.192, n_coils=4, rng=42, lazy=True
 )
 
 # %%
@@ -33,17 +34,17 @@ sim = SimData(
 print(list_handlers())
 
 simulator = (
-    H("phantom-big")(roi_index=None)
-    >> H("phantom-roi")()
-    >> H("activation-block")(
+    H["phantom-big"](roi_index=None)
+    >> H["phantom-roi"]()
+    >> H["activation-block"](
         block_on=20, block_off=20, duration=300, bold_strength=0.02
     )
-    >> H("noise-gaussian")(snr=30)
-    >> H("acquisition-vds")(
+    >> H["noise-gaussian"](snr=30)
+    >> H["acquisition-vds"](
         acs=0.1,
         accel=2,
         accel_axis=1,
-        direction="center-out",
+        order="center-out",
         shot_time_ms=25,
         constant=False,
     )
@@ -54,11 +55,11 @@ sim = simulator(sim)
 
 # %%
 # Let's show the various sampling patterns
-fig = mosaic(sim.smaps, axis=0, axis_label="c")
+fig = tile_view(sim.smaps, axis=0, axis_label="c")
 fig.suptitle("Smaps")
 
 # %%
-fig2 = mosaic(sim.kspace_mask, cmap="viridis", samples=0.1, axis=0)
+fig2 = tile_view(sim.kspace_mask, cmap="viridis", samples=0.1, axis=0)
 fig2.suptitle("kspace mask")
 
 # %%
@@ -70,7 +71,7 @@ fig2.suptitle("kspace mask")
 
 adj_data = ZeroFilledReconstructor().reconstruct(sim)
 
-fig3 = mosaic(abs(adj_data), samples=0.1, axis=0)
+fig3 = tile_view(abs(adj_data), samples=0.1, axis=0)
 
 # %%
 # Sequential Reconstruction
@@ -79,7 +80,7 @@ fig3 = mosaic(abs(adj_data), samples=0.1, axis=0)
 seq_data = SequentialReconstructor(max_iter_per_frame=20, threshold="sure").reconstruct(
     sim
 )
-fig4 = mosaic(abs(seq_data), samples=0.1, axis=0)
+fig4 = tile_view(abs(seq_data), samples=0.1, axis=0)
 
 # %%
 # LowRank + Sparse Reconstruction
@@ -88,7 +89,7 @@ lr_s = LowRankPlusSparseReconstructor(
     lambda_l=0.1, lambda_s="sure", algorithm="otazo_raw", max_iter=20
 ).reconstruct(sim)
 
-fig5 = mosaic(abs(lr_s), samples=0.1, axis=0)
+fig5 = tile_view(abs(lr_s), samples=0.1, axis=0)
 plt.show()
 
 

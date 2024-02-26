@@ -27,7 +27,7 @@ snr = 100
 # This data is used to createa the main SimData object, which gather
 # all the data related to this simulation
 
-sim_data = SimData(
+sim_data = SimData.from_params(
     shape=shape, sim_time=50, sim_tr=1, n_coils=1, fov=(0.192, 0.192, 0.192)
 )
 
@@ -47,13 +47,13 @@ simulator = (
     # Create a shepp logan
     H["phantom-shepp_logan"]()
     # Add activations (and creates a time dimension)
-    >> H["activation-block"](3, 3, 50)
+    >> H["activation-block"](block_on=3, block_off=3, duration=50)
     # simulate the acquisition
     >> H["acquisition-vds"](
         acs=24,
         accel=accel,
         accel_axis=1,
-        direction="center-out",
+        order="center-out",
         shot_time_ms=50,
         constant=True,
         smaps=False,
