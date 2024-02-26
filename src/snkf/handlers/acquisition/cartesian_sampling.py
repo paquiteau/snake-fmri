@@ -51,6 +51,10 @@ def get_kspace_slice_loc(
     -------
     np.ndarray: array of size dim_size/accel.
     """
+    try:
+        order = VDSorder(order)
+    except ValueError:
+        raise ValueError(f"Unsupported order ``{order}``")
     if accel == 0:
         return np.arange(dim_size)  # type: ignore
 

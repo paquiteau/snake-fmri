@@ -45,7 +45,8 @@ class SheppLoganGeneratorHandler(AbstractHandler):
     dtype: str = "float32"
 
     def __post_init__(self):
-        self.dtype = np.dtype(dtype)
+        super().__post_init__()
+        self.dtype = np.dtype(self.dtype)
 
     def _handle(self, sim: SimData) -> SimData:
         if len(sim.shape) != 3:
@@ -352,6 +353,7 @@ class SlicerHandler(AbstractHandler):
     index: int
 
     def __post_init__(self):
+        super().__post_init__()
         if not (0 <= self.axis <= 2):
             raise ValueError("only 3D array are supported.")
 

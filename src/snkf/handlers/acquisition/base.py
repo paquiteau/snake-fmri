@@ -367,9 +367,11 @@ class GenericNonCartesianAcquisitionHandler(NonCartesianAcquisitionHandler):
     n_jobs: int = 1
 
     def __post_init__(self):
-        super().__post_init__()
         if isinstance(self.traj_files, str):
             self.traj_files = [self.traj_files]
+        if len(self.traj_files) == 1:
+            self.constant = True
+        super().__post_init__()
 
     def _handle(self, sim: SimData) -> SimData:
         return self._acquire(
