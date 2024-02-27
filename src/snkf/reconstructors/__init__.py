@@ -1,4 +1,5 @@
 """Reconstructor interfaces for the simulator."""
+
 from .base import get_reconstructor
 
 from .pysap import (
@@ -7,7 +8,6 @@ from .pysap import (
     LowRankPlusSparseReconstructor,
 )
 
-from .pytorch import TorchSequentialReconstructor
 
 __all__ = [
     "RECONSTRUCTOR",
@@ -16,5 +16,4 @@ __all__ = [
     "SequentialReconstructor",
     "ZeroFilledReconstructor",
     "LowRankPlusSparseReconstructor",
-    "TorchSequentialReconstructor",
 ]

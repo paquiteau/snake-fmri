@@ -57,7 +57,7 @@ def get_fourier_operator(
 
         smaps = cp.array(smaps)
         kwargs["smaps_cached"] = True
-    if sim.extra_infos["traj_params"]["constant"] is True:
+    if sim.extra_infos["traj_params"]["constant"] is True and backend_name != "":
         logger.debug("using a duplicated operator.")
         return RepeatOperator(
             [
@@ -106,8 +106,10 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     __reconstructor_name__ = "adjoint"
 
-    def __str__(self):
-        return "Adjoint"
+    def __init__(self, nufft_kwargs: dict = None):
+        if nufft_kwargs is None:
+            nufft_kwargs = {}
+        self.nufft_kwargs = nufft_kwargs
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -117,7 +119,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def reconstruct(self, sim: SimData) -> np.ndarray:
         """Reconstruct with Zero filled method."""
-        if self.reconstructor is None:
+        if self.fourier_op is None:
             self.setup(sim)
         return self.fourier_op.adj_op(sim.kspace_data)
 
@@ -344,7 +346,7 @@ class ZeroFilledOptimalThreshReconstructor(ZeroFilledReconstructor):
 
     """
 
-    name = "adjoint+denoised"
+    __reconstructor_name__ = "adjoint+denoised"
 
     def __init__(
         self,
