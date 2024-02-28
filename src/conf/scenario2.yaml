@@ -37,7 +37,7 @@ handlers:
     duration: 300
     bold_strength: 0.02
   noise-gaussian:
-    snr: 100
+    snr: 30
   acquisition-sos:
     shot_time_ms: 50
     acsz: 0.125

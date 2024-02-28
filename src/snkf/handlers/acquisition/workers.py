@@ -132,7 +132,7 @@ def acq_cartesian(
             if sim.n_coils == 1:
                 kdata[kk, 0, mask] = kdata_t[i][ii]
             else:
-                kdata[kk, 0, mask] = kdata_t[i][ii]
+                kdata[kk, :, mask] = kdata_t[i][ii].T
             kmask[kk] += mask
     return kdata, kmask
 

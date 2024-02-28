@@ -36,11 +36,11 @@ handlers:
     duration: 300
     bold_strength: 0.02
   noise-gaussian:
-    snr: 100
+    snr: 30
   acquisition-generic-noncartesian:
     shot_time_ms: 50
     n_jobs: 4
-    traj_files: ${oc.env:PWD}/cache/trajectory/sparkling3d-48-2688x5.bin
+    traj_files: ${cache_dir}/trajectory/sparkling3d-48-2688x5.bin
     traj_osf: 5
     smaps: true
     backend: "cufinufft"

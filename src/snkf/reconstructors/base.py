@@ -1,6 +1,7 @@
 """Base Interfaces for the reconstructors."""
 
 import logging
+from dataclasses import field
 import numpy as np
 from typing import Protocol, Any, ClassVar
 from snkf.simulation import SimData
@@ -38,7 +39,10 @@ class BaseReconstructor(metaclass=MetaReconstructor):
     __registry__: ClassVar[dict]
     __reconstructor_name__: ClassVar[str]
 
-    nufft_kwargs: dict[str, Any]
+    nufft_kwargs: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self):
+        pass
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""

@@ -6,12 +6,11 @@ and returns a reconstructed fMRI array.
 
 from __future__ import annotations
 from dataclasses import field
-from typing import Literal, Any
+from typing import Any
 import logging
 import numpy as np
 
-from modopt.opt.linear import LinearParent, Identity
-from modopt.opt.proximity import ProximityParent
+from modopt.opt.linear import Identity
 
 from .base import BaseReconstructor, SpaceFourierProto
 from snkf.simulation import SimData
@@ -55,7 +54,8 @@ def get_fourier_operator(
     if backend_name in ["cufinufft", "stacked-cufinufft"]:
         import cupy as cp
 
-        smaps = cp.array(smaps)
+        if smaps is not None:
+            smaps = cp.array(smaps)
         kwargs["smaps_cached"] = True
     if sim.extra_infos["traj_params"]["constant"] is True and backend_name != "":
         logger.debug("using a duplicated operator.")
@@ -106,10 +106,9 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     __reconstructor_name__ = "adjoint"
 
-    def __init__(self, nufft_kwargs: dict = None):
-        if nufft_kwargs is None:
-            nufft_kwargs = {}
-        self.nufft_kwargs = nufft_kwargs
+    def __post_init__(self):
+        super().__post_init__()
+        self.fourier_op = None
 
     def setup(self, sim: SimData) -> None:
         """Set up the reconstructor."""
@@ -223,28 +222,18 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
 
     __reconstructor_name__ = "lr_f"
 
-    def __init__(
-        self,
-        lambda_l: float = 0.1,
-        lambda_s: float | Literal["sure"] = 1,
-        algorithm: str = "otazo",
-        max_iter: int = 20,
-        time_linear_op: LinearParent = None,
-        time_prox_op: ProximityParent = None,
-        space_prox_op: ProximityParent = None,
-        fourier_op: SpaceFourierProto | None = None,
-        nufft_kwargs: dict[str, Any] | None = None,
-    ):
-        super().__init__(nufft_kwargs)
-        self.lambda_l = lambda_l
-        self.lambda_s = lambda_s
-        self.max_iter = max_iter
-        self.algorithm = algorithm
+    nufft_kwargs: dict[str, Any] = field(default_factory=dict)
+    lambda_l: float = 0.1
+    lambda_s: float | str = 0.1
+    algorithm: str = "otazo"
+    max_iter: int = 20
 
-        self.time_linear_op = time_linear_op
-        self.time_prox_op = time_prox_op
-        self.space_prox_op = space_prox_op
-        self.fourier_op = fourier_op
+    def __post_init__(self):
+        super().__post_init__()
+        self.time_linear_op = None
+        self.time_prox_op = None
+        self.space_prox_op = None
+        self.fourier_op = None
 
     def __str__(self):
         if isinstance(self.lambda_s, float):
@@ -262,7 +251,6 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
         if self.fourier_op is None:
             self.fourier_op = get_fourier_operator(
                 sim,
-                cartesian_repeat=False,
                 **self.nufft_kwargs,
             )
 

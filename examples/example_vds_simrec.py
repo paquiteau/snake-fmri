@@ -77,9 +77,9 @@ fig3 = tile_view(abs(adj_data), samples=0.1, axis=0)
 # Sequential Reconstruction
 # ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-seq_data = SequentialReconstructor(max_iter_per_frame=20, threshold="sure").reconstruct(
-    sim
-)
+seq_data = SequentialReconstructor(
+    max_iter_per_frame=20, threshold="sure", compute_backend="numpy"
+).reconstruct(sim)
 fig4 = tile_view(abs(seq_data), samples=0.1, axis=0)
 
 # %%
