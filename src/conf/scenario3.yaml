@@ -86,3 +86,8 @@ hydra:
       _target_: hydra_callbacks.RegisterRunCallback
       run_base_dir:  ${result_dir}/outputs/scenario2
       multirun_base_dir:  ${result_dir}/multirun/scenario2
+
+    resource_monitor:
+      _target_: hydra_callbacks.ResourceMonitor
+      enabled: true
+      sample_interval: 1

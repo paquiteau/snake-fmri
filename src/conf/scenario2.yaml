@@ -29,7 +29,7 @@ handlers:
     sub_id: 5
     bbox: [0.225,-0.07, 0.06, -0.055, null, null]
     brainweb_folder: ${cache_dir}/brainweb
-    res: [1.0, 1.0, 0.943]
+    res: [3.0, 3.0, 3.0]
   activation-block:
     event_name: block_on
     block_on: 20
@@ -88,3 +88,8 @@ hydra:
       _target_: hydra_callbacks.RegisterRunCallback
       run_base_dir:  ${result_dir}/outputs/scenario2
       multirun_base_dir:  ${result_dir}/multirun/scenario2
+
+    resource_monitor:
+      _target_: hydra_callbacks.ResourceMonitor
+      enabled: true
+      sample_interval: 1
