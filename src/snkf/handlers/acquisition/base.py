@@ -75,7 +75,7 @@ class BaseAcquisitionHandler(AbstractHandler):
     constant: bool = False
     smaps: bool = True
     n_jobs: int = 1
-
+    mock = False
     acquire_mp = staticmethod(acq_cartesian)
 
     def __post_init__(self):
@@ -98,9 +98,6 @@ class BaseAcquisitionHandler(AbstractHandler):
             The factory to create the trajectory. This factory should return the
             trajectory for a single volume. and takes **self.traj_params as input.
         """
-        if self.smaps and sim.n_coils > 1:
-            self.log.debug(f"generating sensitivity maps {sim.shape}, {sim.n_coils}")
-            sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
         test_traj = next(trajectory_generator)
         n_shot_traj = len(test_traj)
@@ -139,6 +136,14 @@ class BaseAcquisitionHandler(AbstractHandler):
         sim.extra_infos["traj_name"] = "vds"
         sim.extra_infos["traj_params"] = self._traj_params
         sim.extra_infos["n_shot_per_frame"] = n_shot_traj
+
+        # early stopping
+        if self.mock:
+            return sim
+
+        if self.smaps and sim.n_coils > 1:
+            self.log.debug(f"generating sensitivity maps {sim.shape}, {sim.n_coils}")
+            sim.smaps = get_smaps(sim.shape, sim.n_coils).astype(np.complex64)
 
         kspace_data, kspace_mask = self.acquire_mp(
             sim,

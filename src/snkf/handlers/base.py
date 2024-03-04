@@ -366,7 +366,7 @@ def requires_field(
                     raise ValueError(msg) from e
             return old_handle(self, sim)
 
-        cls.handle = wrap_handler  # type: ignore  # mypy is too dump to get this is a legal move.
+        cls.handle = wrap_handler  # type: ignore
 
         return cls
 
