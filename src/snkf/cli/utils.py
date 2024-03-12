@@ -1,14 +1,12 @@
 """Utility function for hydra scripts."""
+
 from typing import Mapping, Any, Iterable
 
-from hydra.utils import HydraConfig
 import re
 import json
 import os
 import itertools
-import numpy as np
 from collections.abc import Sequence
-from snkf.simulation import SimData
 import logging
 from joblib.hashing import hash as jb_hash
 from omegaconf import DictConfig, OmegaConf
@@ -71,118 +69,6 @@ def keyval_fmt(**kwargs: None) -> str:
     return ret
 
 
-def dump_confusion(
-    results: dict | list[dict], result_file: str | None = "result.json"
-) -> list | dict:
-    """Dump the result of the confusion matrix into a json file."""
-    if isinstance(results, list):
-        ret = []
-        for r in results:
-            ret.append(dump_confusion(r, result_file=None))
-        if result_file:
-            with open(result_file, "w") as f:
-                json.dump(ret, f)
-            return ret
-    else:
-        new_results: dict[str, Any] = results.copy()
-    task_overriden = HydraConfig.get().overrides.task
-    for overrided in task_overriden:
-        key, val = overrided.split("=")
-        # keep only the end name of the parameter.
-        key = key.split(".")[-1]
-        # cast the value to the correct type:
-        new_results[key] = safe_cast(val)
-    new_results["directory"] = os.getcwd()
-    if result_file:
-        with open(result_file, "w") as f:
-            json.dump(new_results, f)
-    return new_results
-
-
-def save_data(
-    data_saved: str | list[str],
-    compress: bool,
-    sim: SimData,
-    log: logging.Logger,
-) -> list[str]:
-    """Save part of the data of the simulation.
-
-    Parameters
-    ----------
-    save_data
-        list of attributes to save from the simulation.
-        2 Preset are availables:
-        - "all" saves all  the array of the simulation
-        - "results" saves only the results of the simulation
-        - "mini" save the results of the simulation and the reference data.
-    sim
-        The simulation Data
-    log
-        Logger
-    """
-    _save_preset = {
-        "all": [
-            "data_acq",
-            "data_ref",
-            "data_test",
-            "kspace_data",
-            "kspace_mask",
-            "roi",
-            "estimation",
-            "contrast",
-            "extra_infos",
-        ],
-        "results": ["data_test", "estimation", "contrast"],
-        "mini": ["data_test", "data_ref", "data_acq"],
-    }
-
-    if data_saved is True:
-        data_saved = "all"
-    if isinstance(data_saved, str):
-        try:
-            to_save = _save_preset[data_saved]
-        except KeyError:
-            log.warning(
-                "save data preset not found, will try to find attribute matching."
-            )
-            to_save = [data_saved]
-
-    elif isinstance(data_saved, list):
-        to_save = data_saved
-    else:
-        raise ValueError("data_saved must be a str or a list")
-
-    data_dict = {}
-    for data_name in to_save:
-        try:
-            data_dict[data_name] = getattr(sim, data_name)
-        except AttributeError:
-            try:
-                data_dict[data_name] = sim.extra_infos.get(data_name)
-            except KeyError:
-                log.warn(f"'{data_name}' not found in simulation")
-        if np.iscomplexobj(data_dict[data_name]):
-            data_dict[data_name + "_abs"] = np.abs(data_dict[data_name])
-    if compress:
-        np.savez_compressed("data.npz", **data_dict)
-        filename = ["data.npz"]
-    else:
-        for name, arr in data_dict.items():
-            np.save(name, arr)
-        filename = [f"{name}.npy" for name in data_dict.keys()]
-    log.info(f"saved: {to_save}")
-    return filename
-
-
-def log_kwargs(log: logging.Logger, oneline: bool = False, **kwargs: None) -> None:
-    """Log the kwargs."""
-    if oneline:
-        log.info(f"kwargs: {kwargs}")
-        return
-    for key, val in kwargs.items():
-        log.info(f"{key}: {val}")
-
-
 def aggregate_results(results_files: list[str]) -> str:
     """Aggregate all the .json results files into a single parquet file."""
     import pandas as pd
@@ -239,3 +125,11 @@ def hash_config(conf: Mapping[str, Any], *ignore_keys_pattern: str) -> str:
                 flattened.pop(k)
     print(flattened)
     return jb_hash(flattened)
+
+
+def snkf_handler_resolver(name: str) -> str:
+    """Get Custom resolver for OmegaConf to get handler name."""
+    from snkf.handlers import H
+
+    cls = H[name]
+    return cls.__module__ + "." + cls.__name__

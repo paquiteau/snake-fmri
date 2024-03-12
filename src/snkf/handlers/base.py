@@ -310,7 +310,11 @@ class HandlerChain:
         sim = SimData(SimParams(**sim_param))
         handlers = []
         for h_name, h_conf in handlers_conf.items():
-            handlers.append(AbstractHandler.__registry__[h_name](**h_conf))
+            if isinstance(h_conf, AbstractHandler):
+                h = h_conf
+            else:
+                h = AbstractHandler.__registry__[h_name](**h_conf)
+            handlers.append(h)
         return HandlerChain(*handlers), sim
 
 

@@ -8,21 +8,23 @@ import dataclasses
 from pathlib import Path
 from typing import Any, Mapping
 import pickle
-
+from pprint import pprint
+import numpy as np
 
 import hydra
-import numpy as np
-from hydra_callbacks import PerfLogger
-
+from hydra.utils import instantiate
 from hydra.core.config_store import ConfigStore
+from hydra_callbacks import PerfLogger
 from omegaconf import OmegaConf
 
 from snkf.analysis.stats import contrast_zscore, get_scores
-from snkf.cli.utils import hash_config
+from snkf.cli.utils import hash_config, snkf_handler_resolver
 from snkf.config import ConfigSnakeFMRI
 
 from snkf.handlers import H, HandlerChain
 from snkf.reconstructors.base import BaseReconstructor, get_reconstructor
+
+OmegaConf.register_new_resolver("snkf.handler", snkf_handler_resolver)
 
 
 cs = ConfigStore.instance()
@@ -56,7 +58,8 @@ def reconstruct(
 def main_app(cfg: ConfigSnakeFMRI) -> None:
     """Perform simulation, reconstruction and validation of fMRI data."""
     logging.captureWarnings(True)
-    print(cfg)
+    OmegaConf.resolve(cfg)
+    pprint(cfg)
     cache_dir = Path(cfg.cache_dir or os.getcwd())
     hash_sim = hash_config(
         dict(
@@ -75,7 +78,8 @@ def main_app(cfg: ConfigSnakeFMRI) -> None:
             sim = pickle.load(open(sim_file, "rb"))
         except OSError:
             logger.warning(f"Failed to load simulation from cache {sim_file}")
-            simulator, sim = HandlerChain.from_conf(cfg.sim_params, cfg.handlers)
+            handlers = instantiate(cfg.handlers, _convert_="partial")
+            simulator, sim = HandlerChain.from_conf(cfg.sim_params, handlers)
             sim = simulator(sim)
             del simulator
             os.makedirs(sim_file.parent, exist_ok=True)

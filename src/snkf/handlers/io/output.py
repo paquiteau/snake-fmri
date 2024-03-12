@@ -54,6 +54,8 @@ class ISMRMRDHandler(AbstractHandler):
         self.header = OmegaConf.to_container(header)
 
     def _handle(self, sim: SimData) -> SimData:
+        import ismrmrd as mrd
+
         raise NotImplementedError
         # Complete the minimal header with user input
         # Create The ISMRMRD dataset

@@ -31,6 +31,7 @@ class MetaDCRegister(type):
 
         No need for @dataclass decorator
         """
+
         cls = dataclasses.dataclass(kw_only=True)(
             super().__new__(meta, clsname, bases, class_dict)  # type: ignore
         )
@@ -45,13 +46,17 @@ class MetaDCRegister(type):
 
 
 class NoCaseEnumMeta(EnumMeta):
-    def __getitem__(cls, item):
+    """Make Enum case insensitive."""
+
+    def __getitem__(cls, item: Any):
         if isinstance(item, str):
             item = item.upper()
         return super().__getitem__(item)
 
 
 class NoCaseEnum(Enum, metaclass=EnumMeta):
+    """Base Class for Enum to be case insensitive."""
+
     pass
 
 
