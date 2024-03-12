@@ -245,6 +245,11 @@ class SimData:
         return self._meta.n_frames
 
     @property
+    def hardware(self) -> Any:
+        """Get number of frames."""
+        return self._meta.hardware
+
+    @property
     def fov(self) -> tuple[float, ...]:
         """Get the simulation FOV."""
         return self._meta.fov
