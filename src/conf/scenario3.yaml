@@ -90,4 +90,5 @@ hydra:
     resource_monitor:
       _target_: hydra_callbacks.ResourceMonitor
       enabled: true
+      gpu:
       sample_interval: 1

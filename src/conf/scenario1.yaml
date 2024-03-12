@@ -44,7 +44,7 @@ handlers:
     shot_time_ms: 50
     acs: 1
     accel: 1
-    accel_axis: 0
+    accel_axis: -1
     constant: true
     order: TOP_DOWN
     smaps: false

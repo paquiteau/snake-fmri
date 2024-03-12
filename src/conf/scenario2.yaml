@@ -6,7 +6,9 @@ defaults:
     - activation-block
     - noise-gaussian
     - acquisition-sos
-  - reconstructors: sequential
+  - reconstructors:
+    - adjoint
+    - sequential
   - _self_
 
 force_sim: false
@@ -37,7 +39,7 @@ handlers:
     duration: 300
     bold_strength: 0.02
   noise-gaussian:
-    snr: 30
+    snr: 10
   acquisition-sos:
     shot_time_ms: 50
     acsz: 0.125
@@ -49,6 +51,11 @@ handlers:
     n_jobs: 2
 
 reconstructors:
+  adjoint:
+    nufft_kwargs:
+      backend_name: stacked-cufinufft
+      density: voronoi
+      z_index: auto
   sequential:
     nufft_kwargs:
       backend_name: stacked-cufinufft
@@ -56,7 +63,7 @@ reconstructors:
       z_index: auto
     optimizer: pogm
     wavelet: sym4
-    threshold: sure
+    threshold: 1.2
     max_iter_per_frame: 40
 stats:
   contrast_name: block_on
