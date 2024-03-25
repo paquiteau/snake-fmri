@@ -39,6 +39,7 @@ classifiers = [  # Optional
 ]
 
 dependencies = [ # Optional
+  "pydantic",
   "numpy",
   "scipy",
   "nilearn",

@@ -6,7 +6,8 @@ The Simulation class holds all the information and data relative to a simulation
 
 from __future__ import annotations
 from typing import Literal, Any, Union
-from dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass
+from dataclasses import field
 import copy
 import pickle
 import logging
