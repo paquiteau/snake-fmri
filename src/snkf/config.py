@@ -4,7 +4,8 @@ It uses hydra's structured config convention.
 
 """
 
-from dataclasses import dataclass, field
+from pydantic.dataclasses import dataclass
+from dataclasses import field
 from typing import Any
 
 
