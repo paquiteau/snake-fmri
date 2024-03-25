@@ -5,7 +5,7 @@ defaults:
     - phantom-brainweb
     - activation-block
     - noise-gaussian
-    - acquisition-sos
+    - acquisition-vds
   - reconstructors:
     - lr_f
   - _self_
@@ -39,22 +39,16 @@ handlers:
     bold_strength: 0.02
   noise-gaussian:
     snr: 10
-  acquisition-sos:
+  acquisition-vds:
     shot_time_ms: 50
-    acsz: 0.125
-    accelz: 4
-    n_samples: 25000
-    constant: false
-    orderz: CENTER_OUT
-    backend: stacked-cufinufft
+    accel_axis: -1
+    accel: 4
+    acs: 0.1
+    order: CENTER_OUT
     n_jobs: 2
 
 reconstructors:
   lr_f:
-    nufft_kwargs:
-      backend_name: stacked-cufinufft
-      density: voronoi
-      z_index: auto
     max_iter: 40
     lambda_l: 0.01
     lambda_s: sure
