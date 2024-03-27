@@ -62,7 +62,9 @@ def test_requires_field():
         def _handle(self, sim):
             sim.custom_field += 1
 
-    sim = SimData(SimParams(shape=(48, 48, 32), fov=0.001, sim_time=12, sim_tr=1.0))
+    sim = SimData(
+        SimParams(shape=(48, 48, 32), fov=(0.1,) * 3, sim_time=12, sim_tr=1.0)
+    )
 
     with pytest.raises(ValueError):
         A()(sim)

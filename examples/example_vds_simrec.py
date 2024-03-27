@@ -23,7 +23,13 @@ from fmri.viz import tile_view
 # This is useful to avoid storing large data in memory.
 
 sim = SimData.from_params(
-    shape=(64, 64), sim_tr=0.1, sim_time=300, fov=0.192, n_coils=4, rng=42, lazy=True
+    shape=(64, 64),
+    sim_tr=0.1,
+    sim_time=300,
+    fov=(0.192, 0.192),
+    n_coils=4,
+    rng=42,
+    lazy=True,
 )
 
 # %%
