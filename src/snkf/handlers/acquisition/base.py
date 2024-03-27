@@ -22,6 +22,7 @@ from .trajectory import (
     rotate_trajectory,
     stack_spiral_factory,
     vds_factory,
+    AngleRotation,
 )
 from .cartesian_sampling import VDSorder, VDSpdf
 from .workers import acq_cartesian, acq_noncartesian
@@ -487,7 +488,7 @@ class StackedSpiralAcquisitionHandler(NonCartesianAcquisitionHandler):
     in_out: bool = True
     pdfz: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
-    rotate_angle: str | float = 0.0
+    rotate_angle: AngleRotation = AngleRotation.ZERO
     smaps: bool = True
     backend: str = "finufft"
     shot_time_ms: int = 50

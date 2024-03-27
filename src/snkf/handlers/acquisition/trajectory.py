@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Literal, Mapping, Any
 from collections.abc import Generator
 import numpy as np
-from snkf.base import RngType, AnyShape
+from snkf.base import RngType, AnyShape, NoCaseEnum
 from numpy.typing import NDArray
 
 from .cartesian_sampling import get_kspace_slice_loc, VDSorder, VDSpdf
@@ -125,21 +125,17 @@ def stack_spiral_factory(
     in_out: bool = True,
     spiral: str = "archimedes",
     orderz: VDSorder = VDSorder.CENTER_OUT,
-    pdfz: Literal["gaussian", "uniform"] = "gaussian",
+    pdfz: VDSpdf = VDSpdf.GAUSSIAN,
     rng: RngType = None,
-    rotate_angle: str | float = 0.0,
+    rotate_angle: AngleRotation | float = 0.0,
 ) -> np.ndarray:
     """Generate a trajectory of stack of spiral."""
     sizeZ = shape[-1]
 
     z_index = get_kspace_slice_loc(sizeZ, acsz, accelz, pdf=pdfz, rng=rng, order=orderz)
 
-    if isinstance(rotate_angle, str):
-        rotate_angle = ROTATE_ANGLES[rotate_angle]
-    elif not isinstance(rotate_angle, float):
-        raise ValueError(
-            "rotate_spirals should be a float or a valid key in ROTATE_ANGLES."
-        )
+    if not isinstance(rotate_angle, float):
+        rotate_angle = rotate_angle.value
 
     spiral2D = initialize_2D_spiral(
         Nc=1,
@@ -170,15 +166,16 @@ def stack_spiral_factory(
 #####################################
 
 
-ROTATE_ANGLES = {
-    "constant": 0,
-    "golden": 2.39996322972865332,  # 2pi(2-phi)
-    "golden-mri": 1.941678793,  # 115.15 deg
-}
+class AngleRotation(NoCaseEnum):
+    """Available rotation angle for density sampling."""
+
+    ZERO = 0
+    GOLDEN = 2.39996322972865332  # 2pi(2-phi)
+    GOLDEN_MRI = 1.941678793  # 115.15 deg
 
 
 def rotate_trajectory(
-    trajectories: Generator[np.ndarray, None, None], theta: str | float = 0
+    trajectories: Generator[np.ndarray, None, None], theta: AngleRotation | float = 0
 ) -> Generator[np.ndarray, None, None]:
     """Incrementally rotate a trajectory.
 
@@ -188,7 +185,7 @@ def rotate_trajectory(
         Trajectory to rotate.
     """
     if not isinstance(theta, float):
-        theta = ROTATE_ANGLES[theta]
+        theta = theta.value
 
     for traj in trajectories:
         if traj.ndim == 2:
