@@ -23,6 +23,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip wheel
         python -m pip install python-pysap pysap-mri
+        python -m pip install git+https://github.com/CEA-COSMIC/ModOpt
     - name: Install test dependencies
       run: |
         python -m pip install git+https://github.com/paquiteau/pysap-fmri
