@@ -22,8 +22,9 @@ jobs:
     - name: Install deps
       run: |
         python -m pip install --upgrade pip wheel
-        python -m pip install python-pysap pysap-mri
+        python -m pip install python-pysap
         python -m pip install .[test] matplotlib
         python -m pip install --upgrade git+https://github.com/CEA-COSMIC/ModOpt
+        python -m pip install --upgrade git+https://github.com/paquiteau/pysap-fmri
     - name: Test
       run: pytest
