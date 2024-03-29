@@ -13,7 +13,7 @@ from snkf.reconstructors import (
     SequentialReconstructor,
     LowRankPlusSparseReconstructor,
 )
-from fmri.viz import tile_view
+from fmri.viz.images import tile_view
 
 # %%
 # Create The simulation
