@@ -53,7 +53,7 @@ dependencies = [ # Optional
   "brainweb-dl",
   "mri-nufft",
   "pysap-fmri",
-  "git+https://github.com/CEA-COSMIC/ModOpt",
+  "modopt@git+https://github.com/CEA-COSMIC/ModOpt",
 ]
 
 [project.optional-dependencies] # Optional
