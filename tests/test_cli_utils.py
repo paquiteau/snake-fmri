@@ -1,4 +1,5 @@
 """Test the CLI utils."""
+
 import pytest
 from omegaconf import OmegaConf
 from snkf.cli.utils import hash_config

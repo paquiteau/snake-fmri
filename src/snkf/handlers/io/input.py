@@ -37,7 +37,7 @@ class LoadDataHandler(AbstractHandler):
     Parameters
     ----------
     **kwargs
-        The fields to load into.  The key is the field name, the value is the path to the data.
+        The fields to load into.  The key is the field name, the value is the path.
 
     """
 

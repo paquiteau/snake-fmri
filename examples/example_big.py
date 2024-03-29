@@ -2,7 +2,8 @@
 Custom Phantom and ROI
 ======================
 
-In this example we are going to show the different way to generate phantom data, using the BIG phantom.
+In this example we are going to show the different way to generate phantom data, using
+the BIG phantom.
 This phantom is more realistic than the Shepp-Logan Phantom, but is a 2D phantom.
 """
 

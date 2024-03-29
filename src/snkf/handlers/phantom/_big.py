@@ -1,4 +1,5 @@
 """Functions to generate phantom from bezier description."""
+
 import json
 import os
 import numpy as np
@@ -101,7 +102,7 @@ def inside_bezier_region(
         b = -tmp[..., 0] * gamma[i, 1] + tmp[..., 1] * gamma[i, 0]
         d = -tmp[..., 0] * beta[i, 1] + tmp[..., 1] * beta[i, 0]
         #: map(ind(b.^2<a(i)*d)) = (a(i)>=0);
-        cond = b ** 2 < (a[i] * d)
+        cond = b**2 < (a[i] * d)
         inside[ind[cond]] = a[i] >= 0
         # a>=0 for outward-pointing triangles: add the interior points
         # a<0 for inside-pointing triangles: remove the exterior points
@@ -182,7 +183,7 @@ def raster_phantom(
             x2 = Y - region["center"][1]
             u1 = 2 / region["width"][0] * (ct * x1 + st * x2)
             u2 = 2 / region["width"][1] * (-st * x1 + ct * x2)
-            mask = np.sqrt(u1 ** 2 + u2 ** 2) <= 1
+            mask = np.sqrt(u1**2 + u2**2) <= 1
         else:
             raise ValueError("Unsupported region type.")
         if weighting == "label":

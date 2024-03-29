@@ -5,6 +5,7 @@ very close (i.e. copy pasted and type annotated) to what is done in lazzyarray
 https://github.com/NeuralEnsemble/lazyarray/blob/master/lazyarray.py
 
 """
+
 from __future__ import annotations
 import operator
 from copy import deepcopy
@@ -40,9 +41,7 @@ def lazy_inplace_operation(name: str) -> LazyOpType:
     return op
 
 
-def lazy_operation(
-    name: str, reversed: bool = False
-) -> LazyOpType:
+def lazy_operation(name: str, reversed: bool = False) -> LazyOpType:
     """Create a lazy operation on a LazySimArray."""
 
     def op(self: LazySimArray, val: ArrayLike) -> LazySimArray:
@@ -66,6 +65,7 @@ def lazy_unary_operation(name: str) -> Callable[[LazySimArray], LazySimArray]:
 
     return op
 
+
 class LazySimArray:
     """A lazy array for the simulation of the data.
 
@@ -82,7 +82,7 @@ class LazySimArray:
     def __init__(
         self,
         base_array: NDArray | LazySimArray,
-        n_frames: int =  -1,
+        n_frames: int = -1,
     ):
         self._n_frames = n_frames
         if isinstance(base_array, LazySimArray) and n_frames is None:
@@ -190,5 +190,6 @@ class LazySimArray:
     __neg__ = lazy_unary_operation("neg")
     __pos__ = lazy_unary_operation("pos")
     __abs__ = lazy_unary_operation("abs")
+
 
 LazyOpType = Callable[[LazySimArray, ArrayLike], LazySimArray]

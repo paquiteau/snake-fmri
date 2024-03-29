@@ -1,7 +1,6 @@
 """Test for simulation dataclass."""
 
 
-
 def test_simulation_params():
     """Test the simulation params."""
     from snkf.simulation import SimParams

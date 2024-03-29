@@ -14,6 +14,8 @@ from ._block import block_design
 
 
 class HRF(str, Enum):
+    """Available HRF models."""
+
     GLOVER = "glover"
     SPM = "spm"
 

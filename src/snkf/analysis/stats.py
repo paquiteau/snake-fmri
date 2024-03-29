@@ -135,7 +135,7 @@ def get_scores(
     return stats
 
 
-def bacc(tpr: NDArray, fpr: NDArray, adjusted=False) -> NDArray:
+def bacc(tpr: NDArray, fpr: NDArray, adjusted: bool = False) -> NDArray:
     """Compute Balanced Accuracy from TPR and FPR."""
     bacc = (tpr + 1 - fpr) / 2
     if adjusted:
@@ -143,7 +143,7 @@ def bacc(tpr: NDArray, fpr: NDArray, adjusted=False) -> NDArray:
     return bacc
 
 
-def mcc(tp, fp, tn, fn):
+def mcc(tp: int, fp: int, tn: int, fn: int) -> float:
     """Compute Matthew's Correlation Coefficient."""
     tpr = tp / (tp + fn)
     tnr = tn / (fp + tn)

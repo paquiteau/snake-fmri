@@ -1,5 +1,5 @@
-#!/usr/bin/env python3
-
+# /usr/bin/env python3
+"""Utility Handlers for the SNAKE-fMRI package."""
 
 from snkf.handlers.base import AbstractHandler
 from snkf.simulation import SimData
@@ -10,8 +10,8 @@ class KspaceFrameSlicerHandler(AbstractHandler):
 
     Temporaly slice/resample the simulation according to kspace-volume time resolution.
     If no acquisition has been performed, it is required to have the tr_vol parameters.
-    This parameters can be obtained by using an acquisition handler with mock=True as extra parameter.
-
+    This parameters can be obtained by using an acquisition handler with mock=True as
+    an extra parameter.
     """
 
     __handler_name__ = "slicer-frame"

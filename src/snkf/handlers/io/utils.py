@@ -1,4 +1,5 @@
 """Utility functions for io."""
+
 from typing import Mapping, Any
 
 import os

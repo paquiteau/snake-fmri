@@ -1,4 +1,5 @@
 """Phantom representation."""
+
 import numpy as np
 
 
@@ -132,9 +133,9 @@ def mr_shepp_logan(
 
         # Find indices falling inside the ellipsoid, ellipses only
         # rotated in xy plane
-        idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a ** 2 + (
+        idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a**2 + (
             (X - xc) * st0 - (Y - yc) * ct0
-        ) ** 2 / b ** 2 + (Z - zc) ** 2 / c ** 2 <= 1
+        ) ** 2 / b**2 + (Z - zc) ** 2 / c**2 <= 1
 
         # Add ellipses together -- subtract of M0 is negative
         M0s[idx] += M0[ii]
@@ -266,7 +267,7 @@ def idx_in_ellipse(E: np.ndarray, shape: tuple[int, int, int]) -> np.ndarray:
     ct0 = np.cos(theta)
     st0 = np.sin(theta)
 
-    idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a ** 2 + (
+    idx = ((X - xc) * ct0 + (Y - yc) * st0) ** 2 / a**2 + (
         (X - xc) * st0 - (Y - yc) * ct0
-    ) ** 2 / b ** 2 + (Z - zc) ** 2 / c ** 2 <= 1
+    ) ** 2 / b**2 + (Z - zc) ** 2 / c**2 <= 1
     return idx

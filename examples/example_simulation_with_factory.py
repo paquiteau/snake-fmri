@@ -3,7 +3,7 @@
 Using a simulation configuration file
 =====================================
 
-In this example we are going to describe how to use the simulation factory interface available in the runner package.
+This example present how to use a simulation config file.
 
 """
 
@@ -22,6 +22,10 @@ from snkf import load_from_yaml
 
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
+
+defaults: #adding default is best practice to get full type checking.
+ - handlers: [phantom-shepp_logan, phantom-slicer, activation-block]
+
 sim_params:
     sim_time: 100
     shape: [128, 128, 128]

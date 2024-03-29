@@ -107,7 +107,8 @@ addopts = [
 
 
 [tool.ruff]
-src = ["src", "tests"]
+include = ["src/**/*.py", "tests/**/*.py", "examples/*.py"]
+
 [tool.ruff.lint]
 select = ["E", "F", "B", "Q", "D", "UP", "ANN"]
 ignore = [
@@ -118,6 +119,7 @@ ignore = [
     "D105", # missing docstring in magic method
     "D404", # Imperative mode is not necessary everywhere, trust me.
 ]
+
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
 [tool.ruff.lint.per-file-ignores]

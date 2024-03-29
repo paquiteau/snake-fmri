@@ -1,8 +1,4 @@
-"""
-Convert snake fmri simulation file to a ISMRMRD file.
-
-Note: If you want to streamline the conversion inside the simulation, you can ! use the the MRD handler in snkf.handlers.io
-"""
+"""Convert snake fmri simulation file to a ISMRMRD file."""
 
 import argparse
 import numpy as np
@@ -12,7 +8,7 @@ from snkf.simulation import SimData
 from mrinufft.trajectories.utils import Gammas
 
 
-def snake2mrd_header(sim) -> mrd.xsd.ismrmrdHeader:
+def snake2mrd_header(sim: SimData) -> mrd.xsd.ismrmrdHeader:
     """Get the header of the ISMRMRD file from the snake simulation."""
     header = mrd.xsd.ismrmrdHeader()
     # Experimental conditions
