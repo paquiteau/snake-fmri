@@ -44,7 +44,7 @@ dependencies = [ # Optional
   "scipy",
   "nilearn",
   "pandas",
-  "scikit-image", # problems on install otherwise ?
+  "scikit-image",
   "matplotlib",
   "seaborn",
   "hydra-core",
@@ -52,6 +52,7 @@ dependencies = [ # Optional
   "hydra-colorlog",
   "brainweb-dl",
   "mri-nufft",
+  "pysap-fmri",
 ]
 
 [project.optional-dependencies] # Optional

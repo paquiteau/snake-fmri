@@ -1,0 +1,49 @@
+name: Release on PyPi
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+jobs:
+  build-n-publish:
+    name: Build and publish to PyPI
+    runs-on: ubuntu-latest
+    environment: pypi-release
+    permissions:
+      id-token: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    - name: Get history and tags for SCM versioning to work
+      run: |
+        git fetch --prune --unshallow
+        git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+
+    - name: Install pypa/build
+      run: |
+        python -m pip install build
+        python -m pip install .
+
+    - name: Build a binary wheel and a source tarball
+      run: |
+        python -m build --sdist --wheel --outdir dist/ .
+
+    - name: Publish distribution 📦 to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+
+  gh-release:
+     name: Create release
+     env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+     runs-on: ubuntu-latest
+     steps:
+     - name: Checkout
+       uses: actions/checkout@v3
+       with:
+        fetch-depth: 100
+     - name: Create Relase
+       run: gh release create "$GITHUB_REF_NAME"  --generate-notes -d
