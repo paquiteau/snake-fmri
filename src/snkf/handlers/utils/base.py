@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 
 
-from snkf.handlers.base import AbstractHandler, requires_field
+from snkf.handlers.base import AbstractHandler
 from snkf.simulation import SimData
 
 
 class KspaceFrameSlicerHandler(AbstractHandler):
     """Hanlder that cut a simulation to a specific frame idx.
-
 
     Temporaly slice/resample the simulation according to kspace-volume time resolution.
     If no acquisition has been performed, it is required to have the tr_vol parameters.

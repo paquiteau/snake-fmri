@@ -1,7 +1,5 @@
 """Test the CLI with simple scenarios."""
 
-import pytest
-import subprocess
 from hydra.test_utils.test_utils import run_python_script
 
 

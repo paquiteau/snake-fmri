@@ -1,6 +1,5 @@
 """Test for simulation dataclass."""
 
-import pytest
 
 
 def test_simulation_params():

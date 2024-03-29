@@ -99,7 +99,6 @@ class BaseAcquisitionHandler(AbstractHandler):
             The factory to create the trajectory. This factory should return the
             trajectory for a single volume. and takes **self.traj_params as input.
         """
-
         test_traj = next(trajectory_generator)
         n_shot_traj = len(test_traj)
 

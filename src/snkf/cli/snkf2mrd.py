@@ -8,7 +8,6 @@ import argparse
 import numpy as np
 import ismrmrd as mrd
 from snkf.simulation import SimData
-import snkf
 
 from mrinufft.trajectories.utils import Gammas
 

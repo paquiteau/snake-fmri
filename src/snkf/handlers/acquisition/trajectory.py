@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Mapping, Any
+from typing import Mapping, Any
 from collections.abc import Generator
 import numpy as np
 from snkf.base import RngType, AnyShape, NoCaseEnum

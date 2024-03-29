@@ -1,9 +1,7 @@
 """Handlers for loading data into the simulation."""
 
 import os
-from typing import Mapping
 
-from numpy.typing import DTypeLike
 from omegaconf import OmegaConf
 
 from snkf.handlers.base import AbstractHandler

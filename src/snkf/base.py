@@ -31,7 +31,6 @@ class MetaDCRegister(type):
 
         No need for @dataclass decorator
         """
-
         cls = dataclasses.dataclass(kw_only=True)(
             super().__new__(meta, clsname, bases, class_dict)  # type: ignore
         )

@@ -1,8 +1,7 @@
 """Handler to add activations."""
 
 from __future__ import annotations
-import dataclasses
-from typing import Literal, Mapping, get_args, Any
+from typing import Any
 from enum import Enum
 import numpy as np
 import pandas as pd
@@ -10,7 +9,7 @@ from nilearn.glm.first_level import compute_regressor  # type: ignore
 
 from snkf.simulation.simulation import SimData, LazySimArray
 
-from ..base import AbstractHandler, HandlerChain, requires_field
+from ..base import AbstractHandler, requires_field
 from ._block import block_design
 
 

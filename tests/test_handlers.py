@@ -3,7 +3,7 @@
 import pytest
 
 from snkf.handlers import AbstractHandler, list_handlers, get_handler
-from snkf.handlers.base import MetaHandler, requires_field
+from snkf.handlers.base import requires_field
 from snkf.simulation import SimData, SimParams
 
 
