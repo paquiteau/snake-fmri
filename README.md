@@ -46,9 +46,9 @@ import snkf
 ```
 
 # Documentation
-The documentation is available at https://snake-fmri.readthedocs.io/en/latest/, our [preprint](XXXX) describe also the framework in details.
+The documentation is available at https://paquiteau.github.io/snake-fmri/, our [preprint (TBA)](XXXX) describe also the framework in details.
 
-Don't hesitate to also check the [examples gallery](XXXXX) .
+Don't hesitate to also check the [examples gallery (TBA)](https://paquiteau.github.io/snake-fmri).
 
 # Running simulation and benchmarks 
 ## Available commands 
@@ -58,12 +58,13 @@ Don't hesitate to also check the [examples gallery](XXXXX) .
  
 
 ## Configurations Files
-The configuration  are located in `snkf/conf` and articulates over 3 main componenents: 
+The configuration  are located in `snkf/conf` and articulates over 3 main components: 
 - the simulation
 - the reconstruction
 - the validation via statistical analysis
 
 
+<!--
 
 # Citing SNAKE-fMRI
 If you use SNAKE-fMRI in your research, please cite the following paper:
@@ -72,9 +73,7 @@ If you use SNAKE-fMRI in your research, please cite the following paper:
 > 
 
 ```
-@article{snakefmri,
-}
 ```
-
+-->
 # License
 SNAKE-fMRI is licensed under the MIT License. See the LICENSE file for more information.
