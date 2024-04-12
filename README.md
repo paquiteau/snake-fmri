@@ -26,7 +26,7 @@ To install SNAKE-fMRI, you can use pip.
 ```bash
 pip install snake-fmri 
 # Required for the reconstruction 
-pip install git+github.com/pysap-fmri
+pip install git+https://github.com/paquiteau/pysap-fmri
 # Recommended for the nufft acceleration 
 pip install gpunufft # or cufinufft 
 ```
