@@ -1,4 +1,16 @@
-# SNAKE-fMRI: A Simulation and Reconstruction Framework for fMRI
+<img align="left" width="33%" src="https://github.com/paquiteau/snake-fmri/blob/main/docs/images/logos/logo-snake_light.svg"> 
+<h1> A Simulator from Neurovascular coupling to Acquisition of K-space data for Exploration of fMRI Technique </br></br></h1>
+
+
+[![Test](https://github.com/paquiteau/snake-fmri/actions/workflows/test.yml/badge.svg)](https://github.com/paquiteau/snake-fmri/actions/workflows/test.yml)
+[![deploy-docs](https://github.com/paquiteau/snake-fmri/actions/workflows/deploy-docs.yml/badge.svg)](https://paquiteau.github.io/snake-fmri)
+[![arxiv](https://img.shields.io/badge/preprint-2024.6455-darkred?logo=arXiv&logoColor=white)](httsp://arxiv.org)
+
+[![python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=blue)](https://pypi.org/project/snake-fmri)
+![black](https://img.shields.io/badge/code--style-black-black)
+![ruff](https://img.shields.io/badge/lint-ruff-purple?logo=stackblitz&logoColor=yellow)
+
+
 
 This package provides a simulation and reconstruction framework for fMRI data. It is designed to be used for benchmarking and testing of fMRI reconstruction methods.
 
@@ -34,9 +46,9 @@ import snkf
 ```
 
 # Documentation
-The documentation is available at https://snake-fmri.readthedocs.io/en/latest/, our [preprint](XXXX) describe also the framework in details.
+The documentation is available at https://paquiteau.github.io/snake-fmri/, our [preprint (TBA)](XXXX) describe also the framework in details.
 
-Don't hesitate to also check the [examples gallery](XXXXX) .
+Don't hesitate to also check the [examples gallery (TBA)](https://paquiteau.github.io/snake-fmri).
 
 # Running simulation and benchmarks 
 ## Available commands 
@@ -46,12 +58,13 @@ Don't hesitate to also check the [examples gallery](XXXXX) .
  
 
 ## Configurations Files
-The configuration  are located in `snkf/conf` and articulates over 3 main componenents: 
+The configuration  are located in `snkf/conf` and articulates over 3 main components: 
 - the simulation
 - the reconstruction
 - the validation via statistical analysis
 
 
+<!--
 
 # Citing SNAKE-fMRI
 If you use SNAKE-fMRI in your research, please cite the following paper:
@@ -60,9 +73,7 @@ If you use SNAKE-fMRI in your research, please cite the following paper:
 > 
 
 ```
-@article{snakefmri,
-}
 ```
-
+-->
 # License
 SNAKE-fMRI is licensed under the MIT License. See the LICENSE file for more information.
