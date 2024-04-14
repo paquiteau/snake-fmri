@@ -4,7 +4,7 @@
 
 [![Test](https://github.com/paquiteau/snake-fmri/actions/workflows/test.yml/badge.svg)](https://github.com/paquiteau/snake-fmri/actions/workflows/test.yml)
 [![deploy-docs](https://github.com/paquiteau/snake-fmri/actions/workflows/deploy-docs.yml/badge.svg)](https://paquiteau.github.io/snake-fmri)
-[![arxiv](https://img.shields.io/badge/preprint-2024.6455-darkred?logo=arXiv&logoColor=white)](httsp://arxiv.org)
+[![HAL](https://img.shields.io/badge/preprint-04533862-purple?logo=HAL&logoColor=white)](https://hal.science/hal-04533862)
 
 [![python](https://img.shields.io/badge/python-3.10%2B-blue?logo=python&logoColor=blue)](https://pypi.org/project/snake-fmri)
 ![black](https://img.shields.io/badge/code--style-black-black)
@@ -46,7 +46,7 @@ import snkf
 ```
 
 # Documentation
-The documentation is available at https://paquiteau.github.io/snake-fmri/, our [preprint (TBA)](XXXX) describe also the framework in details.
+The documentation is available at https://paquiteau.github.io/snake-fmri/, our [preprint](https://hal.science/hal-04533862) describe also the framework in details.
 
 Don't hesitate to also check the [examples gallery (TBA)](https://paquiteau.github.io/snake-fmri).
 
@@ -64,16 +64,27 @@ The configuration  are located in `snkf/conf` and articulates over 3 main compon
 - the validation via statistical analysis
 
 
-<!--
 
 # Citing SNAKE-fMRI
 If you use SNAKE-fMRI in your research, please cite the following paper:
 
-> 
-> 
+>  Pierre-Antoine Comby, Alexandre Vignaud, Philippe Ciuciu. SNAKE-fMRI: A modular fMRI data simulator from the space-time domain to k-space and back. 2024. ⟨hal-04533862⟩ 
 
+```bibtex
+@unpublished{comby:hal-04533862,
+  TITLE = {{SNAKE-fMRI: A modular fMRI data simulator from the space-time domain to k-space and back}},
+  AUTHOR = {Comby, Pierre-Antoine and Vignaud, Alexandre and Ciuciu, Philippe},
+  URL = {https://hal.science/hal-04533862},
+  NOTE = {working paper or preprint},
+  YEAR = {2024},
+  MONTH = Mar,
+  KEYWORDS = {fMRI ; Brain Imaging ; Accelerated sampling ; Compressed Sensing ; Simulation ; Open Source ; Python ; np ndarray , np newaxis] ; np ; ndarray , np ; newaxis]},
+  PDF = {https://hal.science/hal-04533862/file/main.pdf},
+  HAL_ID = {hal-04533862},
+  HAL_VERSION = {v1},
+}
 ```
-```
--->
+
 # License
+
 SNAKE-fMRI is licensed under the MIT License. See the LICENSE file for more information.
