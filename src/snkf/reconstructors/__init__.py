@@ -6,6 +6,7 @@ from .pysap import (
     SequentialReconstructor,
     ZeroFilledReconstructor,
     LowRankPlusSparseReconstructor,
+    LowRankPlusTVReconstructor,
 )
 
 
@@ -16,4 +17,5 @@ __all__ = [
     "SequentialReconstructor",
     "ZeroFilledReconstructor",
     "LowRankPlusSparseReconstructor",
+    "LowRankPlusTVReconstructor",
 ]
