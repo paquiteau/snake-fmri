@@ -78,7 +78,6 @@ def get_fourier_operator(
     if "stacked" in backend_name:
         kwargs["z_index"] = "auto"
     if "nufft" in backend_name or "stacked" in backend_name:
-
         return LazySpaceFourier(
             backend=backend_name,
             samples=sim.kspace_mask,
@@ -364,9 +363,7 @@ class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor):
 
         if self.time_prox_op is None and self.time_linear_op is not None:
             self.time_prox_op = ProxTV1d(
-                self.lambda_s,
-                method=self.algorithm_tv,
-                max_iter=self.max_iter_tv
+                self.lambda_s, method=self.algorithm_tv, max_iter=self.max_iter_tv
             )
 
         logger.debug("Prox Time  operator initialized")
@@ -385,7 +382,6 @@ class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor):
             )
         )
         logger.debug("Reconstructor initialized")
-
 
 
 class LowRankPlusWaveletReconstructor(LowRankPlusSparseReconstructor):
