@@ -119,10 +119,10 @@ def main_app(cfg: ConfigSnakeFMRI) -> None:
         del zscore
         gc.collect()
 
-    # 3. Clean up and saving
-    with PerfLogger(logger, name="Cleanup"):
-        with open("results.json", "w") as f:
-            json.dump(results, f, default=lambda o: str(o))
+        # 3. Clean up and saving
+        with PerfLogger(logger, name="Cleanup"):
+            with open("results.json", "w") as f:
+                json.dump(results, f, default=lambda o: str(o))
 
     PerfLogger.recap(logger)
 
