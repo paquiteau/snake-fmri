@@ -250,13 +250,23 @@ class SimData:
 
     @property
     def fov(self) -> tuple[float, ...]:
-        """Get the simulation FOV."""
+        """Get the simulation FOV in Meter."""
         return self._meta.fov
 
     @property
+    def fov_mm(self) -> tuple[float, ...]:
+        """Get the simulation FOV in Meter."""
+        return tuple(t * 1000 for t in self._meta.fov)
+
+    @property
     def res(self) -> tuple[float, ...]:
-        """Get resolution."""
+        """Get resolution in Meters."""
         return tuple(f / s for f, s in zip(self.fov, self.shape))
+
+    @property
+    def res_mm(self) -> tuple[float, ...]:
+        """Get resolution in Meters."""
+        return tuple(f * 1000 / s for f, s in zip(self.fov, self.shape))
 
     @property
     def sim_tr(self) -> float:

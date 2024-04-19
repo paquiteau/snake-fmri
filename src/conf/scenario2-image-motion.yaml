@@ -1,0 +1,115 @@
+# This files contains the configuration to reproduce the scenario 2 of the Simfmri paper.
+
+defaults:
+  - handlers:
+    - phantom-brainweb
+    - activation-block
+    - motion-image
+    - noise-gaussian
+    - acquisition-sos
+  - reconstructors:
+    - adjoint
+    - sequential
+  - _self_
+
+force_sim: false
+cache_dir: ${oc.env:PWD}/cache
+result_dir: ${oc.env:PWD}/results
+ignore_patterns:
+  - "n_jobs"
+
+sim_params:
+  sim_tr: 0.1
+  sim_time: 300
+  shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
+  fov: [-1,-1,-1]
+  n_coils: 8
+  rng: 19980408
+  lazy: true
+
+handlers:
+  phantom-brainweb:
+    sub_id: 5
+    bbox: [0.225,-0.07, 0.06, -0.055, null, null]
+    brainweb_folder: ${cache_dir}/brainweb
+    res: [3.0, 3.0, 3.0]
+  activation-block:
+    event_name: block_on
+    block_on: 20
+    block_off: 20
+    duration: 300
+    bold_strength: 0.02
+
+  motion-image:
+    ts_std_mm: [1.0, 1.0, 1.0]
+    rs_std_mm: [0.1, 0.1, 0.1]
+
+  noise-gaussian:
+    snr: 30
+  acquisition-sos:
+    shot_time_ms: 50
+    acsz: 0.125
+    accelz: 4
+    n_samples: 25000
+    constant: false
+    orderz: CENTER_OUT
+    backend: stacked-cufinufft
+    n_jobs: 2
+
+reconstructors:
+  adjoint:
+    nufft_kwargs:
+      backend_name: stacked-cufinufft
+      density: voronoi
+      z_index: auto
+  sequential:
+    nufft_kwargs:
+      backend_name: stacked-cufinufft
+      density: voronoi
+      z_index: auto
+
+  # lr_f:
+  #   nufft_kwargs:
+  #     backend_name: stacked-cufinufft
+  #     density: voronoi
+  #     z_index: auto
+  #   max_iter: 40
+  #   lambda_l: 0.01
+  #   lambda_s: sure
+  #   algorithm: otazo
+
+stats:
+  contrast_name: block_on
+
+
+hydra:
+  job:
+    chdir: true
+
+  run:
+    dir: ${result_dir}/outputs/scenario2-motion/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${result_dir}/multirun/scenario2-motion/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+  callbacks:
+    gather_files:
+      _target_: hydra_callbacks.MultiRunGatherer
+      aggregator:
+        _partial_: true
+        _target_: snkf.cli.utils.aggregate_results
+
+    latest_run:
+      _target_: hydra_callbacks.LatestRunLink
+      run_base_dir:  ${result_dir}/outputs
+      multirun_base_dir:  ${result_dir}/multirun
+
+    register_run:
+      _target_: hydra_callbacks.RegisterRunCallback
+      run_base_dir:  ${result_dir}/outputs/scenario2-motion
+      multirun_base_dir:  ${result_dir}/multirun/scenario2-motion
+
+    resource_monitor:
+      _target_: hydra_callbacks.ResourceMonitor
+      enabled: true
+      sample_interval: 1
