@@ -1,13 +1,16 @@
-"""Add Motion in the k-space."""
+"""Add Motion in the k-space.
+
+TODO: 2D Support
+TODO: Actually modify the k-space data
+
+"""
 
 import numpy as np
-from numpy.typing import NDArray
+from np.typing import NDArray
 
-from snkf.base import validate_rng
 from ...simulation import SimData
 from ..base import AbstractHandler, requires_field
-
-from .utils import motion_generator
+from .utils import motion_generator, rotation3D
 
 
 @requires_field(["kspace_data", "kspace_mask"])
@@ -51,16 +54,15 @@ class RandomMotionKspaceHandler(AbstractHandler):
         )
         sim.extra_infos["motion_params"] = motion
 
-        if sim.lazy:
-            sim.data_acq.apply(add_motion_to_frame, motion)
-        else:
-            for i in range(len(sim.data_acq)):
-                sim.data_acq[i] = add_motion_to_frame(sim.data_acq[i], motion, i)
-        return sim
+        ...
 
 
-def translate(kspace_data_to_corrupt, kspace_loc_to_corrupt, translation_Matrix):
-    """Translates the image in the kspace data
+def translate(
+    kspace_data: NDArray,
+    kspace_loc: NDArray,
+    translation_Matrix: NDArray,
+) -> NDArray:
+    """Translate the image in the kspace data.
 
     Parameters
     ----------
@@ -70,28 +72,22 @@ def translate(kspace_data_to_corrupt, kspace_loc_to_corrupt, translation_Matrix)
         the kspace locations
     translation_Matrix : (length,3)-array
         defines the translation vector in 3d space
-    td : int
-        beginning shot of motion
-    tf : int
-        final shot of the motion
 
     Returns
     -------
     A new kspace_data: (5,N)array
     """
-
-    kspace_data = original_shape_kspace_data(kspace_data_to_corrupt)
-    phi = np.zeros_like(kspace_data_to_corrupt)
+    phi = np.zeros_like(kspace_data)
 
     for t in range(translation_Matrix.shape[0]):
-        for i in range(kspace_loc_to_corrupt.shape[2]):
-            phi[:, t, :] += kspace_loc_to_corrupt[t, :, i] * translation_Matrix[t, i]
+        for i in range(kspace_loc.shape[2]):
+            phi[:, t, :] += kspace_loc[t, :, i] * translation_Matrix[t, i]
     phi = np.reshape(phi, (kspace_data.shape[0], phi.shape[1] * phi.shape[2]))
     return kspace_data * np.exp(-2j * np.pi * phi)
 
 
-def rotate(kspace_loc_to_corrupt, rotation, center=np.array([0, 0, 0])):
-    """Rotates the image in the kspace data
+def rotate(kspace_loc_to_corrupt: NDArray, rotation: NDArray) -> NDArray:
+    """Rotate the image in the kspace.
 
     kspace_data :(5, length,N)
         the data in the Fourier domain
@@ -108,6 +104,7 @@ def rotate(kspace_loc_to_corrupt, rotation, center=np.array([0, 0, 0])):
     """
     new_loc = np.zeros_like(kspace_loc_to_corrupt)
     for t in range(kspace_loc_to_corrupt.shape[0]):
-        R = rotation_matrix_3d(rotation[:, t])
+        R = rotation3D(rotation[:, t])
         new_loc[t, :, :] = np.matmul(kspace_loc_to_corrupt[t, :, :], R)
-    return original_shape_kspace_loc(new_loc)
+
+    return new_loc
