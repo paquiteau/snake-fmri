@@ -78,7 +78,6 @@ def get_fourier_operator(
     if "stacked" in backend_name:
         kwargs["z_index"] = "auto"
     if "nufft" in backend_name or "stacked" in backend_name:
-
         return LazySpaceFourier(
             backend=backend_name,
             samples=sim.kspace_mask,
@@ -308,9 +307,81 @@ class LowRankPlusSparseReconstructor(BaseReconstructor):
 
 
 class LowRankPlusTVReconstructor(LowRankPlusSparseReconstructor):
-    """Low Rank + TV."""
+    """Low Rank + TV Benchmark reconstructors.
 
-    ...
+    Parameters
+    ----------
+    algorithm_tv
+        Algorithm for the TV proximal operator.
+    max_iter_tv
+        maximal number of iteration for the TV proximal operator.
+    """
+
+    __reconstructor_name__ = "lr_tv"
+
+    algorithm_tv: str = "condat"
+    max_iter_tv: int = 100
+
+    def __post_init__(self):
+        super().__post_init__()
+        if self.algorithm == "otazo_raw":
+            self.algorithm = "otazo"
+
+    def __str__(self):
+        if isinstance(self.lambda_s, float):
+            return f"LRTV-{self.lambda_l:.2e}-{self.lambda_s:.2e}"
+        return f"LRTV-{self.lambda_l:.2e}-{self.lambda_s}"
+
+    def setup(self, sim: SimData) -> None:
+        """Set up the reconstructor."""
+        from fmri.reconstructors.time_aware import LowRankPlusSparseReconstructor
+        from fmri.operators.utils import sure_est, sigma_mad
+        from fmri.operators.proximity import ProxTV1d
+        from fmri.operators.time_op import TimeFourier
+        from fmri.operators.svt import FlattenSVT
+
+        if self.fourier_op is None:
+            self.fourier_op = get_fourier_operator(
+                sim,
+                **self.nufft_kwargs,
+            )
+
+        logger.debug("Space Fourier operator initialized")
+        if self.time_linear_op is None:
+            self.time_linear_op = TimeFourier(time_axis=0)
+
+        logger.debug("Time Fourier operator initialized")
+        if self.lambda_s == "sure":
+            adj_data = self.fourier_op.adj_op(sim.kspace_data)
+            sure_thresh = np.zeros(np.prod(adj_data.shape[1:]))
+            tf = self.time_linear_op.op(adj_data).reshape(len(adj_data), -1)
+            for i in range(len(sure_thresh)):
+                sure_thresh[i] = sure_est(tf[:, i]) * sigma_mad(tf[:, i])
+
+            self.lambda_s = np.median(sure_thresh) / 2
+            logger.info(f"SURE threshold: {self.lambda_s:.4e}")
+
+        if self.time_prox_op is None and self.time_linear_op is not None:
+            self.time_prox_op = ProxTV1d(
+                self.lambda_s, method=self.algorithm_tv, max_iter=self.max_iter_tv
+            )
+
+        logger.debug("Prox Time  operator initialized")
+        if self.space_prox_op is None:
+            self.space_prox_op = FlattenSVT(
+                self.lambda_l, initial_rank=10, thresh_type="soft-rel"
+            )
+        logger.debug("Prox Space operator initialized")
+
+        self.reconstructor: LowRankPlusSparseReconstructor = (
+            LowRankPlusSparseReconstructor(
+                self.fourier_op,
+                space_prox_op=self.space_prox_op,
+                time_prox_op=self.time_prox_op,
+                cost="auto",
+            )
+        )
+        logger.debug("Reconstructor initialized")
 
 
 class LowRankPlusWaveletReconstructor(LowRankPlusSparseReconstructor):
