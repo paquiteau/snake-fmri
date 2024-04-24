@@ -1,6 +1,6 @@
+# %% [markdown]
 """
-Generate a 3d+t Simple Phantom
-=================================
+# Generate a 3d+t Simple Phantom
 
 In this example we simulate a 3D phantom and add a simple activation pattern.
 """

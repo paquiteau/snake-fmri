@@ -7,9 +7,14 @@ parts:
   - caption: User Guides
     chapters:
       - file: user_guide/installation
+  - caption: Examples
+    chapters:
+       - glob: examples/example_*
+
   - caption: Advanced Guides
     chapters:
       - file: advanced_guide/understanding_handlers
+
   - caption: Explanations
     chapters:
       - file: FAQ

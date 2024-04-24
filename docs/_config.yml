@@ -21,7 +21,7 @@ bibtex_bibfiles:
 
 # Information about where the book exists on the web
 repository:
-  url: https://github.com/executablebooks/jupyter-book  # Online location of your book
+  url: https://github.com/paquiteau/snake-fmri  # Online location of your book
   path_to_book: docs  # Optional path to your book, relative to the repository root
   branch: master  # Which branch of the repository should be used when creating links (optional)
 
@@ -38,6 +38,7 @@ sphinx:
     - sphinx.ext.autosummary
     - sphinx.ext.intersphinx
     - sphinx.ext.napoleon
+    # - sphinx_gallery.gen_gallery
   config:
     bibtex_reference_style: label
     bibtex_bibfiles: ["references.bib"]
@@ -45,6 +46,11 @@ sphinx:
       - colon_fence
       - deflist
     nb_kernel_rgx_aliases: {".*": "python3"}
+    nb_custom_formats:
+      .py:
+        - jupytext.reads
+        - fmt: py:percent
+
     intersphinx_mapping:
       python: ["https://docs.python.org/3/", null]
       matplotlib: ["https://matplotlib.org/stable", null]
@@ -61,5 +67,10 @@ sphinx:
 
     templates_path: ["_templates"]
     exclude_patterns:
-      - "_build"
-      - "_templates"
+      - _build
+      - _templates
+
+    # sphinx_gallery_conf:
+    #   ignore_pattern: "\\(__init__\\|conftest\\)\\.py"
+    #   examples_dirs: examples
+    #   gallery_dirs: gallery

@@ -1,9 +1,11 @@
+# %% [markdown]
 """
-Simulation and Reconstruction
-=============================
+# Simulation and Reconstruction
 
 This example shows how to simulate and reconstruct a simple 2D vds simulation.
 """
+
+# %%
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,13 +17,14 @@ from snkf.reconstructors import (
 )
 from fmri.viz.images import tile_view
 
-# %%
-# Create The simulation
-# ---------------------
+# %% [markdown]
+# ## Create The simulation
+#
 # We create a simple simulation with 4 coils and a 64x64 image.
 # ``lazy=True`` means that the data will be generated on the fly when needed.
 # This is useful to avoid storing large data in memory.
 
+# %%
 sim = SimData.from_params(
     shape=(64, 64),
     sim_tr=0.1,
@@ -32,11 +35,12 @@ sim = SimData.from_params(
     lazy=True,
 )
 
-# %%
-# Initialize the simulator
-# ------------------------
+# %% [markdown]
+# ###  Initialize the simulator
+#
 # We initialize the simulator from the availables handlers
 
+# %%
 print(list_handlers())
 
 simulator = (
@@ -61,6 +65,8 @@ sim = simulator(sim)
 
 # %%
 # Let's show the various sampling patterns
+
+# %%
 fig = tile_view(sim.smaps, axis=0, axis_label="c")
 fig.suptitle("Smaps")
 
@@ -68,29 +74,30 @@ fig.suptitle("Smaps")
 fig2 = tile_view(sim.kspace_mask, cmap="viridis", samples=0.1, axis=0)
 fig2.suptitle("kspace mask")
 
-# %%
-# Reconstruction
-# --------------
-# Zero-Filled Reconstruction
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ## Reconstruction
+# ### Zero-Filled Reconstruction
+#
 # Simple adjoint fourier transform.
+
+# %%
 
 adj_data = ZeroFilledReconstructor().reconstruct(sim)
 
 fig3 = tile_view(abs(adj_data), samples=0.1, axis=0)
 
-# %%
-# Sequential Reconstruction
-# ~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ### Sequential Reconstruction
 
+# %%
 seq_data = SequentialReconstructor(
     max_iter_per_frame=20, threshold="sure", compute_backend="numpy"
 ).reconstruct(sim)
 fig4 = tile_view(abs(seq_data), samples=0.1, axis=0)
 
-# %%
-# LowRank + Sparse Reconstruction
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ### LowRank + Sparse Reconstruction
+
 lr_s = LowRankPlusSparseReconstructor(
     lambda_l=0.1, lambda_s="sure", algorithm="otazo_raw", max_iter=20
 ).reconstruct(sim)
@@ -99,11 +106,13 @@ fig5 = tile_view(abs(lr_s), samples=0.1, axis=0)
 plt.show()
 
 
-# %%
-# Compare the reconstructions
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+#  ### Compare the reconstructions
 #
 # We define some utility plotting function to show time serie in voxel
+
+
+# %%
 def plot_ts_roi(arr, sim, roi_idx, ax=None, center=False, **kwargs):
     if ax is None:
         fig, ax = plt.subplots()
@@ -141,11 +150,11 @@ def plot_ts_roi_many(arr_dict, sim, roi_idx, ax=None, center=False, **kwargs):
     return ax
 
 
-# %%
-# Time serie of the ROI
-# ~~~~~~~~~~~~~~~~~~~~~
+# %% [markdown]
+# ###  Time serie of the ROI
 #
 
+# %%
 fig, ax = plt.subplots()
 ax.set_title("Time serie of the ROI")
 plot_ts_roi_many(

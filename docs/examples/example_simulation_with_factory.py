@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
+# %% [markdown]
 """
-Using a simulation configuration file
-=====================================
+# Using a simulation configuration file
 
 This example present how to use a simulation config file.
-
 """
 
 import io  # to simulate a file access.
 
 from snkf import load_from_yaml
 
-# %%
+# %% [markdown]
 # Describing all the step of a simulation can be tedious.
 # In order to have easy reproducible simulation, the configuration can be extracted to
 # an external file, using the YAML syntax.
@@ -47,15 +45,14 @@ handlers:
  """
 
 
-# %%
-# .. note::
+# %% [markdown]
+# ```{note}
 #     In the handlers section, the name of each handler matter!
 #     it is the key for finding the related handler object.
 #     They will be processed in order.
-
-# %%
-# Launching the simulation
-# -----------------------
+# ```
+#
+# ## Launching the simulation
 #
 # Thanks to the detailled configuration it is as simple as:
 
