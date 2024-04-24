@@ -16,7 +16,7 @@ from mrinufft.trajectories.trajectory2D import (
 )
 
 from mrinufft.trajectories.tools import stack, rotate
-from mrinufft.trajectories.utils import R2D
+from mrinufft.trajectories.maths import R2D
 from mrinufft.trajectories.utils import (
     check_hardware_constraints,
     compute_gradients_and_slew_rates,

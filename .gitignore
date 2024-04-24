@@ -29,3 +29,9 @@ benchmark/
 
 # Docs
 docs/_api/
+
+# MRI Stuff
+*.mrd
+*.npy
+*.pkl
+
