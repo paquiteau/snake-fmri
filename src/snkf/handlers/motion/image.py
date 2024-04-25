@@ -3,8 +3,6 @@
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.base import validate_rng
-
 from ...simulation import SimData
 from ..base import AbstractHandler, requires_field
 from .utils import apply_shift, apply_rotation_at_center, motion_generator

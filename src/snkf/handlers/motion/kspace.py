@@ -6,11 +6,11 @@ TODO: Actually modify the k-space data
 """
 
 import numpy as np
-from np.typing import NDArray
+from numpy.typing import NDArray
 
 from ...simulation import SimData
 from ..base import AbstractHandler, requires_field
-from .utils import motion_generator, rotation3D
+from .utils import motion_generator, rotation3d
 
 
 @requires_field(["kspace_data", "kspace_mask"])
@@ -36,7 +36,7 @@ class RandomMotionKspaceHandler(AbstractHandler):
     time resolution for the simulation.
     """
 
-    __handler_name__ = "motion-image"
+    __handler_name__ = "motion-kspace"
 
     ts_std_mm: tuple[float, float, float]
     rs_std_mm: tuple[float, float, float]
@@ -104,7 +104,7 @@ def rotate(kspace_loc_to_corrupt: NDArray, rotation: NDArray) -> NDArray:
     """
     new_loc = np.zeros_like(kspace_loc_to_corrupt)
     for t in range(kspace_loc_to_corrupt.shape[0]):
-        R = rotation3D(rotation[:, t])
+        R = rotation3d(rotation[:, t])
         new_loc[t, :, :] = np.matmul(kspace_loc_to_corrupt[t, :, :], R)
 
     return new_loc

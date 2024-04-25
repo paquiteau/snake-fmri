@@ -1,11 +1,9 @@
 # %% [markdown]
-"""
-# Using a simulation configuration file
+# # Using a simulation configuration file
 
-This example present how to use a simulation config file.
-"""
+# This example present how to use a simulation config file.
+# %%
 
-import io  # to simulate a file access.
 
 from snkf import load_from_yaml
 
@@ -18,6 +16,7 @@ from snkf import load_from_yaml
 #
 # For instance to create a 2D+T
 
+# %%
 sim_config = """
 ### Simulation for a Shepp Logan phantom with activation.
 
@@ -47,17 +46,22 @@ handlers:
 
 # %% [markdown]
 # ```{note}
-#     In the handlers section, the name of each handler matter!
-#     it is the key for finding the related handler object.
-#     They will be processed in order.
+# In the handlers section, the name of each handler matter!
+# it is the key for finding the related handler object.
+# They will be processed in order.
 # ```
 #
 # ## Launching the simulation
 #
 # Thanks to the detailled configuration it is as simple as:
 
-# equivalent to
+# %%
+
+# The two following lines are equivalent to
 # with open("your_config.yaml") as config_file:
+
+import io  # to simulate a file access.
+
 with io.StringIO(sim_config) as config_file:
 
     simulator, sim = load_from_yaml(config_file)

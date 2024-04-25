@@ -1,9 +1,6 @@
 # %% [markdown]
-"""
-# Simulation and Reconstruction
-
-This example shows how to simulate and reconstruct a simple 2D vds simulation.
-"""
+# # Simulation and Reconstruction
+# This example shows how to simulate and reconstruct a simple 2D vds simulation.
 
 # %%
 
@@ -40,7 +37,7 @@ sim = SimData.from_params(
 #
 # We initialize the simulator from the availables handlers
 
-# %%
+# %% execution={"timeout": "1000"}
 print(list_handlers())
 
 simulator = (
@@ -80,7 +77,7 @@ fig2.suptitle("kspace mask")
 #
 # Simple adjoint fourier transform.
 
-# %%
+# %% execution={"timeout": "1000"}
 
 adj_data = ZeroFilledReconstructor().reconstruct(sim)
 
@@ -89,7 +86,8 @@ fig3 = tile_view(abs(adj_data), samples=0.1, axis=0)
 # %% [markdown]
 # ### Sequential Reconstruction
 
-# %%
+# %% execution={"timeout": "1000"}
+
 seq_data = SequentialReconstructor(
     max_iter_per_frame=20, threshold="sure", compute_backend="numpy"
 ).reconstruct(sim)
@@ -98,6 +96,7 @@ fig4 = tile_view(abs(seq_data), samples=0.1, axis=0)
 # %% [markdown]
 # ### LowRank + Sparse Reconstruction
 
+# %% execution={"timeout": "1000"}
 lr_s = LowRankPlusSparseReconstructor(
     lambda_l=0.1, lambda_s="sure", algorithm="otazo_raw", max_iter=20
 ).reconstruct(sim)

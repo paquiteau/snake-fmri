@@ -1,10 +1,9 @@
 # %% [markdown]
-"""
-# Generate a 3d+t Simple Phantom
+# # Generate a 3d+t Simple Phantom
+#
+# In this example we simulate a 3D phantom and add a simple activation pattern.
 
-In this example we simulate a 3D phantom and add a simple activation pattern.
-"""
-
+# %%
 import matplotlib.pyplot as plt
 
 from snkf.simulation import SimData
