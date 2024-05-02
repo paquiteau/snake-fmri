@@ -99,9 +99,14 @@ def main_app(cfg: ConfigSnakeFMRI) -> None:
         np.save(f"data_rec_{rec_str}.npy", data_test)
 
         logger.debug("Current simulation state: %s", sim)
-        with PerfLogger(logger, name="Analysis " + str(rec_str)):
-            zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
-            stats = get_scores(zscore, sim.roi)
+        if not cfg.stats.disabled:
+
+            with PerfLogger(logger, name="Analysis " + str(rec_str)):
+                zscore = contrast_zscore(data_test, sim, cfg.stats.contrast_name)
+                stats = get_scores(zscore, sim.roi)
+        else:
+            stats = {}
+            zscore = None
 
         np.save(f"data_zscore_{rec_str}.npy", zscore)
         results.append(
