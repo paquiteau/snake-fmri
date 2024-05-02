@@ -20,7 +20,7 @@ ignore_patterns:
 
 sim_params:
   sim_tr: 0.1
-  sim_time: 300
+  sim_time: 1
   shape: [-1,-1,-1] # shape will be determined with the bbox and the brainweb phantom.
   fov: [-1,-1,-1]
   n_coils: 8
@@ -41,11 +41,11 @@ handlers:
     bold_strength: 0.02
 
   motion-image:
-    ts_std_mm: [1.0, 1.0, 1.0]
-    rs_std_mm: [0.1, 0.1, 0.1]
+    ts_std_mms: [0.3, 0.1, 0.1]
+    rs_std_mms: [0.0115, 0.0277, 0.033]
 
   noise-gaussian:
-    snr: 30
+    snr: 1000
   acquisition-sos:
     shot_time_ms: 50
     acsz: 0.125
@@ -79,6 +79,7 @@ reconstructors:
   #   algorithm: otazo
 
 stats:
+  disabled: true
   contrast_name: block_on
 
 

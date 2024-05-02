@@ -42,19 +42,21 @@ class RandomMotionImageHandler(AbstractHandler):
 
     __handler_name__ = "motion-image"
 
-    ts_std_mm: tuple[float, float, float] = None
-    rs_std_mm: tuple[float, float, float] = None
+    ts_std_mms: tuple[float, float, float] | None = None
+    rs_std_mms: tuple[float, float, float] | None = None
 
-    motion_file: str = None
-    motion_file_tr: float = None
+    motion_file: str | None = None
+    motion_file_tr: float | None = None
 
     def __post_init__(self):
-        if (self.ts_std_mm is None or self.rs_std_mm is None) and (
+        super().__post_init__()
+        if (self.ts_std_mms is None or self.rs_std_mms is None) and (
             self.motion_file is None or self.motion_file_tr is None
         ):
             raise ValueError(
                 "At least one of ts_std_mm, rs_std_mm or motion_file must be provided."
             )
+        self._motion_data = None
         if self.motion_file is not None:
             # load the motion file
             self._motion_data = np.loadtxt(self.motion_file)
@@ -62,7 +64,7 @@ class RandomMotionImageHandler(AbstractHandler):
     def _handle(self, sim: SimData) -> SimData:
         n_frames = sim.data_acq.shape[0]
         # update the translation to be in voxel units
-        ts_std_pix = np.array(self.ts_std_mm) / np.array(sim.res_mm)
+        ts_std_pix = np.array(self.ts_std_mms) / np.array(sim.res_mm)
 
         if self._motion_data is not None:
             # resample the motion data to match the simulation framerate.
@@ -76,7 +78,7 @@ class RandomMotionImageHandler(AbstractHandler):
             motion = motion_generator(
                 n_frames,
                 ts_std_pix,
-                self.rs_std_mm,
+                self.rs_std_mms,
                 sim.sim_tr,
                 sim.rng,
             )
