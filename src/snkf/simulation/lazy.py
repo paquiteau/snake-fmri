@@ -26,8 +26,8 @@ def reverse(func: Callable[[T, U], V]) -> Callable[[U, T], V]:
     def reversed_func(a: U, b: T) -> V:
         return func(b, a)
 
-    reversed_func.__doc__ = "Reversed argument form of %s" % func.__doc__
-    reversed_func.__name__ = "reversed %s" % func.__name__
+    reversed_func.__doc__ = f"Reversed argument form of {func.__doc__}"
+    reversed_func.__name__ = f"reversed {func.__name__}"
     return reversed_func
 
 
