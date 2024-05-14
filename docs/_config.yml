@@ -38,6 +38,8 @@ sphinx:
     - sphinx.ext.autosummary
     - sphinx.ext.intersphinx
     - sphinx.ext.napoleon
+  local_extensions:
+    handlers_summary: "_ext/"
     # - sphinx_gallery.gen_gallery
   config:
     bibtex_reference_style: label
@@ -69,7 +71,8 @@ sphinx:
     exclude_patterns:
       - _build
       - _templates
-
+      - examples
+      - _ext
     # sphinx_gallery_conf:
     #   ignore_pattern: "\\(__init__\\|conftest\\)\\.py"
     #   examples_dirs: examples
