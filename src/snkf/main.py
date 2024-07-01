@@ -3,6 +3,9 @@ import hydra
 from omegaconf import DictConfig
 import numpy as np
 
+from .simulation import Phantom, SimConfig
 
-@hydra.main(config_path="config.yaml")
+
 def main(cfg: DictConfig) -> None:
+
+    phantom = Phantom()

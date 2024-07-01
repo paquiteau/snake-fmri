@@ -7,15 +7,24 @@ import itertools
 import numpy as np
 from ..simulation import Phantom, DynamicTissue, SimulationConfig
 
-from .engine import acquire_shots_tissues_nufft, acquire_shots_tissues_stacked_nufft, acquire_shots_tissues_fft
+from .engine import (
+    acquire_shots_tissues_nufft,
+    acquire_shots_tissues_fft,
+)
 
 ACQUISITION_ENGINE = {
     "gpunufft": acquire_shots_tissues_nufft,
-    "stacked-gpunufft": acquire_shots_tissues_stacked_nufft,
-    "fft": acquire_shots_tissues_fft
+    "fft": acquire_shots_tissues_fft,
 }
 
-def get_all_kspace(sim_conf:SimulationConfig, backend="gpunufft", n_workers=1, threads_per_worker=1, shot_per_task=1):
+
+def get_all_kspace(
+    sim_conf: SimulationConfig,
+    backend="gpunufft",
+    n_workers=1,
+    threads_per_worker=1,
+    shot_per_task=1,
+):
     # setup client and cluster
 
     client = dd.Client(n_workers=n_workers, threads_per_worker=threads_per_worker)
@@ -26,6 +35,7 @@ def get_all_kspace(sim_conf:SimulationConfig, backend="gpunufft", n_workers=1, t
     for shot in sim_conf.shots:
         #
         pass
+
 
 def get_all_image():
     # setup dask
