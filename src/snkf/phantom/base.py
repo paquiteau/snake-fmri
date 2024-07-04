@@ -8,6 +8,7 @@ from importlib.resources import files
 from dataclasses import dataclass
 from typing import TypeVar
 from snkf.engine.parallel import run_parallel
+from ..simulation import SimConfig
 
 
 @dataclass(frozen=True)
@@ -27,7 +28,7 @@ class Phantom:
     def from_brainweb(
         cls,
         sub_id: int,
-        resolution_mm: float,
+        sim_conf: SimConfig,
         tissue_file: os.PathLike = None,
         tissue_select: list[str] = None,
     ) -> Phantom:
@@ -35,8 +36,13 @@ class Phantom:
         from brainweb_dl import get_mri
         from .utils import resize_tissues
 
+        # TODO: Use the sim shape properly.
         tissues_mask = get_mri(sub_id, contrast="fuzzy").astype(np.float32)
-        z = np.array([0.5, 0.5, 0.5]) / np.array(resolution_mm)
+        z = (
+            np.array([0.5, 0.5, 0.5])
+            * np.array(sim_conf.shape)
+            / np.array(sim_conf.fov_mm)
+        )
         tissues_mask = np.moveaxis(tissues_mask, -1, 0)
         tissues_list = []
         if tissue_file is None:
@@ -77,6 +83,16 @@ class Phantom:
     def from_guerin_kern(cls, resolution: tuple[int]) -> Phantom:
         """Get the Guerin-Kern Phantom."""
         raise NotImplementedError
+
+    @property
+    def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:
+        """Get the shape of the base volume."""
+        return self.tissue_masks.shape[1:]
+
+    @property
+    def n_tissues(self) -> int:
+        """Get the number of tissues."""
+        return len(self.tissue_masks)
 
 
 T = TypeVar("T")
