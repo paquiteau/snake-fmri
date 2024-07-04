@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from collections.abc import Any, Generator, Mapping, Sequence
-
+import logging
+from collections.abc import Callable, Generator, Mapping, Sequence
+from typing import Any
 import numpy as np
 from mrinufft.trajectories.maths import R2D
 from mrinufft.trajectories.tools import rotate, stack
@@ -18,9 +19,23 @@ from mrinufft.trajectories.utils import (
 from numpy.typing import NDArray
 from scipy.stats import norm  # type: ignore
 
-from .._meta import NoCaseEnum, validate_rng
+from .._meta import NoCaseEnum
+
+logger = logging.getLogger(__name__)
 
 SlicerType = list[slice | np.ndarray[Any, np.dtype[np.int64]] | int]
+
+
+def validate_rng(rng: int | None | np.random.Generator = None) -> np.random.Generator:
+    """Validate Random Number Generator."""
+    if isinstance(rng, int | list):
+        return np.random.default_rng(rng)
+    elif rng is None:
+        return np.random.default_rng()
+    elif isinstance(rng, np.random.Generator):
+        return rng
+    else:
+        raise ValueError("rng shoud be a numpy Generator, None or an integer seed.")
 
 
 class VDSorder(NoCaseEnum):
@@ -43,7 +58,7 @@ def get_kspace_slice_loc(
     center_prop: int | float,
     accel: int = 4,
     pdf: VDSpdf = VDSpdf.GAUSSIAN,
-    rng: RngType = None,
+    rng: int | None | np.random.Generator = None,
     order: VDSorder = VDSorder.CENTER_OUT,
 ) -> np.ndarray:
     """Get slice index at a random position.
@@ -116,7 +131,7 @@ def get_kspace_slice_loc(
 def get_cartesian_mask(
     shape: tuple[int, ...],
     n_frames: int,
-    rng: RngType = None,
+    rng: int | None | np.random.Generator = None,
     constant: bool = False,
     center_prop: float | int = 0.3,
     accel: int = 4,
@@ -216,9 +231,8 @@ def vds_factory(
     accel: int,
     accel_axis: int,
     order: VDSorder = VDSorder.CENTER_OUT,
-    shot_time_ms: int | None = None,
     pdf: VDSpdf = VDSpdf.GAUSSIAN,
-    rng: RngType = None,
+    rng: int | None | np.random.Generator = None,
 ) -> np.ndarray:
     """
     Create a variable density sampling trajectory.
@@ -299,12 +313,11 @@ def stack_spiral_factory(
     acsz: int | float,
     n_samples: int,
     nb_revolutions: int,
-    shot_time_ms: int | None = None,
     in_out: bool = True,
     spiral: str = "archimedes",
     orderz: VDSorder = VDSorder.CENTER_OUT,
     pdfz: VDSpdf = VDSpdf.GAUSSIAN,
-    rng: RngType = None,
+    rng: int | None | np.random.Generator = None,
     rotate_angle: AngleRotation | float = 0.0,
 ) -> np.ndarray:
     """Generate a trajectory of stack of spiral."""
@@ -382,3 +395,33 @@ def rotate_trajectory(
         theta += theta
 
         yield np.einsum("ij,klj->kli", rot, traj)
+
+
+def trajectory_generator(
+    traj_factory: Callable[..., np.ndarray],
+    shape: tuple[int, ...],
+    **kwargs: Any,
+) -> Generator[np.ndarray, None, None]:
+    """Generate a trajectory.
+
+    Parameters
+    ----------
+    traj_factory
+        Trajectory factory function.
+    n_batch
+        Number of shot to deliver at once.
+    kwargs
+        Trajectory factory kwargs.
+
+    Yields
+    ------
+    np.ndarray
+        Kspace trajectory.
+    """
+    if kwargs.pop("constant", False):
+        logger.debug("constant trajectory")
+        traj = traj_factory(shape, **kwargs)
+        while True:
+            yield traj
+    while True:
+        yield traj_factory(shape, **kwargs)

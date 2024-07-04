@@ -1,1 +1,5 @@
-#!/usr/bin/env python3
+"""K-Space sampling module."""
+
+from .base import BaseSampler
+
+__all__ = ["BaseSampler"]
