@@ -1,9 +1,7 @@
 """Base handler module."""
 
-import logging
 from .._meta import MetaDCRegister
-import numpy as np
-from typing import ClassVar, TypeVar, Any
+from typing import ClassVar, TypeVar
 from collections.abc import Callable
 
 from ..simulation import SimConfig
@@ -38,11 +36,6 @@ class AbstractHandler(metaclass=MetaHandler):
     """
 
     __handler_name__: ClassVar[str]
-
-    @property
-    def log(self) -> logging.Logger:
-        """Get a logger."""
-        return logging.getLogger(f"simulation.handlers.{self.__class__.__name__}")
 
     def get_static(phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Get the static information of the handler."""

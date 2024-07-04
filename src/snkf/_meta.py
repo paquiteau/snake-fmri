@@ -1,10 +1,24 @@
 """Meta Class Voodoo magic."""
 
 from __future__ import annotations
-from typing import Any
-from enum import EnumMeta, Enum
+
 import dataclasses
+import logging
+from collections.abc import Callable
+from enum import Enum, EnumMeta
+from typing import Any
+
 from typing_extensions import dataclass_transform
+
+
+def make_log_property(dunder_name: str) -> Callable:
+    """Create a property logger."""
+
+    def log(self: Any) -> logging.Logger:
+        """Get a logger."""
+        return logging.getLogger(f"{dunder_name}.{self.__class__.__name__}")
+
+    return log
 
 
 @dataclass_transform(kw_only_default=True)
@@ -17,10 +31,11 @@ class MetaDCRegister(type):
         bases: tuple,
         class_dict: dict,
     ) -> type:
-        """Create Handler Class as a dataclass, and register it.
+        """Create a dataclass, with log property and auto registry properties.
 
-        No need for @dataclass decorator
+        No need for @dataclass decorator.
         """
+        class_dict["log"] = property(make_log_property(meta.dunder_name))
         cls = dataclasses.dataclass(kw_only=True)(
             super().__new__(meta, clsname, bases, class_dict)  # type: ignore
         )
