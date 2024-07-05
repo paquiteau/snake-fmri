@@ -18,25 +18,6 @@ ACQUISITION_ENGINE = {
 }
 
 
-def get_all_kspace(
-    sim_conf: SimulationConfig,
-    backend="gpunufft",
-    n_workers=1,
-    threads_per_worker=1,
-    shot_per_task=1,
-):
-    # setup client and cluster
-
-    client = dd.Client(n_workers=n_workers, threads_per_worker=threads_per_worker)
-
-    acquisition = ACQUISITION_ENGINE[backend]
-
-    # move to dask
-    for shot in sim_conf.shots:
-        #
-        pass
-
-
-def get_all_image():
-    # setup dask
-    pass
+# TODO: Worker that is responsible for a chunk of simulation
+# TODO: Specialized worker for specific sampling: Stacked, Cartesian 3D , 3D Nufft
+# TODO:

@@ -1,14 +1,30 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
-from numpy.typing import NDArray
-import numpy as np
+import contextlib
 import os
-from importlib.resources import files
 from dataclasses import dataclass
+from importlib.resources import files
 from typing import TypeVar
+
+import ismrmrd as mrd
+from enum import IntEnum
+import numpy as np
+from numpy.typing import NDArray
+
 from snkf.engine.parallel import run_parallel
+
 from ..simulation import SimConfig
+
+
+class TissueProperties(IntEnum):
+    """Enum for the tissue properties."""
+
+    T1 = 0
+    T2 = 1
+    T2s = 2
+    rho = 3
+    chi = 4
 
 
 @dataclass(frozen=True)
@@ -18,11 +34,7 @@ class Phantom:
     name: str
     tissue_masks: NDArray[np.float32]
     tissue_label: NDArray[str]
-    T1: NDArray[np.float32]
-    T2: NDArray[np.float32]
-    T2s: NDArray[np.float32]
-    rho: NDArray[np.float32]
-    chi: NDArray[np.float32]
+    tissue_properties: NDArray[np.float32]
 
     @classmethod
     def from_brainweb(
@@ -34,6 +46,7 @@ class Phantom:
     ) -> Phantom:
         """Get the Brainweb Phantom."""
         from brainweb_dl import get_mri
+
         from .utils import resize_tissues
 
         # TODO: Use the sim shape properly.
@@ -71,7 +84,8 @@ class Phantom:
         return cls(
             "brainweb",
             tissues_mask,
-            *[np.array(prop) for prop in zip(*tissues_list, strict=False)],
+            tissue_label=np.array([t[0] for t in tissues_list]),
+            tissue_properties=np.array([t[1:] for t in tissues_list]),
         )
 
     @classmethod
@@ -83,6 +97,58 @@ class Phantom:
     def from_guerin_kern(cls, resolution: tuple[int]) -> Phantom:
         """Get the Guerin-Kern Phantom."""
         raise NotImplementedError
+
+    @classmethod
+    def from_mrd_dataset(
+        cls, dataset: mrd.Dataset | os.PathLike, imnum: int = 0
+    ) -> Phantom:
+        """Load the phantom from a mrd dataset."""
+        if not isinstance(dataset, mrd.Dataset):
+            dataset = mrd.Dataset(dataset, create_if_needed=False)
+        image = dataset.read_image("phantom", imnum)
+        name = image.meta.pop("name")
+        tissue_label = np.array(image.meta["tissue_label"][1:-1].split(" "))
+        # FIXME deserialize tissue_properties !
+        return cls(
+            tissue_masks=image.data,
+            tissue_label=tissue_label,
+            name=name,
+        )
+
+    def to_mrd_dataset(
+        self, dataset: mrd.Dataset, sim_conf: SimConfig, imnum: int = 0
+    ) -> mrd.Dataset:
+        """Add the phantom as an image to the dataset."""
+        # Create the image
+        if not isinstance(dataset, mrd.Dataset):
+            dataset = mrd.Dataset(dataset, create_if_needed=True)
+
+        meta_sr = mrd.Meta(
+            {k: v for k, v in self.__dict__.items() if k != "tissue_masks"}
+        ).serialize()
+
+        dataset.append_image(
+            "phantom",
+            mrd.image.Image(
+                head=mrd.image.ImageHeader(
+                    matrixSize=mrd.xsd.matrixSizeType(*self.anat_shape),
+                    fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
+                    channels=self.n_tissues,
+                    acquisition_time_stamp=0,
+                    attribute_string_len=len(meta_sr),
+                ),
+                data=self.tissue_masks,
+                attribute_string=meta_sr,
+            ),
+        )
+        return dataset
+
+    @classmethod
+    def from_shared_memory() -> Phantom: ...
+
+    @contextlib.contextmanager
+    def in_shared_memory() -> tuple:
+        """Create a copy of the phantom in shared memory"""
 
     @property
     def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:

@@ -111,11 +111,10 @@ class ActivationMixin:
             phantom.name + "-roi",
             tissue_masks=np.concatenate((phantom.tissue_masks, roi[None, ...]), axis=0),
             tissue_label=np.concatenate((phantom.tissue_label, ["ROI"])),
-            T1=np.concatenate((phantom.T1, phantom.T1[tissue_index])),
-            T2=np.concatenate((phantom.T2, phantom.T2[tissue_index])),
-            T2s=np.concatenate((phantom.T2s, phantom.T2s[tissue_index])),
-            rho=np.concatenate((phantom.rho, phantom.rho[tissue_index])),
-            chi=np.concatenate((phantom.chi, phantom.chi[tissue_index])),
+            tissue_properties=np.concatenate(
+                (phantom.tissue_properties, phantom.tissue_properties[tissue_index, :]),
+                axis=0,
+            ),
         )
         return new_phantom
 
