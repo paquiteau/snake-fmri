@@ -189,18 +189,6 @@ class Phantom:
 T = TypeVar("T")
 
 
-def get_contrast_gre(
-    phantom: Phantom, FA: NDArray, TE: NDArray, TR: NDArray
-) -> NDArray:
-    """Compute the GRE contrast at TE."""
-    return (
-        np.sin(FA)
-        * np.exp(-TE / phantom.T2s)
-        * (1 - np.exp(-TR / phantom.T1))
-        / (1 - np.cos(FA) * np.exp(-TR / phantom.T1))
-    )
-
-
 def serialize_array(arr: NDArray) -> str:
     """Serialize the array for mrd compatible format."""
     return " ".join(
