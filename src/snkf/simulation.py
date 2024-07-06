@@ -43,6 +43,7 @@ class SimConfig:
     has_relaxation: bool = True
     rng_seed: InitVar[int | None] = None
     rng: np.random.Generator = field(init=False)
+    tmp_dir: str = "/tmp"
 
     def __post_init__(self, rng_seed: int | None):
         # To be compatible with frozen dataclass
