@@ -17,7 +17,7 @@ from snkf.engine.parallel import run_parallel
 from ..simulation import SimConfig
 
 
-class TissueProperties(IntEnum):
+class PropTissueEnum(IntEnum):
     """Enum for the tissue properties."""
 
     T1 = 0
