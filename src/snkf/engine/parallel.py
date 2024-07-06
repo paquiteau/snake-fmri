@@ -55,20 +55,13 @@ def run_parallel(
 ) -> NDArray:
     """Run a function in parallel with shared memory."""
     with SharedMemoryManager() as smm:
-        input_shm = smm.SharedMemory(size=input_array.nbytes)
-        input_array_sm = np.ndarray(
-            input_array.shape, dtype=input_array.dtype, buffer=input_shm.buf
-        )
-        input_array_sm[:] = input_array  # move to shared memory
-        output_shm = smm.SharedMemory(size=output_array.nbytes)
-        output_array_sm = np.ndarray(
-            output_array.shape, dtype=output_array.dtype, buffer=output_shm.buf
-        )
+        input_prop, input_array_sm = array_to_shm(input_array, smm)
+        output_prop, output_array_sm = array_to_shm(output_array, smm)
 
         Parallel(n_jobs=n_jobs, backend="multiprocessing")(
             delayed(SHM_Wrapper(func))(
-                ArrayProps(input_shm.name, input_array.shape, input_array.dtype),
-                ArrayProps(output_shm.name, output_array.shape, output_array.dtype),
+                input_prop,
+                output_prop,
                 i,
                 *args,
                 **kwargs,
@@ -95,3 +88,13 @@ def array_from_shm(*array_props: ArrayProps) -> list[NDArray]:
     for s in shms:
         s.close()
     del shms
+
+
+def array_to_shm(
+    array: NDArray, smm: SharedMemoryManager
+) -> tuple[ArrayProps, NDArray]:
+    """Move an array to shared memory."""
+    shm = smm.SharedMemory(create=True, size=array.nbytes)
+    array_sm = np.ndarray(array.shape, dtype=array.dtype, buffer=shm.buf)
+    array_sm[:] = array  # move to shared memory
+    return ArrayProps(shm.name, array.shape, array.dtype), array_sm
