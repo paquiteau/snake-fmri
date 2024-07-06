@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import dataclasses
+import itertools
 import logging
-from collections.abc import Callable
+import sys
+from collections.abc import Callable, Generator, Iterable
 from enum import Enum, EnumMeta
 from typing import Any
 
@@ -62,3 +64,16 @@ class NoCaseEnum(Enum, metaclass=EnumMeta):
     """Base Class for Enum to be case insensitive."""
 
     pass
+
+
+if sys.version_info <= (3, 12):
+
+    def batched(iterable: Iterable, n: int) -> Generator[Iterable]:
+        # batched('ABCDEFG', 3) --> ABC DEF G
+        if n < 1:
+            raise ValueError("n must be at least one")
+        it = iter(iterable)
+        while batch := tuple(itertools.islice(it, n)):
+            yield batch
+
+    itertools.batched = batched
