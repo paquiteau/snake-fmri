@@ -1,18 +1,21 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
+
+import base64
 import contextlib
 import os
 from dataclasses import dataclass
+from enum import IntEnum
 from importlib.resources import files
+from multiprocessing.managers import SharedMemoryManager
 from typing import TypeVar
 
 import ismrmrd as mrd
-from enum import IntEnum
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.engine.parallel import run_parallel
+from snkf.engine.parallel import ArrayProps, run_parallel, array_from_shm, array_to_shm
 
 from ..simulation import SimConfig
 
@@ -108,10 +111,12 @@ class Phantom:
         image = dataset.read_image("phantom", imnum)
         name = image.meta.pop("name")
         tissue_label = np.array(image.meta["tissue_label"][1:-1].split(" "))
-        # FIXME deserialize tissue_properties !
+        tissue_properties = unserialize_array(image.meta["tissue_properties"])
+
         return cls(
             tissue_masks=image.data,
             tissue_label=tissue_label,
+            tissue_properties=tissue_properties,
             name=name,
         )
 
@@ -124,7 +129,11 @@ class Phantom:
             dataset = mrd.Dataset(dataset, create_if_needed=True)
 
         meta_sr = mrd.Meta(
-            {k: v for k, v in self.__dict__.items() if k != "tissue_masks"}
+            {
+                "name": self.name,
+                "tissue_label": f'{",".join(self.tissue_label)}',
+                "tissue_properties": serialize_array(self.tissue_properties),
+            }
         ).serialize()
 
         dataset.append_image(
@@ -144,11 +153,27 @@ class Phantom:
         return dataset
 
     @classmethod
-    def from_shared_memory() -> Phantom: ...
-
     @contextlib.contextmanager
-    def in_shared_memory() -> tuple:
-        """Create a copy of the phantom in shared memory"""
+    def from_shared_memory(
+        cls,
+        name: str,
+        mask_prop: ArrayProps,
+        properties_prop: ArrayProps,
+        label_prop: ArrayProps,
+    ) -> Phantom:
+        """Give access the tissue masks and properties in shared memory."""
+        with array_from_shm(mask_prop, label_prop, properties_prop) as arrs:
+            yield cls(name, *arrs)
+
+    def in_shared_memory(
+        self, manager: SharedMemoryManager
+    ) -> tuple[str, ArrayProps, ArrayProps, ArrayProps]:
+        """Add a copy of the phantom in shared memory."""
+        tissue_mask_prop, tissue_mask_sm = array_to_shm(self.tissue_masks)
+        tissue_properties_prop, tissue_prop_sm = array_to_shm(self.tissue_properties)
+        tissue_label_prop, tissue_label_sm = array_to_shm(self.tissue_label)
+
+        return self.name, tissue_mask_prop, tissue_properties_prop, tissue_label_prop
 
     @property
     def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:
@@ -174,3 +199,21 @@ def get_contrast_gre(
         * (1 - np.exp(-TR / phantom.T1))
         / (1 - np.cos(FA) * np.exp(-TR / phantom.T1))
     )
+
+
+def serialize_array(arr: NDArray) -> str:
+    """Serialize the array for mrd compatible format."""
+    return " ".join(
+        [
+            base64.b64encode(arr.tobytes()).decode(),
+            str(arr.shape),
+            str(arr.dtype),
+        ]
+    )
+
+
+def unserialize_array(s: str) -> NDArray:
+    """Unserialize the array for mrd compatible format."""
+    data, shape, dtype = s.split(" ")
+    shape = eval(shape)  # FIXME
+    return np.frombuffer(base64.b64decode(data.encode()), dtype=dtype).reshape(*shape)
