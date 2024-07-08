@@ -92,8 +92,8 @@ def add_all_acq_mrd(
 
     log.info("Start Sampling pattern generation")
     counter = 0
-    kspace_data_vol = np.empty(
-        (sim_conf.hardware.n_coils, n_shots_frame, n_samples),
+    kspace_data_vol = np.zeros(
+        (n_shots_frame, sim_conf.hardware.n_coils, n_samples),
         dtype=np.complex64,
     )
     for i in range(n_ksp_frames):
@@ -101,10 +101,10 @@ def add_all_acq_mrd(
 
         for j in range(n_shots_frame):
             acq = mrd.Acquisition.from_array(
-                data=kspace_data_vol[:, j, :], trajectory=kspace_traj_vol[j, :]
+                data=kspace_data_vol[j, :, :], trajectory=kspace_traj_vol[j, :]
             )
             acq.scan_counter = counter
-            acq.sample_time_us = 50000 / n_samples
+            acq.sample_time_us = sampler.obs_ms * 1000 / n_samples
             acq.center_sample = n_samples // 2 if sampler.in_out else 0
             acq.idx.repetition = i
             acq.idx.kspace_encode_step_1 = j

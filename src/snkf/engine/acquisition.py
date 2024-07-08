@@ -24,7 +24,7 @@ import numpy as np
 from mrinufft import get_operator
 from mrinufft.operators.base import FourierOperatorBase
 from numpy.typing import NDArray
-
+import h5py
 from snkf._meta import batched
 
 from ..phantom import DynamicData, Phantom, PropTissueEnum
@@ -75,16 +75,19 @@ def iter_traj_stacked(
     from mrinufft.operators.stacked import traj3d2stacked
 
     shape = sim_conf.shape
-    n_coils = sim_conf.hardware.n_coils
 
     if not isinstance(shot_idx, Sequence):
         shot_idx = [shot_idx]
     head = dataset._dataset["data"][0]["head"]
     n_samples = head["number_of_samples"]
     ndim = head["trajectory_dimensions"]
+
+    smaps = None
+    n_coils = sim_conf.hardware.n_coils
     try:
         smaps = dataset.read_image("smaps", 0).data
-    except KeyError:
+        log.info(f"Sensitivity maps {smaps.shape} found in the dataset.")
+    except LookupError:
         log.warning("No sensitivity maps found in the dataset.")
         n_coils = 1
 
@@ -193,12 +196,15 @@ def acquire_ksp1(
             sim_conf.seq.TR,
         )
         phantom_state = (
-            contrast[(..., *([None] * len(phantom.anat_shape)))] * phantom.tissue_masks
+            1000
+            * contrast[(..., *([None] * len(phantom.anat_shape)))]
+            * phantom.tissue_masks
         )
         nufft.n_batchs = len(phantom_state)
         ksp = nufft.op(phantom_state)
         # apply the T2s and sum over tissues
-        final_ksp[i] = np.einsum("kij, kj-> ij", ksp, t2s_decay)  # (n_coils, n_samples)
+        final_ksp[i] = np.sum(ksp * t2s_decay[:, None, :], axis=0)
+        # final_ksp[i] = np.einsum("kij, kj-> ij", ksp, t2s_decay)  # (n_coils, n_samples)
     return final_ksp
 
 
@@ -210,14 +216,17 @@ def acquire_ksp2(
     fourier_op_iterator: Generator[FourierOperatorBase],
     chunk_size: int,
     n_samples: int,
+    center_sample: int,
 ) -> np.ndarray:
     """Acquire k-space data. No T2s decay."""
-    final_ksp = np.zeros(chunk_size, sim_conf.n_coils, n_samples)
+    final_ksp = np.zeros(
+        (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
+    )
     # (n_tissues_true, n_samples) Filter the tissues that have NaN Values (abstract tissues.)
     for i, nufft in enumerate(fourier_op_iterator):
         phantom = deepcopy(phantom)
-        for dyn_data in list[DynamicData]:
-            phantom = dyn_data.func(dyn_data.data, phantom, sim_conf)
+        # for dyn_data in list[DynamicData]:
+        #     phantom = dyn_data.func(dyn_data.data, phantom, sim_conf)
         # reduced the array, we dont have batch tissues !
         contrast = get_contrast_gre(
             phantom,
@@ -225,7 +234,12 @@ def acquire_ksp2(
             sim_conf.seq.TE,
             sim_conf.seq.TR,
         )
-        phantom_state = np.sum(phantom.tissue_masks * contrast * 1000)
+        phantom_state = np.sum(
+            1000
+            * contrast[(..., *([None] * len(phantom.anat_shape)))]
+            * phantom.tissue_masks,
+            axis=0,
+        )
         final_ksp[i] = nufft.op(phantom_state)
     return final_ksp
 
@@ -318,11 +332,9 @@ def parallel_acquire(
             chunk_ksp = np.load(future.result())
             log.info(f"{np.max(abs(chunk_ksp))}")
             for i, shot in enumerate(chunk):
-                dataset._dataset["data"][shot]["data"] = (
-                    chunk_ksp[i].view(np.float32).reshape(-1)
-                )
+                acq = dataset.read_acquisition(shot)
+                acq.data[:] = chunk_ksp[i]
+                dataset.write_acquisition(acq, shot)
             del chunk_ksp
-            dataset._dataset["data"].flush()
-
             gc.collect()
     dataset.close()
