@@ -169,11 +169,18 @@ class Phantom:
         self, manager: SharedMemoryManager
     ) -> tuple[str, ArrayProps, ArrayProps, ArrayProps]:
         """Add a copy of the phantom in shared memory."""
-        tissue_mask_prop, tissue_mask_sm = array_to_shm(self.tissue_masks)
-        tissue_properties_prop, tissue_prop_sm = array_to_shm(self.tissue_properties)
-        tissue_label_prop, tissue_label_sm = array_to_shm(self.tissue_label)
+        tissue_mask, _, tisue_mask_smm = array_to_shm(self.tissue_masks, manager)
+        tissue_props, _, tissue_prop_smm = array_to_shm(self.tissue_properties, manager)
+        tissue_label, _, tissue_label_sm = array_to_shm(self.tissue_label, manager)
 
-        return self.name, tissue_mask_prop, tissue_properties_prop, tissue_label_prop
+        return (
+            (self.name, tissue_mask, tissue_props, tissue_label),
+            (
+                tisue_mask_smm,
+                tissue_prop_smm,
+                tissue_label_sm,
+            ),
+        )
 
     @property
     def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:
