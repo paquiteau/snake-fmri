@@ -191,7 +191,7 @@ T = TypeVar("T")
 
 def serialize_array(arr: NDArray) -> str:
     """Serialize the array for mrd compatible format."""
-    return " ".join(
+    return "__".join(
         [
             base64.b64encode(arr.tobytes()).decode(),
             str(arr.shape),
@@ -202,6 +202,6 @@ def serialize_array(arr: NDArray) -> str:
 
 def unserialize_array(s: str) -> NDArray:
     """Unserialize the array for mrd compatible format."""
-    data, shape, dtype = s.split(" ")
+    data, shape, dtype = s.split("__")
     shape = eval(shape)  # FIXME
     return np.frombuffer(base64.b64decode(data.encode()), dtype=dtype).reshape(*shape)
