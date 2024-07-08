@@ -1,11 +1,13 @@
+"""Export data to mrd format."""
+
 import logging
 import os
 import time
-import base64
 import ismrmrd as mrd
 import numpy as np
 from mrinufft.trajectories.utils import Gammas
-
+from hydra_callbacks import PerfLogger
+from ..smaps import get_smaps
 from ..phantom import Phantom, DynamicData
 from ..sampling import BaseSampler
 from ..simulation import SimConfig
@@ -63,7 +65,7 @@ def get_mrd_header(sim_conf: SimConfig) -> mrd.xsd.ismrmrdHeader:
     return H
 
 
-def add_all_mrd_acq(
+def add_all_acq_mrd(
     dataset: mrd.Dataset,
     sampler: BaseSampler,
     phantom: Phantom,
@@ -74,13 +76,13 @@ def add_all_mrd_acq(
     n_shots_frame = single_frame.shape[0]
     n_samples = single_frame.shape[1]
     TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
-    log.info("Generating frame wise.")
+    n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
+    n_ksp_frames = int(n_ksp_frames_true)
+
+    log.info("Generating %d frames", n_ksp_frames)
     log.info("Frame have %d shots", n_shots_frame)
     log.info("Shot have %d samples", n_samples)
     log.info("volume TR: %f ms", TR_vol_ms)
-
-    n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
-    n_ksp_frames = int(n_ksp_frames_true)
 
     if n_ksp_frames != n_ksp_frames_true:
         log.warning(
@@ -103,6 +105,7 @@ def add_all_mrd_acq(
             )
             acq.scan_counter = counter
             acq.sample_time_us = 50000 / n_samples
+            acq.center_sample = n_samples // 2 if sampler.in_out else 0
             acq.idx.repetition = i
             acq.idx.kspace_encode_step_1 = j
             acq.idx.kspace_encode_step_2 = 1
@@ -127,12 +130,31 @@ def add_phantom_mrd(
     return phantom.to_mrd_dataset(dataset, sim_conf)
 
 
+def add_smaps_mrd(dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
+    """Add the Smaps to the dataset."""
+    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
+
+    dataset.append_image(
+        "smaps",
+        mrd.image.Image(
+            head=mrd.image.ImageHeader(
+                matrixSize=mrd.xsd.matrixSizeType(*smaps.shape[1:]),
+                fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
+                channels=len(smaps),
+                acquisition_time_stamp=0,
+            ),
+            data=smaps,
+        ),
+    )
+    return dataset
+
+
 def add_one_wave_mrd(
     dataset: mrd.Dataset, sim_conf: SimConfig, wave_properties: DynamicData
-):
+) -> mrd.Dataset:
     """Add a single waveform to the dataset."""
     dataset.append_waveform(mrd.Waveform(head=mrd.WaveformHeader()))
-    # TODO
+    return dataset
 
 
 def make_base_mrd(
@@ -150,13 +172,12 @@ def make_base_mrd(
         pass
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
     dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf)))
-    tic = time.perf_counter()
-    add_all_mrd_acq(dataset, sampler, phantom, sim_conf)
-    toc = time.perf_counter()
-    log.info("Base Dataset write in %.2f s", toc - tic)
-    tic = time.perf_counter()
-    add_phantom_mrd(dataset, phantom, sim_conf)
-    toc = time.perf_counter()
-    log.info("Phantom added to  Dataset  in %.2f s", toc - tic)
+    with PerfLogger(logger=log, name="acq"):
+        add_all_acq_mrd(dataset, sampler, phantom, sim_conf)
+    with PerfLogger(logger=log, name="phantom"):
+        add_phantom_mrd(dataset, phantom, sim_conf)
+    with PerfLogger(logger=log, name="smaps"):
+        if sim_conf.hardware.n_coils > 1:
+            add_smaps_mrd(dataset, sim_conf)
     dataset.close()
     return dataset

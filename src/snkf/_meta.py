@@ -76,4 +76,5 @@ if sys.version_info <= (3, 12):
         while batch := tuple(itertools.islice(it, n)):
             yield batch
 
-    itertools.batched = batched
+else:
+    batched = itertools.batched
