@@ -80,7 +80,11 @@ class Phantom:
         new_shape = (shape[0], *np.round(np.array(shape[1:]) * z).astype(int))
         tissue_resized = np.zeros(new_shape, dtype=np.float32)
         run_parallel(
-            resize_tissues, tissues_mask, tissue_resized, parallel_axis=0, z=tuple(z)
+            resize_tissues,
+            tissues_mask,
+            tissue_resized,
+            parallel_axis=0,
+            z=tuple(z),
         )
         tissues_mask = tissue_resized
 
