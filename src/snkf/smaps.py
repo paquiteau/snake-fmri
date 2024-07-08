@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-import jax.numpy as np
+import numpy as np
+from numpy.typing import NDArray, DTypeLike
+
 
 def get_smaps(
     shape: tuple[int, ...],
     n_coils: int,
     antenna: str = "birdcage",
-    dtype = np.complex64,
-) -> np.ndarray:
+    dtype: DTypeLike = np.complex64,
+) -> NDArray:
     """Get sensitivity maps for a specific antenna.
 
     Parameters
@@ -30,8 +32,8 @@ def _birdcage_maps(
     shape: tuple[int, ...],
     r: float = 1.5,
     nzz: int = 8,
-    dtype = np.complex64,
-) -> np.ndarray:
+    dtype: DTypeLike = np.complex64,
+) -> NDArray:
     """Simulate birdcage coil sensitivies.
 
     Parameters
@@ -61,19 +63,21 @@ def _birdcage_maps(
         raise ValueError("shape must be [nc, nx, ny, nz] or [nc, nx, ny]")
     c, z, y, x = np.mgrid[:nc, :nz, :ny, :nx]
 
-    coilx = r * np.cos(c * (2 * np.pi / nzz), dtype=np.float32)
-    coily = r * np.sin(c * (2 * np.pi / nzz), dtype=np.float32)
-    coilz = np.floor(np.float32(c / nzz)) - 0.5 * (np.ceil(nc / nzz) - 1)
-    coil_phs = np.float32(-(c + np.floor(c / nzz)) * (2 * np.pi / nzz))
+    nc_arr = np.arange(nc)[:, np.newaxis, np.newaxis, np.newaxis]
+    coilx = r * np.cos(nc_arr * (2 * np.pi / nzz), dtype=np.float32)
+    coily = r * np.sin(nc_arr * (2 * np.pi / nzz), dtype=np.float32)
+    coilz = np.floor(nc_arr / nzz) - 0.5 * (np.ceil(nc / nzz) - 1)
+    coil_phs = -(nc_arr + np.floor(nc_arr / nzz)) * (2 * np.pi / nzz)
 
+    z, y, x = np.meshgrid(np.arange(nz), np.arange(ny), np.arange(nx), indexing="ij")
     x_co = (x - nx / 2.0) / (nx / 2.0) - coilx
     y_co = (y - ny / 2.0) / (ny / 2.0) - coily
     z_co = (z - nz / 2.0) / (nz / 2.0) - coilz
-    rr = (x_co**2 + y_co**2 + z_co**2) ** 0.5
+    rr = np.sqrt(x_co**2 + y_co**2 + z_co**2)
     phi = np.arctan2(x_co, -y_co) + coil_phs
-    out = (1 / rr) * np.exp(1j * phi)
 
-    rss = sum(abs(out) ** 2, 0) ** 0.5
+    out = (1 / rr) * np.exp(1j * phi)
+    rss = np.sqrt(np.sum(np.abs(out) ** 2, axis=0))
     out /= rss
     out = np.squeeze(out)
-    return out.astype(dtype)
+    return out
