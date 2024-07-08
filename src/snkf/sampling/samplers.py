@@ -48,6 +48,7 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
     constant: bool = False
     rotate_angle: AngleRotation = AngleRotation.ZERO
     obs_ms: int = 30
+    n_shot_slices: int = 1
 
     def _single_frame(self, phantom: Phantom, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
@@ -63,5 +64,6 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
             spiral=self.spiral_name,
             rotate_angle=self.rotate_angle,
             in_out=self.in_out,
+            n_shot_slices=self.n_shot_slices,
             rng=sim_conf.rng,
         )

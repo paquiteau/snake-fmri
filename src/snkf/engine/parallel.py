@@ -44,7 +44,6 @@ class SHM_Wrapper:
     ) -> None:
         """Run in parallel with shared memory."""
         with array_from_shm(input_props, output_props) as (input, output):
-            print(input.shape, output.shape)
             log.debug("running %s, with %s %s", self.func, args, kwargs)
             self.func(input, output, *args, **kwargs)
             log.debug("DONE running %s, with %s %s", self.func, args, kwargs)

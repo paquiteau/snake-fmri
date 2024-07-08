@@ -315,6 +315,7 @@ def stack_spiral_factory(
     nb_revolutions: int,
     in_out: bool = True,
     spiral: str = "archimedes",
+    n_shot_slices: int = 1,
     orderz: VDSorder = VDSorder.CENTER_OUT,
     pdfz: VDSpdf = VDSpdf.GAUSSIAN,
     rng: int | None | np.random.Generator = None,
@@ -329,7 +330,7 @@ def stack_spiral_factory(
         rotate_angle = rotate_angle.value
 
     spiral2D = initialize_2D_spiral(
-        Nc=1,
+        Nc=n_shot_slices,
         Ns=n_samples,
         nb_revolutions=nb_revolutions,
         spiral=spiral,
@@ -337,17 +338,22 @@ def stack_spiral_factory(
     ).reshape(-1, 2)
     z_kspace = (z_index - sizeZ // 2) / sizeZ
     # create the equivalent 3d trajectory
-    nsamples = len(spiral2D)
+    nsamples = len(spiral2D) // n_shot_slices
+    spiral2D = spiral2D.reshape(n_shot_slices, nsamples, 2)
+    print(nsamples, "nsamples")
     nz = len(z_kspace)
-    kspace_locs3d = np.zeros((nz, nsamples, 3), dtype=np.float32)
+    kspace_locs3d = np.zeros((nz * n_shot_slices, nsamples, 3), dtype=np.float32)
     # TODO use numpy api for this ?
     for i in range(nz):
         if rotate_angle != 0:
             rotated_spiral = spiral2D @ R2D(rotate_angle * i)
         else:
             rotated_spiral = spiral2D
-        kspace_locs3d[i, :, :2] = rotated_spiral
-        kspace_locs3d[i, :, 2] = z_kspace[i]
+        kspace_locs3d[i * n_shot_slices : (i + 1) * n_shot_slices, :, :2] = (
+            rotated_spiral
+        )
+
+        kspace_locs3d[i * n_shot_slices : (i + 1) * n_shot_slices, :, 2] = z_kspace[i]
 
     return kspace_locs3d.astype(np.float32)
 
