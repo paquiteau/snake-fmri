@@ -29,6 +29,7 @@ class BaseSampler(metaclass=MetaSampler):
     __sampler_name__: ClassVar[str]
     is_cartesian: bool = False
     in_out: bool = True
+    obs_time_ms: int = 25
 
     @property
     def log(self) -> logging.Logger:

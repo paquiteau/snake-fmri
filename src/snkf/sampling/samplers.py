@@ -47,13 +47,13 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
     pdfz: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     rotate_angle: AngleRotation = AngleRotation.ZERO
-    obs_ms: int = 30
+    obs_time_ms: int = 30
     n_shot_slices: int = 1
 
     def _single_frame(self, phantom: Phantom, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
-        n_samples = int(self.obs_ms / sim_conf.hardware.dwell_time_ms)
-        return stack_spiral_factory(
+        n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
+        trajectory = stack_spiral_factory(
             shape=phantom.anat_shape,
             accelz=self.accelz,
             acsz=self.acsz,
@@ -67,3 +67,6 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
             n_shot_slices=self.n_shot_slices,
             rng=sim_conf.rng,
         )
+        self._n_shot_frames = trajectory.shape[0]
+        self._n_samples_shot = trajectory.shape[1]
+        return trajectory
