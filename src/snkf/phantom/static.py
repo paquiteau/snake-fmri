@@ -1,7 +1,7 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
-
+import logging
 import base64
 import contextlib
 import os
@@ -18,6 +18,8 @@ from numpy.typing import NDArray
 from snkf.engine.parallel import ArrayProps, run_parallel, array_from_shm, array_to_shm
 
 from ..simulation import SimConfig
+
+log = logging.getLogger(__name__)
 
 
 class PropTissueEnum(IntEnum):
@@ -46,11 +48,15 @@ class Phantom:
         sim_conf: SimConfig,
         tissue_file: os.PathLike = None,
         tissue_select: list[str] = None,
+        tissue_ignore: list[str] = None,
     ) -> Phantom:
         """Get the Brainweb Phantom."""
-        from brainweb_dl import get_mri
+        from brainweb_dl import get_mri, BrainWebTissuesV2
 
         from .utils import resize_tissues
+
+        if tissue_ignore is not None and tissue_select is not None:
+            raise ValueError("Only one of tissue_select or tissue_ignore can be used.")
 
         # TODO: Use the sim shape properly.
         tissues_mask = get_mri(sub_id, contrast="fuzzy").astype(np.float32)
@@ -59,7 +65,7 @@ class Phantom:
             * np.array(sim_conf.shape)
             / np.array(sim_conf.fov_mm)
         )
-        tissues_mask = np.moveaxis(tissues_mask, -1, 0)
+        tissues_mask = np.ascontiguousarray(tissues_mask.T)
         tissues_list = []
         if tissue_file is None:
             tissue_file = files("snkf.phantom.data") / "tissues_properties.csv"
@@ -70,11 +76,17 @@ class Phantom:
                 vals = line.split(",")
                 t1, t2, t2s, rho, chi = map(np.float32, vals[1:])
                 name = vals[0]
-                if not tissue_select or name in tissue_select:
-                    t = (name, t1, t2, t2s, rho, chi)
+                t = (name, t1, t2, t2s, rho, chi)
+                if (
+                    (tissue_select and name in tissue_select)
+                    or (tissue_ignore and name not in tissue_ignore)
+                    or (not tissue_select and not tissue_ignore)
+                ):
                     tissues_list.append(t)
-                    select.append(idx)
-
+                    select.append(BrainWebTissuesV2[name.upper()])
+        log.info(
+            f"Selected tissues: {select}, {[t[0] for t in tissues_list]}",
+        )
         tissues_mask = tissues_mask[select]
         shape = tissues_mask.shape
         new_shape = (shape[0], *np.round(np.array(shape[1:]) * z).astype(int))
