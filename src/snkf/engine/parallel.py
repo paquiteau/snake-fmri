@@ -110,7 +110,10 @@ def array_from_shm(*array_props: ArrayProps) -> list[NDArray]:
         arrays.append(
             np.ndarray(shape=prop.shape, dtype=prop.dtype, buffer=shms[-1].buf)
         )
-    yield arrays
+    if len(arrays) == 1:
+        yield arrays[0]
+    else:
+        yield arrays
     del arrays
     for s in shms:
         s.close()

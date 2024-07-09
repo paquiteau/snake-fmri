@@ -340,7 +340,6 @@ def stack_spiral_factory(
     # create the equivalent 3d trajectory
     nsamples = len(spiral2D) // n_shot_slices
     spiral2D = spiral2D.reshape(n_shot_slices, nsamples, 2)
-    print(nsamples, "nsamples")
     nz = len(z_kspace)
     kspace_locs3d = np.zeros((nz * n_shot_slices, nsamples, 3), dtype=np.float32)
     # TODO use numpy api for this ?
