@@ -163,12 +163,12 @@ ACQUIRE_METHODS = {}
 
 
 def acquire_register(
-    t2s: bool,
+    mode: str,
 ) -> Callable:
     """Register methods for the acquisition."""
 
     def decorator(func: Callable) -> Callable:
-        ACQUIRE_METHODS[t2s] = func
+        ACQUIRE_METHODS[mode] = func
 
         @wraps(func)
         def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -179,7 +179,7 @@ def acquire_register(
     return decorator
 
 
-@acquire_register(t2s=True)
+@acquire_register("T2s")
 def acquire_ksp1(
     phantom: Phantom,
     dyn_datas: list[DynamicData],
@@ -224,7 +224,7 @@ def acquire_ksp1(
     return final_ksp
 
 
-@acquire_register(t2s=False)
+@acquire_register("simple")
 def acquire_ksp2(
     phantom: Phantom,
     dyn_data: list[DynamicData],
@@ -266,6 +266,7 @@ def acquire_ksp(
     chunk: Sequence[int],
     shared_phantom_props: tuple[ArrayProps] = None,
     backend: str = "gpunufft",
+    mode: str = "T2s",
 ) -> None:
     """Entry point for worker.
 
@@ -286,9 +287,11 @@ def acquire_ksp(
 
     fourier_op_iterator = iter_traj_stacked(dataset, sim_conf, chunk, backend=backend)
 
+    _acquire = ACQUIRE_METHODS[mode]
+
     if shared_phantom_props is None:
         phantom = Phantom.from_mrd_dataset(dataset)
-        ksp = acquire_ksp1(
+        ksp = _acquire(
             phantom,
             dyn_data,
             sim_conf,
@@ -300,7 +303,7 @@ def acquire_ksp(
     else:
         with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
             # FIXME do the dispatch for acquire_ksp1 or acquire_ksp2
-            ksp = acquire_ksp1(
+            ksp = _acquire(
                 phantom,
                 dyn_data,
                 sim_conf,
@@ -319,7 +322,11 @@ def acquire_ksp(
 
 
 def parallel_acquire(
-    filename: str, sim_conf: SimConfig, worker_chunk_size: int, n_workers: int
+    filename: str,
+    sim_conf: SimConfig,
+    worker_chunk_size: int,
+    n_workers: int,
+    mode: str = "T2s",
 ) -> None:
     """ACquire the k-space data in parallel."""
     # estimat chunk size from the dataset, split the dataset in n_worker
@@ -338,7 +345,12 @@ def parallel_acquire(
         # TODO: also put the smaps in shared memory
         futures = {
             executor.submit(
-                acquire_ksp, filename, sim_conf, chunk, phantom_props
+                acquire_ksp,
+                filename,
+                sim_conf,
+                chunk,
+                shared_phantom_props=phantom_props,
+                mode=mode,
             ): chunk
             for chunk in chunk_list
         }

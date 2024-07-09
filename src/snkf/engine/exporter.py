@@ -84,12 +84,16 @@ def add_all_acq_mrd(
     log.info("Shot have %d samples", n_samples)
     log.info("volume TR: %f ms", TR_vol_ms)
 
+    if n_ksp_frames == 0:
+        raise ValueError(
+            "No frame can be generated with the current configuration"
+            " (TR/shot too long or max_sim_time too short)"
+        )
     if n_ksp_frames != n_ksp_frames_true:
         log.warning(
             "Volumic TR does not align with max simulation time, "
             "last incomplete frame will be discarded."
         )
-
     log.info("Start Sampling pattern generation")
     counter = 0
     kspace_data_vol = np.zeros(
@@ -104,7 +108,7 @@ def add_all_acq_mrd(
                 data=kspace_data_vol[j, :, :], trajectory=kspace_traj_vol[j, :]
             )
             acq.scan_counter = counter
-            acq.sample_time_us = sampler.obs_ms * 1000 / n_samples
+            acq.sample_time_us = sampler.obs_time_ms * 1000 / n_samples
             acq.center_sample = n_samples // 2 if sampler.in_out else 0
             acq.idx.repetition = i
             acq.idx.kspace_encode_step_1 = j
