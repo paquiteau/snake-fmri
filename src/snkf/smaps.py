@@ -69,7 +69,12 @@ def _birdcage_maps(
     coilz = np.floor(nc_arr / nzz) - 0.5 * (np.ceil(nc / nzz) - 1)
     coil_phs = -(nc_arr + np.floor(nc_arr / nzz)) * (2 * np.pi / nzz)
 
-    z, y, x = np.meshgrid(np.arange(nz), np.arange(ny), np.arange(nx), indexing="ij")
+    z, y, x = np.meshgrid(
+        np.arange(nz, dtype=np.float32),
+        np.arange(ny, dtype=np.float32),
+        np.arange(nx, dtype=np.float32),
+        indexing="ij",
+    )
     x_co = (x - nx / 2.0) / (nx / 2.0) - coilx
     y_co = (y - ny / 2.0) / (ny / 2.0) - coily
     z_co = (z - nz / 2.0) / (nz / 2.0) - coilz
