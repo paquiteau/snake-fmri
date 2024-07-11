@@ -1,5 +1,6 @@
 """Samplers generate kspace trajectories."""
 
+import numpy as np
 from numpy.typing import NDArray
 
 from ..phantom import Phantom
@@ -13,7 +14,7 @@ from .factories import (
 )
 
 
-class StackedSpiralAcquisitionHandler(BaseSampler):
+class StackOfSpiralSampler(BaseSampler):
     """
     Spiral 2D Acquisition Handler to generate k-space data.
 
@@ -37,7 +38,7 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
         Extra arguments (smaps, n_jobs, backend etc...)
     """
 
-    __handler_name__ = "acquisition-sos"
+    __sampler_name__ = "stack-of-spiral"
 
     acsz: float | int
     accelz: int
@@ -50,11 +51,11 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
     obs_time_ms: int = 30
     n_shot_slices: int = 1
 
-    def _single_frame(self, phantom: Phantom, sim_conf: SimConfig) -> NDArray:
+    def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
         n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
         trajectory = stack_spiral_factory(
-            shape=phantom.anat_shape,
+            shape=sim_conf.shape,
             accelz=self.accelz,
             acsz=self.acsz,
             n_samples=n_samples,
@@ -70,3 +71,19 @@ class StackedSpiralAcquisitionHandler(BaseSampler):
         self._n_shot_frames = trajectory.shape[0]
         self._n_samples_shot = trajectory.shape[1]
         return trajectory
+
+
+class EPI3dAcquisitionSampler(BaseSampler):
+    """Sampling pattern for EPI-3D."""
+
+    __sampler_name__ = "epi-3d"
+    is_cartesian = True
+    in_out = True
+
+    acs_plane: float | int = 0.1
+    acs_slice: float | int = 0.1
+
+    def _single_frame(self, sim_conf: SimConfig) -> NDArray:
+        """Generate the sampling pattern."""
+
+        kspace_mask = np.zeros(sim_conf.shape, dtype=int)

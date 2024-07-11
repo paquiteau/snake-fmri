@@ -36,10 +36,10 @@ class BaseSampler(metaclass=MetaSampler):
         """Get a logger."""
         return logging.getLogger(f"simulation.samplers.{self.__class__.__name__}")
 
-    def _single_frame(self, phantom: Phantom, sim_conf: SimConfig) -> NDArray:
+    def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate a single frame."""
         raise NotImplementedError
 
-    def _single_shot(self, phantom: Phantom, sim_conf: SimConfig) -> NDArray:
+    def _single_shot(self, sim_conf: SimConfig) -> NDArray:
         """Generate a single shot."""
         raise NotImplementedError

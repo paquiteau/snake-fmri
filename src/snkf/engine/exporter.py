@@ -101,7 +101,7 @@ def add_all_acq_mrd(
         dtype=np.complex64,
     )
     for i in range(n_ksp_frames):
-        kspace_traj_vol = sampler._single_frame(phantom, sim_conf)
+        kspace_traj_vol = sampler._single_frame(sim_conf)
 
         for j in range(n_shots_frame):
             acq = mrd.Acquisition.from_array(
