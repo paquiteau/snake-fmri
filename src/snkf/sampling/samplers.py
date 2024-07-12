@@ -2,8 +2,10 @@
 
 import numpy as np
 from numpy.typing import NDArray
+import ismrmrd as mrd
 
 from ..phantom import Phantom
+
 from ..simulation import SimConfig
 from .base import BaseSampler
 from .factories import (
@@ -11,10 +13,76 @@ from .factories import (
     VDSorder,
     VDSpdf,
     stack_spiral_factory,
+    stacked_epi_factory,
 )
 
 
-class StackOfSpiralSampler(BaseSampler):
+class NonCartesianAcquisitionSampler(BaseSampler):
+    """Base class for non-cartesian acquisition samplers."""
+
+    def add_all_acq_mrd(
+        self,
+        dataset: mrd.Dataset,
+        phantom: Phantom,
+        sim_conf: SimConfig,
+    ) -> mrd.Dataset:
+        """Generate all mrd_acquisitions."""
+        single_frame = self._single_frame(phantom, sim_conf)
+        n_shots_frame = single_frame.shape[0]
+        n_samples = single_frame.shape[1]
+        TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
+        n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
+        n_ksp_frames = int(n_ksp_frames_true)
+
+        self.log.info("Generating %d frames", n_ksp_frames)
+        self.log.info("Frame have %d shots", n_shots_frame)
+        self.log.info("Shot have %d samples", n_samples)
+        self.log.info("volume TR: %f ms", TR_vol_ms)
+
+        if n_ksp_frames == 0:
+            raise ValueError(
+                "No frame can be generated with the current configuration"
+                " (TR/shot too long or max_sim_time too short)"
+            )
+        if n_ksp_frames != n_ksp_frames_true:
+            self.log.warning(
+                "Volumic TR does not align with max simulation time, "
+                "last incomplete frame will be discarded."
+            )
+        self.log.info("Start Sampling pattern generation")
+        counter = 0
+        kspace_data_vol = np.zeros(
+            (n_shots_frame, sim_conf.hardware.n_coils, n_samples),
+            dtype=np.complex64,
+        )
+        for i in range(n_ksp_frames):
+            kspace_traj_vol = self._single_frame(sim_conf)
+
+            for j in range(n_shots_frame):
+                acq = mrd.Acquisition.from_array(
+                    data=kspace_data_vol[j, :, :], trajectory=kspace_traj_vol[j, :]
+                )
+                acq.scan_counter = counter
+                acq.sample_time_us = self.obs_time_ms * 1000 / n_samples
+                acq.center_sample = n_samples // 2 if self.in_out else 0
+                acq.idx.repetition = i
+                acq.idx.kspace_encode_step_1 = j
+                acq.idx.kspace_encode_step_2 = 1
+
+                # Set flags: # TODO: upstream this in the acquisition handler.
+                if j == 0:
+                    acq.setFlag(mrd.ACQ_FIRST_IN_ENCODE_STEP1)
+                    acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
+                if j == n_shots_frame - 1:
+                    acq.setFlag(mrd.ACQ_LAST_IN_ENCODE_STEP1)
+                    acq.setFlag(mrd.ACQ_LAST_IN_REPETITION)
+
+                dataset.append_acquisition(acq)
+                counter += 1
+        return dataset
+
+
+class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     """
     Spiral 2D Acquisition Handler to generate k-space data.
 
@@ -80,10 +148,101 @@ class EPI3dAcquisitionSampler(BaseSampler):
     is_cartesian = True
     in_out = True
 
-    acs_plane: float | int = 0.1
-    acs_slice: float | int = 0.1
+    acsz: float | int
+    accelz: int
+    orderz: VDSorder = VDSorder.CENTER_OUT
 
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
+        epi_coords = stacked_epi_factory(
+            shape=sim_conf.shape,
+            accelz=self.accelz,
+            acsz=self.acsz,
+            orderz=self.orderz,
+            in_out=self.in_out,
+            rng=sim_conf.rng,
+        )
+        return epi_coords
 
-        kspace_mask = np.zeros(sim_conf.shape, dtype=int)
+    def add_all_acq_mrd(
+        self,
+        dataset: mrd.Dataset,
+        phantom: Phantom,
+        sim_conf: SimConfig,
+    ) -> mrd.Dataset:
+        """Create the acquisitions associated with this sampler."""
+        single_frame = self._single_frame(sim_conf)
+        n_shots_frame = single_frame.shape[0]
+        n_samples = single_frame.shape[1]
+
+        TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
+        n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
+        n_ksp_frames = int(n_ksp_frames_true)
+
+        self.log.info("Generating %d frames", n_ksp_frames)
+        self.log.info("Frame have %d shots", n_shots_frame)
+        self.log.info("Shot have %d samples", n_samples)
+        self.log.info("volume TR: %f ms", TR_vol_ms)
+
+        if n_ksp_frames == 0:
+            raise ValueError(
+                "No frame can be generated with the current configuration"
+                " (TR/shot too long or max_sim_time too short)"
+            )
+        if n_ksp_frames != n_ksp_frames_true:
+            self.log.warning(
+                "Volumic TR does not align with max simulation time, "
+                "last incomplete frame will be discarded."
+            )
+        self.log.info("Start Sampling pattern generation")
+        counter = 0
+        zero_data = np.zeros(
+            (sim_conf.hardware.n_coils, sim_conf.shape[1]), dtype=np.complex64
+        )
+
+        # Update the encoding limits.
+        # step 0 : frequency (readout directionz)
+        # step 1 : phase encoding (blip epi)
+        #
+        hdr = dataset.read_xml_header()
+        hdr.encoding[0].encodingLimits = mrd.xsd.encodingLimitsType(
+            kspace_encoding_step_0=mrd.xsd.limitType(
+                0, sim_conf.shape[1], sim_conf.shape[1] // 2
+            ),
+            kspace_encoding_step_1=mrd.xsd.limitType(
+                0, sim_conf.shape[0], sim_conf.shape[0] // 2
+            ),
+            slice=mrd.xsd.limitType(0, sim_conf.shape[2], sim_conf.shape[2] // 2),
+            repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
+        )
+        hdr.encoding[0].parallelImaging = mrd.xsd.parallelImagingType()
+
+        for i in range(n_ksp_frames):
+            kspace_traj_vol = self._single_frame(sim_conf)
+            for j in range(n_shots_frame):  # iterate slices
+                epi_coord = kspace_traj_vol[j].reshape(-1, sim_conf.shape[1], 3)
+
+                for k in range(len(epi_coord)):
+                    acq = mrd.Acquisition.from_array(data=zero_data)
+                    acq.scan_counter = counter
+                    acq.idx.kspace_encode_step_1 = epi_coord[k, 0, 0]
+                    acq.idx.slice = epi_coord[k, 0, 2]
+                    acq.idx.repetition = i
+
+                    counter += 1
+                    if k == 0:
+                        acq.setFlag(mrd.ACQ_FIRST_IN_ENCODE_STEP1)
+                    if j == 0:
+                        acq.setFlag(mrd.ACQ_FIRST_IN_SLICE)
+                        acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
+
+                    if k == len(epi_coord) - 1:
+                        acq.setFlag(mrd.ACQ_LAST_IN_ENCODE_STEP1)
+                        if j == n_shots_frame - 1:
+                            acq.setFlag(mrd.ACQ_LAST_IN_SLICE)
+                            acq.setFlag(mrd.ACQ_LAST_IN_REPETITION)
+                            if i == n_ksp_frames - 1:
+                                acq.setFlag(mrd.ACQ_LAST_IN_MEASUREMENT)
+                    dataset.append_acquisition(acq)
+
+        return dataset

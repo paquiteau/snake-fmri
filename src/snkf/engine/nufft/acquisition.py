@@ -12,57 +12,26 @@ parallel_acquire --> acquire_ksp --> acquire_ksp1  --> acquire_ksp -- > parallel
 import gc
 import logging
 import os
-from collections.abc import Callable, Generator, Sequence
+from collections.abc import Generator, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
-from functools import wraps
 from multiprocessing.managers import SharedMemoryManager
-from typing import Any
 
 import ismrmrd as mrd
 import numpy as np
 from mrinufft import get_operator
 from mrinufft.operators.base import FourierOperatorBase
-from numpy.typing import NDArray
-import h5py
-from snkf._meta import batched
 
+from .._meta import MethodRegister, batched
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 from .parallel import ArrayProps
+from .utils import get_contrast_gre
 
 log = logging.getLogger(__name__)
 
 
-def get_contrast_gre(
-    phantom: Phantom, FA: NDArray, TE: NDArray, TR: NDArray
-) -> NDArray:
-    """Compute the GRE contrast at TE."""
-    return (
-        phantom.tissue_properties[:, PropTissueEnum.rho]
-        * np.sin(np.deg2rad(FA))
-        * np.exp(-TE / phantom.tissue_properties[:, PropTissueEnum.T2s])
-        * (1 - np.exp(-TR / phantom.tissue_properties[:, PropTissueEnum.T1]))
-        / (
-            1
-            - np.cos(np.deg2rad(FA))
-            * np.exp(-TR / phantom.tissue_properties[:, PropTissueEnum.T1])
-        )
-    )
-
-
-def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig):
-    """Apply the contrast to the phantom and return volume."""
-
-    contrast = get_contrast_gre(
-        phantom, sim_conf.seq.FA, sim_conf.seq.TE, sim_conf.seq.TR
-    )
-    print(contrast)
-    phantom_state = np.sum(
-        phantom.tissue_masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
-        axis=0,
-    )
-    return phantom_state
+acquire_register = MethodRegister("acq_nc")
 
 
 def iter_traj_stacked(
@@ -110,9 +79,6 @@ def iter_traj_stacked(
     traj = dataset._dataset["data"][0]["traj"].reshape(n_samples, ndim)
     traj2d, z_index = traj3d2stacked(traj, dim_z=shape[-1], n_samples=n_samples)
 
-    # TODO use smaps from shared memory
-    # TODO This requires the smaps to be load in parallel_acquire before calling this function
-
     nufft = get_operator(f"stacked-{backend}")(
         traj2d,
         shape=shape,
@@ -159,28 +125,8 @@ def iter_traj_nufft(
         yield nufft
 
 
-ACQUIRE_METHODS = {}
-
-
-def acquire_register(
-    mode: str,
-) -> Callable:
-    """Register methods for the acquisition."""
-
-    def decorator(func: Callable) -> Callable:
-        ACQUIRE_METHODS[mode] = func
-
-        @wraps(func)
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
-            return func(*args, **kwargs)
-
-        return wrapper
-
-    return decorator
-
-
 @acquire_register("T2s")
-def acquire_ksp1(
+def acquire_ksp(
     phantom: Phantom,
     dyn_datas: list[DynamicData],
     sim_conf: SimConfig,
@@ -193,7 +139,7 @@ def acquire_ksp1(
     final_ksp = np.zeros(
         (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
     )
-    # (n_tissues_true, n_samples) Filter the tissues that have NaN Values (abstract tissues.)
+    # (n_tissues_true, n_samples) Filter the tissues that have NaN Values.
     t = sim_conf.hardware.dwell_time_ms * (
         np.arange(n_samples, dtype=np.float32) - center_sample_idx
     )
@@ -219,13 +165,13 @@ def acquire_ksp1(
         nufft.n_batchs = len(phantom_state)
         ksp = nufft.op(phantom_state)
         # apply the T2s and sum over tissues
-        final_ksp[i] = np.sum(ksp * t2s_decay[:, None, :], axis=0)
-        # final_ksp[i] = np.einsum("kij, kj-> ij", ksp, t2s_decay)  # (n_coils, n_samples)
+        # final_ksp[i] = np.sum(ksp * t2s_decay[:, None, :], axis=0)
+        final_ksp[i] = np.einsum("kij, kj-> ij", ksp, t2s_decay)
     return final_ksp
 
 
 @acquire_register("simple")
-def acquire_ksp2(
+def acquire_ksp(  # noqa: F811
     phantom: Phantom,
     dyn_data: list[DynamicData],
     sim_conf: SimConfig,
@@ -238,7 +184,7 @@ def acquire_ksp2(
     final_ksp = np.zeros(
         (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
     )
-    # (n_tissues_true, n_samples) Filter the tissues that have NaN Values (abstract tissues.)
+    # (n_tissues_true, n_samples) Filter the tissues that have NaN Values
     for i, nufft in enumerate(fourier_op_iterator):
         phantom = deepcopy(phantom)
         # for dyn_data in list[DynamicData]:
@@ -260,7 +206,7 @@ def acquire_ksp2(
     return final_ksp
 
 
-def acquire_ksp(
+def acquire_ksp(  # noqa: F811
     filename: os.PathLike,
     sim_conf: SimConfig,
     chunk: Sequence[int],
@@ -287,7 +233,7 @@ def acquire_ksp(
 
     fourier_op_iterator = iter_traj_stacked(dataset, sim_conf, chunk, backend=backend)
 
-    _acquire = ACQUIRE_METHODS[mode]
+    _acquire = acquire_register.registry["acq_nc"][mode]
 
     if shared_phantom_props is None:
         phantom = Phantom.from_mrd_dataset(dataset)
@@ -318,9 +264,6 @@ def acquire_ksp(
     return filename
 
 
-# FIXME: sim_conf should be recreated from the dataset.
-
-
 def parallel_acquire(
     filename: str,
     sim_conf: SimConfig,
@@ -328,10 +271,14 @@ def parallel_acquire(
     n_workers: int,
     mode: str = "T2s",
 ) -> None:
-    """ACquire the k-space data in parallel."""
-    # estimat chunk size from the dataset, split the dataset in n_worker
-    # Run the acquire_ksp function in parallel, collect the resulting files and merge them.
+    """Acquire the k-space data in parallel.
 
+    1. An existing file (with empty acquisition data) is split in chunk
+    2. Each chunk is processed using a concurrent.futures interfaces
+    3. When a chunk result is available (npy file) it is written back to original file.
+
+    """
+    # TODO Recreate SimConfig object from dataset ?
     dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
     n_shots = dataset.number_of_acquisitions()
     log.info("Acquiring %d shots", n_shots)
@@ -357,12 +304,14 @@ def parallel_acquire(
         for future in as_completed(futures):
             chunk = futures[future]
             log.info(f"Done with chunk {min(chunk)}-{max(chunk)}")
-            chunk_ksp = np.load(future.result())
+            filename = future.result()
+            chunk_ksp = np.load(filename)
             log.info(f"{np.max(abs(chunk_ksp))}")
             for i, shot in enumerate(chunk):
                 acq = dataset.read_acquisition(shot)
                 acq.data[:] = chunk_ksp[i]
                 dataset.write_acquisition(acq, shot)
             del chunk_ksp
+            os.remove(filename)
             gc.collect()
     dataset.close()

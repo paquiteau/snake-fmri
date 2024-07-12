@@ -6,11 +6,15 @@ import dataclasses
 import itertools
 import logging
 import sys
+from collections import defaultdict
 from collections.abc import Callable, Generator, Iterable
 from enum import Enum, EnumMeta
-from typing import Any
+from functools import wraps
+from typing import Any, TypeVar
 
 from typing_extensions import dataclass_transform
+
+T = TypeVar("T")
 
 
 def make_log_property(dunder_name: str) -> Callable:
@@ -64,6 +68,47 @@ class NoCaseEnum(Enum, metaclass=EnumMeta):
     """Base Class for Enum to be case insensitive."""
 
     pass
+
+
+class MethodRegister:
+    """
+    A Decorator to register methods of the same type in dictionnaries.
+
+    Parameters
+    ----------
+    name: str
+        The  register
+    """
+
+    registry = defaultdict(dict)
+
+    def __init__(self, register_name: str):
+        self.register_name = register_name
+
+    def __call__(
+        self,
+        method_name: str | Callable[..., T],
+    ) -> Callable[Callable[..., T], Callable[..., T]]:
+        """Register the function in the registry."""
+
+        def decorator(func: Callable[..., T]) -> Callable[..., T]:
+            self.registry[self.register_name][method_name] = func
+            if func.__name__ != method_name:
+                func.__name__ += "__" + method_name
+
+            @wraps(func)
+            def wrapper(*args: Any, **kwargs: Any) -> T:
+                return func(*args, **kwargs)
+
+            return wrapper
+
+        # allow for direct name.
+        if callable(method_name):
+            func = method_name
+            method_name = func.__name__
+            return decorator(func)
+        else:
+            return decorator
 
 
 if sys.version_info <= (3, 12):

@@ -402,6 +402,66 @@ def rotate_trajectory(
         yield np.einsum("ij,klj->kli", rot, traj)
 
 
+def stacked_epi2d(
+    shape: tuple[int, int, int],
+    phase_locs: Sequence[int],
+    freq_locs: Sequence[int],
+    slice_locs: Sequence[int],
+) -> NDArray:
+    """Generate a list of 2D epi plane, stacked."""
+    Ns, Np, Nf = map(len, (slice_locs, phase_locs, freq_locs))
+
+    epi_3d_coord = np.zeros((Ns * Np * Nf, 3), dtype=np.uint32)
+    coord = 0
+    for s in range(Ns):
+        for p in range(0, Np, 2):
+            for f in range(Nf):
+                epi_3d_coord[coord] = (phase_locs[p], freq_locs[f], slice_locs[s])
+                coord += 1
+            if p + 1 >= Np:
+                continue  # no room for an extra trip
+            for f in range(Nf - 1, -1, -1):
+                epi_3d_coord[coord] = (phase_locs[p + 1], freq_locs[f], slice_locs[s])
+                coord += 1
+    return epi_3d_coord
+
+
+def stacked_epi_factory(
+    shape: tuple[int, ...],
+    acsz: int | float,
+    accelz: int,
+    orderz: VDSorder = VDSorder.CENTER_OUT,
+    pdfz: VDSpdf = VDSpdf.GAUSSIAN,
+    rng: int | None | np.random.Generator = None,
+) -> np.ndarray:
+    """Generate a VDS stack of fully sampled EPI trajectory."""
+    sizeZ = shape[-1]
+    z_index = get_kspace_slice_loc(sizeZ, acsz, accelz, pdf=pdfz, rng=rng, order=orderz)
+
+    epi_3d_coord = stacked_epi2d(
+        phase_locs=np.arange(shape[0]),
+        freq_locs=np.arange(shape[1]),
+        slice_locs=z_index,
+    )
+
+    epi3d_stacked = epi_3d_coord.reshape(len(z_index), -1, 3)
+    return epi3d_stacked
+
+
+def evi_factory(
+    shape: tuple[int, ...],
+) -> np.ndarray:
+    """Generate a Echo Volume Imaging trajectory."""
+    epi_3d_coord = stacked_epi2d(
+        phase_locs=np.arange(shape[0]),
+        freq_locs=np.arange(shape[1]),
+        slice_locs=np.arange(shape[2]),
+    )
+
+    evi = epi_3d_coord.reshape(-1, 3)
+    return evi
+
+
 def trajectory_generator(
     traj_factory: Callable[..., np.ndarray],
     shape: tuple[int, ...],
