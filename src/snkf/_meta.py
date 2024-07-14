@@ -55,6 +55,15 @@ class MetaDCRegister(type):
         return cls
 
 
+class LogMixin:
+    """A Mixin to add a logger to a class."""
+
+    @property
+    def log(self) -> logging.Logger:
+        """Logger."""
+        return logging.getLogger(f"{self.__class__.__name__}")
+
+
 class NoCaseEnumMeta(EnumMeta):
     """Make Enum case insensitive."""
 
