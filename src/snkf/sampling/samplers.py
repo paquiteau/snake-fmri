@@ -168,7 +168,6 @@ class EPI3dAcquisitionSampler(BaseSampler):
             accelz=self.accelz,
             acsz=self.acsz,
             orderz=self.orderz,
-            in_out=self.in_out,
             rng=sim_conf.rng,
         )
         return epi_coords
@@ -206,52 +205,61 @@ class EPI3dAcquisitionSampler(BaseSampler):
         self.log.info("Start Sampling pattern generation")
         counter = 0
         zero_data = np.zeros(
-            (sim_conf.hardware.n_coils, sim_conf.shape[1]), dtype=np.complex64
+            (sim_conf.hardware.n_coils, sim_conf.shape[2]), dtype=np.complex64
         )
 
         # Update the encoding limits.
         # step 0 : frequency (readout directionz)
         # step 1 : phase encoding (blip epi)
         #
-        hdr = dataset.read_xml_header()
+        hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
         hdr.encoding[0].encodingLimits = mrd.xsd.encodingLimitsType(
             kspace_encoding_step_0=mrd.xsd.limitType(
-                0, sim_conf.shape[1], sim_conf.shape[1] // 2
+                0, sim_conf.shape[2], sim_conf.shape[2] // 2
             ),
             kspace_encoding_step_1=mrd.xsd.limitType(
-                0, sim_conf.shape[0], sim_conf.shape[0] // 2
+                0, sim_conf.shape[1], sim_conf.shape[1] // 2
             ),
             slice=mrd.xsd.limitType(0, sim_conf.shape[2], sim_conf.shape[2] // 2),
             repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
         )
-        hdr.encoding[0].parallelImaging = mrd.xsd.parallelImagingType()
 
+        dataset.write_xml_header(mrd.xsd.ToXML(hdr))  # write the updated header back
         for i in range(n_ksp_frames):
-            kspace_traj_vol = self._single_frame(sim_conf)
-            for j in range(n_shots_frame):  # iterate slices
-                epi_coord = kspace_traj_vol[j].reshape(-1, sim_conf.shape[1], 3)
-
-                for k in range(len(epi_coord)):
-                    acq = mrd.Acquisition.from_array(data=zero_data)
+            stack_epi3d = self._single_frame(sim_conf)  # of shape N_stack, N, 3
+            for j, epi2d in enumerate(stack_epi3d):
+                epi2d_r = epi2d.reshape(
+                    sim_conf.shape[1], sim_conf.shape[2], 3
+                )  # reorder to have
+                for k, readout in enumerate(epi2d_r):
+                    acq = mrd.Acquisition.from_array(data=zero_data, trajectory=readout)
                     acq.scan_counter = counter
-                    acq.idx.kspace_encode_step_1 = epi_coord[k, 0, 0]
-                    acq.idx.slice = epi_coord[k, 0, 2]
+                    acq.sample_time_us = self.obs_time_ms * 1000 / len(readout)
+                    acq.idx.kspace_encode_step_1 = readout[0, 1]
+                    acq.idx.slice = readout[0, 0]
                     acq.idx.repetition = i
-
+                    val = dir_cos(readout[0], readout[1])
+                    acq.read_dir = val
                     counter += 1
                     if k == 0:
                         acq.setFlag(mrd.ACQ_FIRST_IN_ENCODE_STEP1)
-                    if j == 0:
                         acq.setFlag(mrd.ACQ_FIRST_IN_SLICE)
-                        acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
-
-                    if k == len(epi_coord) - 1:
+                        if j == 0:
+                            acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
+                    if k == len(epi2d_r) - 1:
                         acq.setFlag(mrd.ACQ_LAST_IN_ENCODE_STEP1)
-                        if j == n_shots_frame - 1:
-                            acq.setFlag(mrd.ACQ_LAST_IN_SLICE)
+                        acq.setFlag(mrd.ACQ_LAST_IN_SLICE)
+                        if j == len(stack_epi3d) - 1:
                             acq.setFlag(mrd.ACQ_LAST_IN_REPETITION)
                             if i == n_ksp_frames - 1:
                                 acq.setFlag(mrd.ACQ_LAST_IN_MEASUREMENT)
                     dataset.append_acquisition(acq)
 
         return dataset
+
+
+def dir_cos(start: NDArray, end: NDArray) -> tuple[np.float32]:
+    """Compute the directional cosine of the vector from beg to end point."""
+    diff = np.float32(end) - np.float32(start)
+    cos = diff / np.sqrt(np.sum(diff**2))
+    return tuple(cos)
