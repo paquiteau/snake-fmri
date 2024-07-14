@@ -85,4 +85,4 @@ def _birdcage_maps(
     rss = np.sqrt(np.sum(np.abs(out) ** 2, axis=0))
     out /= rss
     out = np.squeeze(out)
-    return out
+    return np.complex64(out)
