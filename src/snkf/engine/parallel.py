@@ -44,9 +44,7 @@ class SHM_Wrapper:
     ) -> None:
         """Run in parallel with shared memory."""
         with array_from_shm(input_props, output_props) as (input, output):
-            log.debug("running %s, with %s %s", self.func, args, kwargs)
             self.func(input, output, *args, **kwargs)
-            log.debug("DONE running %s, with %s %s", self.func, args, kwargs)
 
 
 def run_parallel(
@@ -79,7 +77,6 @@ def run_parallel(
         input_prop, input_array_sm, input_shm = array_to_shm(input_array, smm)
         output_prop, output_array_sm, output_shm = array_to_shm(output_array, smm)
         input_array_sm[:] = input_array  # move to shared memory
-        log.debug("in shared memory , %s, %s", input_prop, output_prop)
         parallel(
             delayed(SHM_Wrapper(func))(
                 input_prop,
@@ -90,11 +87,8 @@ def run_parallel(
             )
             for i in range(input_array.shape[parallel_axis])
         )
-        log.debug("done")
         output_array[:] = output_array_sm  # copy back
-        log.debug("done 2")
         smm.shutdown()
-        log.debug("done 3")
 
     return output_array
 
