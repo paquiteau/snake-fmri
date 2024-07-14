@@ -3,17 +3,15 @@
 import logging
 import os
 
-import ismrmd as mrd
 import ismrmrd as mrd
 import numpy as np
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
 
-from ...phantom import DynamicData, Phantom
-from ...sampling import BaseSampler
-from ...simulation import SimConfig
-from ...smaps import get_smaps
-from ..base_exporter import add_phantom_mrd, add_smaps_mrd
+from snkf.phantom import DynamicData, Phantom
+from snkf.sampling import BaseSampler
+from snkf.simulation import SimConfig
+from snkf.smaps import get_smaps
 
 log = logging.getLogger(__name__)
 
@@ -118,7 +116,7 @@ def make_base_mrd(
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
     dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf)))
     with PerfLogger(logger=log, name="acq"):
-        sampler.add_all_acq_mrd(dataset, sampler, phantom, sim_conf)
+        sampler.add_all_acq_mrd(dataset, phantom, sim_conf)
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
     with PerfLogger(logger=log, name="smaps"):
