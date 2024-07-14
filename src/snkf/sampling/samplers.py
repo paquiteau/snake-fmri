@@ -1,11 +1,10 @@
 """Samplers generate kspace trajectories."""
 
+import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
-import ismrmrd as mrd
 
 from ..phantom import Phantom
-
 from ..simulation import SimConfig
 from .base import BaseSampler
 from .factories import (
@@ -55,6 +54,16 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             (n_shots_frame, sim_conf.hardware.n_coils, n_samples),
             dtype=np.complex64,
         )
+
+        hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+        hdr.encoding[0].encodingLimits = mrd.xsd.encodingLimitsType(
+            kspace_encoding_step_0=mrd.xsd.limitType(0, n_samples, n_samples // 2),
+            kspace_encoding_step_1=mrd.xsd.limitType(
+                0, n_shots_frame, n_shots_frame // 2
+            ),
+            repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
+        )
+
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
 
@@ -110,7 +119,7 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
 
     acsz: float | int
     accelz: int
-    orderz: VDSorder = VDSorder.CENTER_OUT
+    orderz: VDSorder = VDSorder.TOP_DOWN
     nb_revolutions: int = 10
     spiral_name: str | float = "archimedes"
     pdfz: VDSpdf = VDSpdf.GAUSSIAN
