@@ -92,19 +92,12 @@ def add_smaps_mrd(dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
     return dataset
 
 
-def add_one_wave_mrd(
-    dataset: mrd.Dataset, sim_conf: SimConfig, wave_properties: DynamicData
-) -> mrd.Dataset:
-    """Add a single waveform to the dataset."""
-    dataset.append_waveform(mrd.Waveform(head=mrd.WaveformHeader()))
-    return dataset
-
-
 def make_base_mrd(
     filename: os.PathLike,
     sampler: BaseSampler,
     phantom: Phantom,
     sim_conf: SimConfig,
+    dynamic_data: list[DynamicData] = None,
 ) -> mrd.Dataset:
     """Generate a sampling pattern."""
     try:
@@ -119,6 +112,12 @@ def make_base_mrd(
         sampler.add_all_acq_mrd(dataset, phantom, sim_conf)
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
+
+    with PerfLogger(logger=log, name="dynamic"):
+        if dynamic_data:
+            for dyn in dynamic_data:
+                dataset = dyn.to_mrd_dataset(dataset, sim_conf)
+
     with PerfLogger(logger=log, name="smaps"):
         if sim_conf.hardware.n_coils > 1:
             add_smaps_mrd(dataset, sim_conf)
