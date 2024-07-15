@@ -114,8 +114,8 @@ def make_base_mrd(
         add_phantom_mrd(dataset, phantom, sim_conf)
 
     with PerfLogger(logger=log, name="dynamic"):
-        if dynamic_data:
-            for dyn in dynamic_data:
+        for dyn in dynamic_data:
+            if dyn is not None:
                 dataset = dyn.to_mrd_dataset(dataset, sim_conf)
 
     with PerfLogger(logger=log, name="smaps"):
