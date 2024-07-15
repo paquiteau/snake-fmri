@@ -106,3 +106,11 @@ class SimConfig:
     def __post_init__(self, rng_seed: int | None):
         # To be compatible with frozen dataclass
         super().__setattr__("rng", np.random.default_rng(rng_seed))
+
+    @property
+    def max_n_frames(self):
+        int(self.max_sim_time * 1000 / self.sim_tr_ms)
+
+    @property
+    def res_mm(self):
+        return tuple(f / s for f, s in zip(self.fov_mm, self.shape))
