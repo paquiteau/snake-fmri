@@ -5,7 +5,7 @@ from collections.abc import Mapping, Callable
 import numpy as np
 import pandas as pd
 
-from ...phantom import Phantom
+from ...phantom import Phantom, DynamicData
 from ...simulation import SimConfig
 from ..base import AbstractHandler
 from ..utils import apply_weights
@@ -122,19 +122,18 @@ class ActivationMixin:
         self, phantom: Phantom, sim_conf: SimConfig
     ) -> (Mapping[str, np.ndarray], Callable):
         """Get dynamic time series for adding Activations."""
-        return (
-            {
-                f"{self.event_name}": get_bold(
-                    sim_conf.sim_tr_ms,
-                    sim_conf.max_sim_time,
-                    self.event_condition,
-                    self.hrf_model,
-                    self.oversampling,
-                    self.min_onset,
-                    self.bold_strength,
-                )
-            },
-            apply_weights,
+        return DynamicData(
+            name="-".join(["activation", self.event_name]),
+            data=get_bold(
+                sim_conf.sim_tr_ms,
+                sim_conf.max_sim_time,
+                self.event_condition,
+                self.hrf_model,
+                self.oversampling,
+                self.min_onset,
+                self.bold_strength,
+            ),
+            func=apply_weights,
         )
 
 
