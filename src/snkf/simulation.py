@@ -108,9 +108,9 @@ class SimConfig:
         super().__setattr__("rng", np.random.default_rng(rng_seed))
 
     @property
-    def max_n_frames(self):
-        int(self.max_sim_time * 1000 / self.sim_tr_ms)
+    def max_n_frames(self) -> int:
+        return int(self.max_sim_time * 1000 / self.sim_tr_ms)
 
     @property
-    def res_mm(self):
-        return tuple(f / s for f, s in zip(self.fov_mm, self.shape))
+    def res_mm(self) -> tuple[float, float, float]:
+        return tuple(f / s for f, s in zip(self.fov_mm, self.shape, strict=True))
