@@ -1,7 +1,6 @@
 """Activation Handler."""
 
 from collections.abc import Mapping, Callable
-
 import numpy as np
 import pandas as pd
 
@@ -132,8 +131,8 @@ class ActivationMixin:
                 self.oversampling,
                 self.min_onset,
                 self.bold_strength,
-            ),
-            func=apply_weights,
+            ).T,
+            func=self.apply_weights,
         )
 
 
@@ -161,3 +160,7 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
             self.offset,
             self.event_name,
         )
+
+    @staticmethod
+    def apply_weights(phantom, data, time_idx):
+        return apply_weights(phantom, "ROI", data, time_idx)
