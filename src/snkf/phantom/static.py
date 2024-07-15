@@ -126,7 +126,7 @@ class Phantom:
             dataset = mrd.Dataset(dataset, create_if_needed=False)
         image = dataset.read_image("phantom", imnum)
         name = image.meta.pop("name")
-        tissue_label = np.array(image.meta["tissue_label"][1:-1].split(" "))
+        tissue_label = np.array(image.meta["tissue_label"].split(","))
         tissue_properties = unserialize_array(image.meta["tissue_properties"])
 
         return cls(
