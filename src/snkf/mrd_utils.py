@@ -207,3 +207,33 @@ class NonCartesianFrameDataLoader(MRDLoader):
                         raise ValueError(
                             f"Flags error at {counter} {ACQ(acq.flags).__repr__()}"
                         )
+
+
+def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
+    """Parse the waveform information from the MRD file.
+
+    Returns a dictionary with id as key and waveform information
+    (name, parameters, etc.. ) as value.
+
+    Base64 encoded parameters are decoded.
+    """
+    hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+    waveform_info = dict()
+    for wi in hdr.waveformInformation:
+        infos = {"name": wi.waveformName}
+        for ptype, p in wi.userParameters.__dict__.items():
+            for pp in p:
+                if ptype == "userParameterBase64":
+                    infos[pp.name] = b64encode2obj(pp.value)
+                elif ptype == "userParameterString":
+                    infos[pp.name] = pp.value
+                elif ptype == "userParameterLong":
+                    infos[pp.name] = pp.value
+                elif ptype == "userParameterDouble":
+                    infos[pp.name] = pp.value
+                else:
+                    raise ValueError(f"Unknown parameter type {ptype}")
+
+        waveform_info[int(wi.waveformType)] = infos
+
+    return waveform_info

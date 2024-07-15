@@ -9,7 +9,7 @@ from dataclasses import dataclass
 import ismrmrd as mrd
 from numpy.typing import NDArray
 
-from snkf.mrd_utils import b64encode2obj, obj2b64encode
+from snkf.mrd_utils import b64encode2obj, obj2b64encode, parse_waveform_information
 
 from ..simulation import SimConfig
 from .static import Phantom
@@ -22,6 +22,7 @@ class DynamicData:
     name: str
     data: NDArray
     func: Callable[[NDArray, Phantom], Phantom]
+    in_kspace: bool = False
 
     def apply(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Apply the dynamic data to the phantom."""
@@ -62,7 +63,12 @@ class DynamicData:
                         mrd.xsd.userParameterBase64Type(
                             self.name, obj2b64encode(self.func)
                         )
-                    ]
+                    ],
+                    userParameterString=[
+                        mrd.xsd.userParameterStringType(
+                            "domain", "kspace" if self.in_kspace else "image"
+                        )
+                    ],
                 ),
             )
         )
@@ -75,6 +81,7 @@ class DynamicData:
             channels, nsamples = self.data.shape
         else:
             raise ValueError(f"Invalid data shape: {self.data.shape}")
+        print(self.name, self.data.shape)
         dataset.append_waveform(
             mrd.Waveform(
                 mrd.WaveformHeader(
@@ -92,10 +99,34 @@ class DynamicData:
     @classmethod
     def from_mrd_dataset(cls, dataset: mrd.Dataset, waveform_num: int) -> DynamicData:
         """Create a DynamicData object by reading the waveform from the dataset."""
-        hdr = mrd.CreateFromDocument(dataset.read_xml_header())
+        all_waveform_infos = parse_waveform_information(dataset)
         waveform = dataset.read_waveform(waveform_num)
+        wave_info = all_waveform_infos[waveform.waveform_id]
 
-        waveform_id = waveform.waveform_id
+        return DynamicData(
+            name=wave_info["name"],
+            data=waveform.data,
+            func=wave_info[wave_info["name"]],
+            in_kspace=wave_info["domain"] == "kspace",
+        )
+
+    @classmethod
+    def all_from_mrd_dataset(cls, dataset: mrd.Dataset) -> list[DynamicData]:
+        """Read the dataset and get all dynamic datas."""
+        all_waveform_infos = parse_waveform_information(dataset)
+        all_dyn_data = []
+        for i in range(dataset.number_of_waveforms()):
+            waveform = dataset.read_waveform(i)
+            wave_info = all_waveform_infos[waveform.waveform_id]
+            all_dyn_data.append(
+                DynamicData(
+                    name=wave_info["name"],
+                    data=waveform.data,
+                    func=wave_info[wave_info["name"]],
+                    in_kspace=wave_info["domain"] == "kspace",
+                )
+            )
+        return all_dyn_data
 
 
 def get_waveform_id(input_string: str) -> int:
