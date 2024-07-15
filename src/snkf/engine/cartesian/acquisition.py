@@ -71,7 +71,7 @@ def extract_trajectory(
 @acquire_register
 def T2s(
     phantom: Phantom,
-    dyn_data: list[DynamicData],
+    dyn_datas: list[DynamicData],
     sim_conf: SimConfig,
     trajectories: NDArray,  # (Chunksize, N, 3)
     smaps: NDArray,
@@ -101,9 +101,9 @@ def T2s(
     )
 
     for i, epi_2d in enumerate(trajectories):
-        phantom = deepcopy(phantom)
-        # for dyn_data in list[DynamicData]:
-        #     phantom = dyn_data.func(dyn_data.data, phantom, sim_conf)
+        frame_phantom = deepcopy(phantom)
+        for dyn_data in dyn_datas:
+            frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
         contrast = get_contrast_gre(
             phantom,
@@ -129,7 +129,7 @@ def T2s(
 @acquire_register
 def simple(
     phantom: Phantom,
-    dyn_data: list[DynamicData],
+    dyn_datas: list[DynamicData],
     sim_conf: SimConfig,
     trajectories: NDArray,  # (Chunksize, N, 3)
     smaps: NDArray,
@@ -146,9 +146,9 @@ def simple(
         dtype=np.complex64,
     )
     for i, epi_2d in enumerate(trajectories):
-        phantom = deepcopy(phantom)
-        # for dyn_data in list[DynamicData]:
-        #     phantom = dyn_data.func(dyn_data.data, phantom, sim_conf)
+        frame_phantom = deepcopy(phantom)
+        for dyn_data in dyn_datas:
+            frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
         # Reduce the array, we dont have batch tissues !
         contrast = get_contrast_gre(
@@ -192,7 +192,7 @@ def acquire_ksp_job(
     """
     dataset = mrd.Dataset(filename)
     # Get the Phantom, SimConfig, and all ...
-    dyn_data = DynamicData.from_mrd_dataset(dataset, chunk)
+    dyn_datas = DynamicData.all_from_mrd_dataset(dataset)
     # sim_conf = SimConfig.from_mrd_dataset(dataset)
     readout_length = sim_conf.shape[2]
     fourier_op_iterator = extract_trajectory(
@@ -216,10 +216,10 @@ def acquire_ksp_job(
 
     if shared_phantom_props is None:
         phantom = Phantom.from_mrd_dataset(dataset)
-        ksp = _acquire(phantom, dyn_data, sim_conf, fourier_op_iterator, smaps)
+        ksp = _acquire(phantom, dyn_datas, sim_conf, fourier_op_iterator, smaps)
     else:
         with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
-            ksp = _acquire(phantom, dyn_data, sim_conf, fourier_op_iterator, smaps)
+            ksp = _acquire(phantom, dyn_datas, sim_conf, fourier_op_iterator, smaps)
 
     filename = os.path.join(sim_conf.tmp_dir, f"partial_{chunk[0]}.npy")
     np.save(filename, ksp)

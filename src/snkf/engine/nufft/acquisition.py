@@ -126,7 +126,7 @@ def iter_traj_nufft(
 
 
 @acquire_register("T2s")
-def acquire_ksp(
+def T2s(
     phantom: Phantom,
     dyn_datas: list[DynamicData],
     sim_conf: SimConfig,
@@ -147,9 +147,9 @@ def acquire_ksp(
         -t[None, :] / phantom.tissue_properties[:, PropTissueEnum.T2s, None]
     )
     for i, nufft in enumerate(fourier_op_iterator):
-        phantom = deepcopy(phantom)
-        # for dyn_data in dyn_datas:
-        #     phantom = dyn_data.apply(phantom, sim_conf)
+        frame_phantom = deepcopy(phantom)
+        for dyn_data in dyn_datas:
+            frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
         # Apply the contrast tissue-wise
         contrast = get_contrast_gre(
             phantom,
@@ -170,10 +170,10 @@ def acquire_ksp(
     return final_ksp
 
 
-@acquire_register("simple")
-def acquire_ksp(  # noqa: F811
+@acquire_register
+def simple(  # noqa: F811
     phantom: Phantom,
-    dyn_data: list[DynamicData],
+    dyn_datas: list[DynamicData],
     sim_conf: SimConfig,
     fourier_op_iterator: Generator[FourierOperatorBase],
     chunk_size: int,
@@ -186,9 +186,9 @@ def acquire_ksp(  # noqa: F811
     )
     # (n_tissues_true, n_samples) Filter the tissues that have NaN Values
     for i, nufft in enumerate(fourier_op_iterator):
-        phantom = deepcopy(phantom)
-        # for dyn_data in list[DynamicData]:
-        #     phantom = dyn_data.func(dyn_data.data, phantom, sim_conf)
+        frame_phantom = deepcopy(phantom)
+        for dyn_data in dyn_datas:
+            frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
         # reduced the array, we dont have batch tissues !
         contrast = get_contrast_gre(
             phantom,
