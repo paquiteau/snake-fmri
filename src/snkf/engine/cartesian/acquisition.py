@@ -271,7 +271,13 @@ def parallel_acquire(
         for future in as_completed(futures):
             chunk = futures[future]
             log.info(f"Done with chunk {min(chunk)}-{max(chunk)}")
-            filename = future.result()
+            try:
+                filename = future.result()
+            except Exception as exc:
+                log.error(f"Error in chunk {min(chunk)}-{max(chunk)}")
+                dataset.close()
+                log.error("Closing the dataset, raising the error.")
+                raise exc
             chunk_ksp = np.load(filename)
             # FIXME
             # put each line of kspace in the right place
