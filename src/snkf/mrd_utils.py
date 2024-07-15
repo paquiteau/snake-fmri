@@ -1,13 +1,26 @@
 """Utilities for MRD file format."""
 
 import atexit
+import base64
 import os
+import pickle
+from enum import IntFlag
+from typing import Any
 
 import ismrmrd as mrd
 import numpy as np
 
 from snkf._meta import LogMixin
-from enum import IntFlag
+
+
+def obj2b64encode(f: Any) -> str:
+    """Return the base64 encoded pickle of a python object."""
+    return base64.b64encode(pickle.dumps(f))
+
+
+def b64encode2obj(s: str) -> Any:
+    """Load a base64 string as a python object."""
+    return pickle.loads(base64.b64decode(s))
 
 
 # fmt: off

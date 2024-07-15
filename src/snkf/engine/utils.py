@@ -40,13 +40,3 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
         axis=0,
     )
     return phantom_state
-
-
-def func2b64encode(f: Any) -> str:
-    """Return the base64 encoded pickle of a python object."""
-    return base64.b64encode(pickle.dumps(f))
-
-
-def b64encode2func(s: str) -> Any:
-    """Load a base64 string as a python object."""
-    return pickle.loads(base64.b64decode(s))
