@@ -36,13 +36,14 @@ class AbstractHandler(metaclass=MetaHandler):
     """
 
     __handler_name__: ClassVar[str]
+    __is_kspace_handler__: ClassVar[bool] = False
 
-    def get_static(phantom: Phantom, sim_conf: SimConfig) -> Phantom:
+    def get_static(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Get the static information of the handler."""
-        pass
+        return phantom
 
     def get_dynamic(
-        phantom: Phantom, sim_conf: SimConfig
+        self, phantom: Phantom, sim_conf: SimConfig
     ) -> tuple[T, Callable[[Phantom, T], Phantom]]:
         """Get the dynamic information of the handler."""
-        pass
+        return None
