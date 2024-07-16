@@ -67,7 +67,7 @@ def block_design(
 
 
 def get_bold(
-    tr_s: float,
+    tr_ms: float,
     max_time: float,
     event_condition: np.ndarray | pd.DataFrame,
     hrf_model: str,
@@ -106,7 +106,7 @@ def get_bold(
     np.ndarray
         The convolved HRF with the event condition.
     """
-    frame_times = np.arange(0, max_time * 1000, tr_s)
+    frame_times = np.arange(0, max_time, tr_ms / 1000)
     hr_regressor, frame_times_hr = _sample_condition(
         [
             event_condition["onset"].values,
@@ -119,11 +119,12 @@ def get_bold(
     )
 
     # 2. create the  hrf model(s)
-    hkernel = _hrf_kernel(hrf_model, tr_s, oversampling)
+    hkernel = _hrf_kernel(hrf_model, tr_ms / 1000, oversampling)
 
     # 3. convolve the regressor and hrf, and downsample the regressor
     conv_reg = np.array(
         [np.convolve(hr_regressor, h)[: hr_regressor.size] for h in hkernel]
     )
     computed_regressors = _resample_regressor(conv_reg, frame_times_hr, frame_times)
+    computed_regressors *= bold_strength / np.max(computed_regressors, axis=0)
     return computed_regressors
