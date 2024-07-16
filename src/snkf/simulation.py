@@ -91,7 +91,6 @@ class SimConfig:
     """All base configuration of a simulation."""
 
     max_sim_time: float
-    sim_tr_ms: float
     seq: GreConfig
     hardware: HardwareConfig = default_hardware
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
@@ -108,9 +107,16 @@ class SimConfig:
         super().__setattr__("rng", np.random.default_rng(rng_seed))
 
     @property
-    def max_n_frames(self) -> int:
+    def max_n_shots(self) -> int:
+        """Maximum number of frames."""
         return int(self.max_sim_time * 1000 / self.sim_tr_ms)
 
     @property
     def res_mm(self) -> tuple[float, float, float]:
+        """Voxel resolution in mm."""
         return tuple(f / s for f, s in zip(self.fov_mm, self.shape, strict=True))
+
+    @property
+    def sim_tr_ms(self) -> float:
+        """Simulation resolution in ms."""
+        return self.seq.TR
