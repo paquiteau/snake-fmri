@@ -206,7 +206,7 @@ def simple(  # noqa: F811
     return final_ksp
 
 
-def acquire_ksp(  # noqa: F811
+def acquire_ksp_job(
     filename: os.PathLike,
     sim_conf: SimConfig,
     chunk: Sequence[int],
@@ -292,7 +292,7 @@ def parallel_acquire(
         # TODO: also put the smaps in shared memory
         futures = {
             executor.submit(
-                acquire_ksp,
+                acquire_ksp_job,
                 filename,
                 sim_conf,
                 chunk,
