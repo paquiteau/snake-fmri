@@ -41,27 +41,6 @@ def extract_trajectory(
     traj = np.zeros((len(epi_idx), n_lines_in_epi, readout_length, 3), dtype=np.int32)
     for k, s in enumerate(epi_idx):
         for i in range(n_lines_in_epi):
-            # parse the header directly, no need to read the data
-            # data_view = dataset._dataset["data"][s * n_lines_in_epi + i]["head"]
-            # flags = int(data_view["flags"])
-            # slice_idx = data_view["idx"]["slice"]
-            # if i == 0:
-            #     slice_0 = slice_idx
-
-            # if slice_idx != slice_0:
-            #     raise ValueError("the slice index is not consistent in the epi")
-
-            # if i == 0 and not (flags & ACQ.FIRST_IN_SLICE):
-            #     raise ValueError(
-            #         f"The first_in_encode_step1 flag is not set for the first line of epi "
-            #         f"(flags={flags}) at position {s*n_lines_in_epi+i}"
-            #     )
-
-            # if i == n_lines_in_epi and not (flags & ACQ.LAST_IN_ENCODE_STEP1):
-            #     raise ValueError(
-            #         "the last_in_encode_step1 flag is not set for the last line of epi"
-            #     )
-
             acq = dataset.read_acquisition(s * n_lines_in_epi + i)
             traj[k, i] = acq.traj.astype(np.int32, copy=False).reshape(-1, 3)
 
@@ -206,13 +185,11 @@ def acquire_ksp_job(
     _acquire = acquire_register.registry["acq_cartesian"][mode]
 
     smaps = None
-    n_coils = sim_conf.hardware.n_coils
     try:
         smaps = dataset.read_image("smaps", 0).data
         log.info(f"Sensitivity maps {smaps.shape}, {smaps.dtype} found in the dataset.")
     except LookupError:
         log.warning("No sensitivity maps found in the dataset.")
-        n_coils = 1
 
     if shared_phantom_props is None:
         phantom = Phantom.from_mrd_dataset(dataset)
