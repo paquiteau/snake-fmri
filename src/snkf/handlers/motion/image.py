@@ -1,11 +1,14 @@
 """Motion in the image domain."""
 
-from ..base import AbstractHandler
-from ...phantom import Phantom, DynamicData
-from ...simulation import SimConfig
+from copy import deepcopy
 
 import numpy as np
-from .utils import apply_rotation_at_center, apply_shift, motion_generator
+from numpy.typing import NDArray
+
+from ...phantom import DynamicData, Phantom
+from ...simulation import SimConfig
+from ..base import AbstractHandler
+from .utils import add_motion, motion_generator
 
 
 class RandomMotionImageHandler(AbstractHandler):
@@ -39,14 +42,13 @@ class RandomMotionImageHandler(AbstractHandler):
     __handler_name__ = "motion-image"
 
     ts_std_mms: tuple[float, float, float] | None = None
-    rs_std_mms: tuple[float, float, float] | None = None
+    rs_std_degs: tuple[float, float, float] | None = None
 
     motion_file: str | None = None
     motion_file_tr_ms: float | None = None
 
     def __post_init__(self):
-        super().__post_init__()
-        if (self.ts_std_mms is None or self.rs_std_mms is None) and (
+        if (self.ts_std_mms is None or self.rs_std_degs is None) and (
             self.motion_file is None or self.motion_file_tr is None
         ):
             raise ValueError(
@@ -57,10 +59,9 @@ class RandomMotionImageHandler(AbstractHandler):
             # load the motion file
             self._motion_data = np.loadtxt(self.motion_file)
 
-
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic informations."""
-        n_frames = sim_conf.max_n_frames
+        n_frames = sim_conf.max_n_shots
 
         if self._motion_data is not None:
             # resample the motion data to match the simulation framerate.
@@ -74,35 +75,24 @@ class RandomMotionImageHandler(AbstractHandler):
             motion = motion_generator(
                 n_frames,
                 ts_std_pix,
-                self.rs_std_mms,
+                self.rs_std_degs,
                 sim_conf.sim_tr_ms / 1000,
                 sim_conf.rng,
             )
 
-        return DynamicData(self.__handler_name__, data=motion, add_motion_to_frame)
+        return DynamicData(
+            name=self.__handler_name__,
+            in_kspace=self.__is_kspace_handler__,
+            data=motion.T,
+            func=apply_motion_to_phantom,
+        )
 
 
-def add_motion_to_frame(
-    data: NDArray[np.complexfloating] | NDArray[np.floating],
-    motion: NDArray[np.floating],
-    frame_idx: int = 0,
-) -> np.ndarray:
-    """Add motion to a base array.
-
-    Parameters
-    ----------
-    data: np.ndarray
-        The data to which motion is added.
-    motion: np.ndarray
-        The N_frames x 6 motion trajectory.
-    frame_idx: int
-        The frame index used to compute the motion at that frame.
-
-    Returns
-    -------
-    np.ndarray
-        The data with motion added.
-    """
-    rotated = apply_rotation_at_center(data, motion[frame_idx, 3:])
-    rotated_and_translated = apply_shift(rotated, motion[frame_idx, :3])
-    return rotated_and_translated
+def apply_motion_to_phantom(
+    phantom: Phantom, motions: NDArray, time_idx: int
+) -> Phantom:
+    """Apply motion to the phantom."""
+    new_phantom = deepcopy(phantom)
+    for i, tissue_mask in enumerate(new_phantom.tissue_masks):  # TODO Parallel ?
+        new_phantom.tissue_masks[i] = add_motion(tissue_mask, motions[:, time_idx])
+    return new_phantom

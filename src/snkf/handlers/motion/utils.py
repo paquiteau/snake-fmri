@@ -3,8 +3,6 @@
 from numbers import Real
 import numpy as np
 from numpy.typing import NDArray, DTypeLike
-from snkf.base import real_type, validate_rng
-
 from functools import partial
 from scipy.ndimage import affine_transform, shift
 
@@ -43,7 +41,6 @@ def motion_generator(
     Then the cumulative motion is computed by summing the motion at each frame, to
     derive the absolute displacement compared to the base reference.
     """
-    rng = validate_rng(rng)
     t_speeds = rng.normal(0, t_std, (n_frames, 3))
     r_speeds = rng.normal(0, r_std, (n_frames, 3))
 
@@ -173,10 +170,9 @@ def apply_rotation_at_center(
     """Apply the rotation at the center of the array."""
     center_shift = np.array(data.shape) / 2
     # We build the pull affine matrix (From moved to origin)
-    T = translation(*(center_shift), dtype=real_type(data.dtype))
-    Tinv = translation(*(-center_shift), dtype=real_type(data.dtype))
-
-    R = rotation(*angles, dtype=real_type(data.dtype))
+    T = translation(*(center_shift), dtype=np.float32)
+    Tinv = translation(*(-center_shift), dtype=np.float32)
+    R = rotation(*tuple(np.deg2rad(angles)), dtype=np.float32)
 
     M = T @ np.linalg.inv(R) @ Tinv
 
@@ -184,3 +180,29 @@ def apply_rotation_at_center(
 
 
 apply_shift = partial(shift, mode="nearest")
+
+
+def add_motion(
+    data: NDArray[np.complexfloating] | NDArray[np.floating],
+    motion_params: NDArray[np.floating],
+    idx: int = 0,
+) -> np.ndarray:
+    """Add motion to a base array.
+
+    Parameters
+    ----------
+    data: np.ndarray
+        The data to which motion is added.
+    motion: np.ndarray
+        The N_frames x 6 motion trajectory.
+    frame_idx: int
+        The frame index used to compute the motion at that frame.
+
+    Returns
+    -------
+    np.ndarray
+        The data with motion added.
+    """
+    rotated = apply_rotation_at_center(data, motion_params[3:])
+    rotated_and_translated = apply_shift(rotated, motion_params[:3])
+    return rotated_and_translated
