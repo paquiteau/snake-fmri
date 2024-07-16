@@ -32,7 +32,7 @@ class PropTissueEnum(IntEnum):
     chi = 4
 
 
-@dataclass(frozen=True)
+@dataclass
 class Phantom:
     """A Phantom consist of a list of tissue mask and parameters for those tissues."""
 
