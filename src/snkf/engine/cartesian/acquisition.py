@@ -85,13 +85,14 @@ def T2s(
             frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
         contrast = get_contrast_gre(
-            phantom,
+            frame_phantom,
             sim_conf.seq.FA,
             sim_conf.seq.TE,
             sim_conf.seq.TR,
         )
         phantom_state = (
-            contrast[(..., *([None] * len(phantom.anat_shape)))] * phantom.tissue_masks
+            contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
+            * frame_phantom.tissue_masks
         )
 
         ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
@@ -131,13 +132,14 @@ def simple(
 
         # Reduce the array, we dont have batch tissues !
         contrast = get_contrast_gre(
-            phantom,
+            frame_phantom,
             sim_conf.seq.FA,
             sim_conf.seq.TE,
             sim_conf.seq.TR,
         )
         phantom_state = np.sum(
-            contrast[(..., *([None] * len(phantom.anat_shape)))] * phantom.tissue_masks,
+            contrast[(..., *([None] * len(phantom.anat_shape)))]
+            * frame_phantom.tissue_masks,
             axis=0,
         )
 
@@ -173,6 +175,8 @@ def acquire_ksp_job(
     # Get the Phantom, SimConfig, and all ...
     dyn_datas = DynamicData.all_from_mrd_dataset(dataset)
     # sim_conf = SimConfig.from_mrd_dataset(dataset)
+    for d in dyn_datas:  # only keep the dynamic data that are in the chunk
+        d.data = d.data[:, chunk]
     readout_length = sim_conf.shape[2]
     fourier_op_iterator = extract_trajectory(
         dataset,

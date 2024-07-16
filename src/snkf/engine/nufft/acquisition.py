@@ -152,15 +152,15 @@ def T2s(
             frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
         # Apply the contrast tissue-wise
         contrast = get_contrast_gre(
-            phantom,
+            frame_phantom,
             sim_conf.seq.FA,
             sim_conf.seq.TE,
             sim_conf.seq.TR,
         )
         phantom_state = (
             1000
-            * contrast[(..., *([None] * len(phantom.anat_shape)))]
-            * phantom.tissue_masks
+            * contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
+            * frame_phantom.tissue_masks
         )
         nufft.n_batchs = len(phantom_state)
         ksp = nufft.op(phantom_state)
@@ -191,7 +191,7 @@ def simple(  # noqa: F811
             frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
         # reduced the array, we dont have batch tissues !
         contrast = get_contrast_gre(
-            phantom,
+            frame_phantom,
             sim_conf.seq.FA,
             sim_conf.seq.TE,
             sim_conf.seq.TR,
@@ -199,7 +199,7 @@ def simple(  # noqa: F811
         phantom_state = np.sum(
             1000
             * contrast[(..., *([None] * len(phantom.anat_shape)))]
-            * phantom.tissue_masks,
+            * frame_phantom.tissue_masks,
             axis=0,
         )
         final_ksp[i] = nufft.op(phantom_state)
