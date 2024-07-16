@@ -1,7 +1,7 @@
 """Dynamic data object."""
 
 from __future__ import annotations
-
+import numpy as np
 import hashlib
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -90,7 +90,7 @@ class DynamicData:
                     channels=channels,
                     sample_time_us=sim_conf.sim_tr_ms * 1000,
                 ),
-                data=self.data,
+                data=np.float32(self.data).view(np.uint32),
             )
         )
 
@@ -102,30 +102,28 @@ class DynamicData:
         all_waveform_infos = parse_waveform_information(dataset)
         waveform = dataset.read_waveform(waveform_num)
         wave_info = all_waveform_infos[waveform.waveform_id]
+        return cls._from_waveform(waveform, wave_info)
 
+    @classmethod
+    def _from_waveform(cls, waveform: mrd.Waveform, wave_info: dict) -> DynamicData:
         return DynamicData(
             name=wave_info["name"],
-            data=waveform.data,
+            data=waveform.data.view(np.float32).reshape(
+                waveform.channels, waveform.number_of_samples
+            ),
             func=wave_info[wave_info["name"]],
             in_kspace=wave_info["domain"] == "kspace",
         )
 
     @classmethod
     def all_from_mrd_dataset(cls, dataset: mrd.Dataset) -> list[DynamicData]:
-        """Read the dataset and get all dynamic datas."""
+        """Read the dataset once , and get all dynamic datas."""
         all_waveform_infos = parse_waveform_information(dataset)
         all_dyn_data = []
         for i in range(dataset.number_of_waveforms()):
             waveform = dataset.read_waveform(i)
             wave_info = all_waveform_infos[waveform.waveform_id]
-            all_dyn_data.append(
-                DynamicData(
-                    name=wave_info["name"],
-                    data=waveform.data,
-                    func=wave_info[wave_info["name"]],
-                    in_kspace=wave_info["domain"] == "kspace",
-                )
-            )
+            all_dyn_data.append(cls._from_waveform(waveform, wave_info))
         return all_dyn_data
 
 
