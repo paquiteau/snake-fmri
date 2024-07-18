@@ -1,15 +1,16 @@
 """Dynamic data object."""
 
 from __future__ import annotations
-import numpy as np
+
 import hashlib
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 
 import ismrmrd as mrd
+import numpy as np
 from numpy.typing import NDArray
 
-from snkf.mrd_utils import b64encode2obj, obj2b64encode, parse_waveform_information
+from snkf.mrd_utils import obj2b64encode, parse_waveform_information
 
 from ..simulation import SimConfig
 from .static import Phantom
@@ -32,9 +33,10 @@ class DynamicData:
         """Add the dynamic data to the mrd dataset.
 
         The data is added as a waveform with a unique id.
-        The id is computed from the name of the dynamic data. and registerd in the header.
+        The id is computed from the name of dynamic data and registerd in the header.
 
-        In a lack of a better place, the function is added in the waveform type as a base64 encoded string.
+        In a lack of a better place, the function is added in the waveform type as
+        a base64 encoded string.
 
         Parameters
         ----------
@@ -47,9 +49,7 @@ class DynamicData:
         -------
         mrd.Dataset
             The dataset with the dynamic data added.
-
         """
-
         waveform_id = get_waveform_id(self.name)
 
         # add the type to the header.
@@ -150,7 +150,6 @@ def get_waveform_id(input_string: str) -> int:
     >>> generate_unique_id('this_is_a_test')
     20481
     """
-
     # Convert the input string to a hash digest
     hash_object = hashlib.md5(input_string.encode())
     hash_digest = int(hash_object.hexdigest(), 16)

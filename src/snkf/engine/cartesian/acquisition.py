@@ -3,7 +3,7 @@
 import gc
 import logging
 import os
-from collections.abc import Generator, Sequence
+from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from copy import deepcopy
 from multiprocessing.managers import SharedMemoryManager
@@ -14,7 +14,6 @@ from numpy.typing import NDArray
 from snkf._meta import MethodRegister, batched
 from snkf.phantom import DynamicData, Phantom, PropTissueEnum
 from snkf.simulation import SimConfig
-from snkf.mrd_utils import ACQ
 
 from ..parallel import ArrayProps
 from ..utils import get_contrast_gre
@@ -36,7 +35,7 @@ def extract_trajectory(
 ) -> np.ndarray:
     """Generate the fourier operator by iterating the dataset."""
     if not isinstance(epi_idx, Sequence):
-        shot = [epi_idx]
+        epi_idx = [epi_idx]
 
     traj = np.zeros((len(epi_idx), n_lines_in_epi, readout_length, 3), dtype=np.int32)
     for k, s in enumerate(epi_idx):
@@ -47,7 +46,6 @@ def extract_trajectory(
     return traj
 
 
-@acquire_register
 def T2s(
     phantom: Phantom,
     dyn_datas: list[DynamicData],
@@ -104,7 +102,6 @@ def T2s(
     return final_ksp
 
 
-@acquire_register
 def simple(
     phantom: Phantom,
     dyn_datas: list[DynamicData],

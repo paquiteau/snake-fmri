@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field, InitVar
-
+from typing import Any
 import numpy as np
 
 
-def _repr_html_(obj, vertical=True) -> str:
+def _repr_html_(obj: Any, vertical: bool = True) -> str:
     """
     Recursive HTML representation for dataclasses.
 

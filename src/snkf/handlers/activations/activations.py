@@ -2,6 +2,7 @@
 
 from collections.abc import Mapping, Callable
 import numpy as np
+from numpy.typing import NDArray
 import pandas as pd
 
 from ...phantom import Phantom, DynamicData
@@ -162,5 +163,6 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
         )
 
     @staticmethod
-    def apply_weights(phantom, data, time_idx):
+    def apply_weights(phantom: Phantom, data: NDArray, time_idx: int) -> Phantom:
+        """Apply weights to the ROI."""
         return apply_weights(phantom, "ROI", data, time_idx)

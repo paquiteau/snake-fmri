@@ -126,7 +126,7 @@ convention = "numpy"
 [tool.ruff.lint.per-file-ignores]
 # relax code quality for tests and examples.
 "examples/conftest.py" = ["ANN"]
-"examples/example_*.py" = ["D", "ANN"]
+"examples/*.py" = ["D", "ANN"]
 "tests/test_*.py" = ["D", "ANN"]
 
 
