@@ -17,14 +17,13 @@ def get_contrast_gre(
 ) -> NDArray:
     """Compute the GRE contrast at TE."""
     return (
-        phantom.tissue_properties[:, PropTissueEnum.rho]
+        phantom.props[:, PropTissueEnum.rho]
         * np.sin(np.deg2rad(FA))
-        * np.exp(-TE / phantom.tissue_properties[:, PropTissueEnum.T2s])
-        * (1 - np.exp(-TR / phantom.tissue_properties[:, PropTissueEnum.T1]))
+        * np.exp(-TE / phantom.props[:, PropTissueEnum.T2s])
+        * (1 - np.exp(-TR / phantom.props[:, PropTissueEnum.T1]))
         / (
             1
-            - np.cos(np.deg2rad(FA))
-            * np.exp(-TR / phantom.tissue_properties[:, PropTissueEnum.T1])
+            - np.cos(np.deg2rad(FA)) * np.exp(-TR / phantom.props[:, PropTissueEnum.T1])
         )
     )
 
@@ -36,7 +35,7 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
     )
     print(contrast)
     phantom_state = np.sum(
-        phantom.tissue_masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
+        phantom.masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
         axis=0,
     )
     return phantom_state

@@ -53,13 +53,13 @@ class ActivationMixin:
 
     def get_static(self, phantom: Phantom, sim_config: SimConfig) -> Phantom:
         """Get the static ROI."""
-        tissue_index = phantom.tissue_label == self.base_tissue_name
+        tissue_index = phantom.labels == self.base_tissue_name
         # shape: tuple[int, ...] | None = phantom.tissues_mask.shape[1:]
         if tissue_index.sum() == 0:
             raise ValueError(
                 f"Tissue {self.base_tissue_name} not found in the phantom."
             )
-        roi = phantom.tissue_masks[tissue_index].squeeze()
+        roi = phantom.masks[tissue_index].squeeze()
         occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
         # if self.bbox:
         #     self.log.debug("ROI shape was ", occ_roi)
@@ -108,10 +108,10 @@ class ActivationMixin:
         # update the phantom
         new_phantom = Phantom(
             phantom.name + "-roi",
-            tissue_masks=np.concatenate((phantom.tissue_masks, roi[None, ...]), axis=0),
-            tissue_label=np.concatenate((phantom.tissue_label, ["ROI"])),
-            tissue_properties=np.concatenate(
-                (phantom.tissue_properties, phantom.tissue_properties[tissue_index, :]),
+            masks=np.concatenate((phantom.masks, roi[None, ...]), axis=0),
+            labels=np.concatenate((phantom.labels, ["ROI"])),
+            props=np.concatenate(
+                (phantom.props, phantom.props[tissue_index, :]),
                 axis=0,
             ),
         )

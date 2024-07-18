@@ -93,6 +93,6 @@ def apply_motion_to_phantom(
 ) -> Phantom:
     """Apply motion to the phantom."""
     new_phantom = deepcopy(phantom)
-    for i, tissue_mask in enumerate(new_phantom.tissue_masks):  # TODO Parallel ?
-        new_phantom.tissue_masks[i] = add_motion(tissue_mask, motions[:, time_idx])
+    for i, tissue_mask in enumerate(new_phantom.masks):  # TODO Parallel ?
+        new_phantom.masks[i] = add_motion(tissue_mask, motions[:, time_idx])
     return new_phantom

@@ -37,9 +37,9 @@ class Phantom:
     """A Phantom consist of a list of tissue mask and parameters for those tissues."""
 
     name: str
-    tissue_masks: NDArray[np.float32]
-    tissue_label: NDArray[str]
-    tissue_properties: NDArray[np.float32]
+    masks: NDArray[np.float32]
+    labels: NDArray[str]
+    props: NDArray[np.float32]
 
     @classmethod
     def from_brainweb(
@@ -103,8 +103,8 @@ class Phantom:
         return cls(
             "brainweb",
             tissues_mask,
-            tissue_label=np.array([t[0] for t in tissues_list]),
-            tissue_properties=np.array([t[1:] for t in tissues_list]),
+            labels=np.array([t[0] for t in tissues_list]),
+            props=np.array([t[1:] for t in tissues_list]),
         )
 
     @classmethod
@@ -126,13 +126,13 @@ class Phantom:
             dataset = mrd.Dataset(dataset, create_if_needed=False)
         image = dataset.read_image("phantom", imnum)
         name = image.meta.pop("name")
-        tissue_label = np.array(image.meta["tissue_label"].split(","))
-        tissue_properties = unserialize_array(image.meta["tissue_properties"])
+        labels = np.array(image.meta["labels"].split(","))
+        props = unserialize_array(image.meta["props"])
 
         return cls(
-            tissue_masks=image.data,
-            tissue_label=tissue_label,
-            tissue_properties=tissue_properties,
+            masks=image.data,
+            labels=labels,
+            props=props,
             name=name,
         )
 
@@ -147,8 +147,8 @@ class Phantom:
         meta_sr = mrd.Meta(
             {
                 "name": self.name,
-                "tissue_label": f'{",".join(self.tissue_label)}',
-                "tissue_properties": serialize_array(self.tissue_properties),
+                "labels": f'{",".join(self.labels)}',
+                "props": serialize_array(self.props),
             }
         ).serialize()
 
@@ -162,7 +162,7 @@ class Phantom:
                     acquisition_time_stamp=0,
                     attribute_string_len=len(meta_sr),
                 ),
-                data=self.tissue_masks,
+                data=self.masks,
                 attribute_string=meta_sr,
             ),
         )
@@ -185,28 +185,28 @@ class Phantom:
         self, manager: SharedMemoryManager
     ) -> tuple[str, ArrayProps, ArrayProps, ArrayProps]:
         """Add a copy of the phantom in shared memory."""
-        tissue_mask, _, tisue_mask_smm = array_to_shm(self.tissue_masks, manager)
-        tissue_props, _, tissue_prop_smm = array_to_shm(self.tissue_properties, manager)
-        tissue_label, _, tissue_label_sm = array_to_shm(self.tissue_label, manager)
+        tissue_mask, _, tisue_mask_smm = array_to_shm(self.masks, manager)
+        tissue_props, _, tissue_prop_smm = array_to_shm(self.props, manager)
+        labels, _, labels_sm = array_to_shm(self.labels, manager)
 
         return (
-            (self.name, tissue_mask, tissue_props, tissue_label),
+            (self.name, tissue_mask, tissue_props, labels),
             (
                 tisue_mask_smm,
                 tissue_prop_smm,
-                tissue_label_sm,
+                labels_sm,
             ),
         )
 
     @property
     def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:
         """Get the shape of the base volume."""
-        return self.tissue_masks.shape[1:]
+        return self.masks.shape[1:]
 
     @property
     def n_tissues(self) -> int:
         """Get the number of tissues."""
-        return len(self.tissue_masks)
+        return len(self.masks)
 
 
 T = TypeVar("T")

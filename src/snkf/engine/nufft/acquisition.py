@@ -143,9 +143,7 @@ def T2s(
     t = sim_conf.hardware.dwell_time_ms * (
         np.arange(n_samples, dtype=np.float32) - center_sample_idx
     )
-    t2s_decay = np.exp(
-        -t[None, :] / phantom.tissue_properties[:, PropTissueEnum.T2s, None]
-    )
+    t2s_decay = np.exp(-t[None, :] / phantom.props[:, PropTissueEnum.T2s, None])
     for i, nufft in enumerate(fourier_op_iterator):
         frame_phantom = deepcopy(phantom)
         for dyn_data in dyn_datas:
@@ -160,7 +158,7 @@ def T2s(
         phantom_state = (
             1000
             * contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
-            * frame_phantom.tissue_masks
+            * frame_phantom.masks
         )
         nufft.n_batchs = len(phantom_state)
         ksp = nufft.op(phantom_state)
@@ -199,7 +197,7 @@ def simple(  # noqa: F811
         phantom_state = np.sum(
             1000
             * contrast[(..., *([None] * len(phantom.anat_shape)))]
-            * frame_phantom.tissue_masks,
+            * frame_phantom.masks,
             axis=0,
         )
         final_ksp[i] = nufft.op(phantom_state)

@@ -75,9 +75,7 @@ def T2s(
         np.arange(n_samples, dtype=np.float32) - n_samples // 2
     )
 
-    t2s_decay = np.exp(
-        -t[None, :] / phantom.tissue_properties[:, PropTissueEnum.T2s, None]
-    )
+    t2s_decay = np.exp(-t[None, :] / phantom.props[:, PropTissueEnum.T2s, None])
 
     for i, epi_2d in enumerate(trajectories):
         frame_phantom = deepcopy(phantom)
@@ -92,7 +90,7 @@ def T2s(
         )
         phantom_state = (
             contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
-            * frame_phantom.tissue_masks
+            * frame_phantom.masks
         )
 
         ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
@@ -138,8 +136,7 @@ def simple(
             sim_conf.seq.TR,
         )
         phantom_state = np.sum(
-            contrast[(..., *([None] * len(phantom.anat_shape)))]
-            * frame_phantom.tissue_masks,
+            contrast[(..., *([None] * len(phantom.anat_shape)))] * frame_phantom.masks,
             axis=0,
         )
 
