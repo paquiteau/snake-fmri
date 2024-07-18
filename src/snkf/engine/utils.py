@@ -1,10 +1,6 @@
 """Utilities for the MRD format."""
 
-import base64
-import pickle
-from enum import IntFlag
-from typing import Any
-
+import scipy as sp
 import numpy as np
 from numpy.typing import NDArray
 
@@ -39,3 +35,24 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
         axis=0,
     )
     return phantom_state
+
+
+def fft(image: NDArray, axis: tuple[int] = -1) -> NDArray:
+    """Apply the FFT operator.
+
+    Parameters
+    ----------
+    image : array
+        Image in space.
+    axis : int
+        Axis to apply the FFT.
+
+    Returns
+    -------
+    kspace_data : array
+        kspace data.
+    """
+    return sp.fft.ifftshift(
+        sp.fft.fftn(sp.fft.fftshift(image, axes=axis), norm="ortho", axes=axis),
+        axes=axis,
+    )
