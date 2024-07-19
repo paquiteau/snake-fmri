@@ -154,7 +154,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
                 * frame_phantom.masks,
                 axis=0,
             )
-            print(phantom_state.shape, phantom_state.dtype)
             if smaps is None:
                 ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
             else:
@@ -162,7 +161,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             flat_epi = epi_2d.reshape(-1, 3)
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]
-                print(ksp_coil.shape, ksp.shape)
                 a = ksp_coil[tuple(flat_epi.T)]
                 final_ksp[i, c] = a.reshape(
                     trajectories.shape[-3],

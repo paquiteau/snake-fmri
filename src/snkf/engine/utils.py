@@ -27,7 +27,6 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
     contrast = get_contrast_gre(
         phantom, sim_conf.seq.FA, sim_conf.seq.TE, sim_conf.seq.TR
     )
-    print(contrast)
     phantom_state = np.sum(
         phantom.masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
         axis=0,

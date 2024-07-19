@@ -81,7 +81,6 @@ class DynamicData:
             channels, nsamples = self.data.shape
         else:
             raise ValueError(f"Invalid data shape: {self.data.shape}")
-        print(self.name, self.data.shape)
         dataset.append_waveform(
             mrd.Waveform(
                 mrd.WaveformHeader(
