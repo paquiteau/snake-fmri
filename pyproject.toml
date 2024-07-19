@@ -60,7 +60,7 @@ dependencies = [ # Optional
 [project.optional-dependencies] # Optional
 dev = ["black", "ruff", "isort"]
 test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist"]
-doc = ["jupyter-book", "sphinx-book-theme<1.0.0"]
+doc = ["myst-parser", "sphinx-copybytton","sphinx-gallery","sphinx-book-theme"]
 # List URLs that are relevant to your project
 # This field corresponds to the "Project-URL" and "Home-Page" metadata fields:
 [project.urls]  # Optional
