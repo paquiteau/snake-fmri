@@ -1,6 +1,7 @@
 """Shepp-Logan phantom generation."""
 
 import numpy as np
+from numpy.typing import NDArray
 
 
 def mr_shepp_logan(
@@ -8,7 +9,7 @@ def mr_shepp_logan(
     E: np.ndarray | None = None,
     B0: float = 3,
     zlims: tuple[float, float] = (-1, 1),
-) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[NDArray, ...]:
     """Generate a Shepp-Logan phantom with MR tissue parameters.
 
     Parameters

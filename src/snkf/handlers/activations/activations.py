@@ -1,10 +1,10 @@
 """Activation Handler."""
 
-from collections.abc import Mapping, Callable
 import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 
+from snkf._meta import LogMixin
 from ...phantom import Phantom, DynamicData
 from ...simulation import SimConfig
 from ..base import AbstractHandler
@@ -13,7 +13,7 @@ from .roi import BRAINWEB_OCCIPITAL_ROI, get_indices_inside_ellipsoid
 from .bold import get_bold, block_design
 
 
-class ActivationMixin:
+class ActivationMixin(LogMixin):
     """Add activation inside the region of interest. for a single type of event.
 
     Parameters
@@ -38,8 +38,6 @@ class ActivationMixin:
     --------
     nilearn.compute_regressors
     """
-
-    __handler_name__ = "activation"
 
     event_condition: pd.DataFrame | np.ndarray
     duration: float
@@ -110,7 +108,7 @@ class ActivationMixin:
         new_phantom = Phantom(
             phantom.name + "-roi",
             masks=np.concatenate((phantom.masks, roi[None, ...]), axis=0),
-            labels=np.concatenate((phantom.labels, ["ROI"])),
+            labels=np.concatenate((phantom.labels, np.array(["ROI"]))),
             props=np.concatenate(
                 (phantom.props, phantom.props[tissue_index, :]),
                 axis=0,
@@ -118,9 +116,7 @@ class ActivationMixin:
         )
         return new_phantom
 
-    def get_dynamic(
-        self, phantom: Phantom, sim_conf: SimConfig
-    ) -> (Mapping[str, np.ndarray], Callable):
+    def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic time series for adding Activations."""
         return DynamicData(
             name="-".join(["activation", self.event_name]),
@@ -135,6 +131,11 @@ class ActivationMixin:
             ).T,
             func=self.apply_weights,
         )
+
+    @staticmethod
+    def apply_weights(phantom: Phantom, data: NDArray, time_idx: int) -> Phantom:
+        """Apply weights to the ROI."""
+        return apply_weights(phantom, "ROI", data, time_idx)
 
 
 class BlockActivationHandler(ActivationMixin, AbstractHandler):
@@ -161,8 +162,3 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
             self.offset,
             self.event_name,
         )
-
-    @staticmethod
-    def apply_weights(phantom: Phantom, data: NDArray, time_idx: int) -> Phantom:
-        """Apply weights to the ROI."""
-        return apply_weights(phantom, "ROI", data, time_idx)

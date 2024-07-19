@@ -8,9 +8,7 @@ from ..phantom import Phantom, PropTissueEnum
 from ..simulation import SimConfig
 
 
-def get_contrast_gre(
-    phantom: Phantom, FA: NDArray, TE: NDArray, TR: NDArray
-) -> NDArray:
+def get_contrast_gre(phantom: Phantom, FA: float, TE: float, TR: float) -> NDArray:
     """Compute the GRE contrast at TE."""
     return (
         phantom.props[:, PropTissueEnum.rho]
@@ -37,7 +35,7 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
     return phantom_state
 
 
-def fft(image: NDArray, axis: tuple[int] = -1) -> NDArray:
+def fft(image: NDArray, axis: tuple[int, ...] | int = -1) -> NDArray:
     """Apply the FFT operator.
 
     Parameters

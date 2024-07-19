@@ -69,7 +69,7 @@ def block_design(
 def get_bold(
     tr_ms: float,
     max_time: float,
-    event_condition: np.ndarray | pd.DataFrame,
+    event_condition: pd.DataFrame,
     hrf_model: str,
     oversampling: int,
     min_onset: float,

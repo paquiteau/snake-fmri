@@ -6,6 +6,7 @@ import logging
 from collections.abc import Callable, Generator, Mapping, Sequence
 from typing import Any
 import numpy as np
+from numpy.typing import NDArray
 from mrinufft.trajectories.maths import R2D
 from mrinufft.trajectories.tools import rotate, stack
 from mrinufft.trajectories.trajectory2D import (
@@ -16,7 +17,6 @@ from mrinufft.trajectories.utils import (
     check_hardware_constraints,
     compute_gradients_and_slew_rates,
 )
-from numpy.typing import NDArray
 from scipy.stats import norm  # type: ignore
 
 from .._meta import NoCaseEnum
@@ -326,8 +326,7 @@ def stack_spiral_factory(
 
     z_index = get_kspace_slice_loc(sizeZ, acsz, accelz, pdf=pdfz, rng=rng, order=orderz)
 
-    if not isinstance(rotate_angle, float):
-        rotate_angle = rotate_angle.value
+    rotate_angle = float(rotate_angle)
 
     spiral2D = initialize_2D_spiral(
         Nc=n_shot_slices,
@@ -362,7 +361,7 @@ def stack_spiral_factory(
 #####################################
 
 
-class AngleRotation(NoCaseEnum):
+class AngleRotation(float, NoCaseEnum):
     """Available rotation angle for density sampling."""
 
     ZERO = 0
@@ -404,9 +403,9 @@ def rotate_trajectory(
 
 def stacked_epi2d(
     shape: tuple[int, int, int],
-    freq_locs: Sequence[int],
-    phase_locs: Sequence[int],
-    slice_locs: Sequence[int],
+    freq_locs: NDArray,
+    phase_locs: NDArray,
+    slice_locs: NDArray,
 ) -> NDArray:
     """Generate a list of 2D epi plane, stacked."""
     Ns, Np, Nf = map(len, (slice_locs, phase_locs, freq_locs))
@@ -427,7 +426,7 @@ def stacked_epi2d(
 
 
 def stacked_epi_factory(
-    shape: tuple[int, ...],
+    shape: tuple[int, int, int],
     acsz: int | float,
     accelz: int,
     orderz: VDSorder = VDSorder.CENTER_OUT,
@@ -450,10 +449,11 @@ def stacked_epi_factory(
 
 
 def evi_factory(
-    shape: tuple[int, ...],
+    shape: tuple[int, int, int],
 ) -> np.ndarray:
     """Generate a Echo Volume Imaging trajectory."""
     epi_3d_coord = stacked_epi2d(
+        shape,
         phase_locs=np.arange(shape[0]),
         freq_locs=np.arange(shape[1]),
         slice_locs=np.arange(shape[2]),

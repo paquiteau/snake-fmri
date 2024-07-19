@@ -1,6 +1,5 @@
 """Utility functions for motion generation."""
 
-from numbers import Real
 import numpy as np
 from numpy.typing import NDArray, DTypeLike
 from functools import partial
@@ -12,7 +11,7 @@ def motion_generator(
     t_std: tuple[float, float, float],
     r_std: tuple[float, float, float],
     time_res: float,
-    rng: np.random.Generator = None,
+    rng: np.random.Generator,
 ) -> np.ndarray:
     """Generate a motion trajectory.
 
@@ -53,9 +52,9 @@ def motion_generator(
 
 
 def rotation(
-    x: Real = 0,
-    y: Real = 0,
-    z: Real = 0,
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
     dtype: DTypeLike = "float32",
 ) -> NDArray:
     """Create an array with a 4 dimensional rotation matrix.
@@ -76,11 +75,11 @@ def rotation(
 
 
 def rotation2D(
-    angle: Real,
+    angle: float,
     dtype: DTypeLike = "float32",
 ) -> NDArray:
     """Create an array with a 2D rotation matrix."""
-    r = np.ndarray(
+    r = np.array(
         [
             [np.cos(angle), -np.sin(angle)],
             [np.sin(angle), np.cos(angle)],
@@ -91,9 +90,9 @@ def rotation2D(
 
 
 def rotation3d(
-    x: Real = 0,
-    y: Real = 0,
-    z: Real = 0,
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
     dtype: DTypeLike = "float32",
 ) -> NDArray:
     """Create an array with a 3 dimensional rotation matrix.
@@ -134,9 +133,9 @@ def rotation3d(
 
 
 def translation(
-    x: Real = 0,
-    y: Real = 0,
-    z: Real = 0,
+    x: float = 0.0,
+    y: float = 0.0,
+    z: float = 0.0,
     dtype: DTypeLike = "float32",
 ) -> np.ndarray:
     """Create an array with a translation matrix.
@@ -165,14 +164,20 @@ def translation(
 
 def apply_rotation_at_center(
     data: NDArray,
-    angles: tuple[Real, Real, Real],
+    angles: tuple[float, float, float],
 ) -> NDArray:
     """Apply the rotation at the center of the array."""
-    center_shift = np.array(data.shape) / 2
+    c = tuple(data.shape[i] / 2 for i in range(3))
     # We build the pull affine matrix (From moved to origin)
-    T = translation(*(center_shift), dtype=np.float32)
-    Tinv = translation(*(-center_shift), dtype=np.float32)
-    R = rotation(*tuple(np.deg2rad(angles)), dtype=np.float32)
+    T = translation(c[0], c[1], c[2], dtype=np.float32)
+    Tinv = translation(-c[0], -c[1], -c[2], dtype=np.float32)
+    rad_angles = np.deg2rad(angles)
+    R = rotation(
+        rad_angles[0],
+        rad_angles[1],
+        rad_angles[2],
+        dtype=np.float32,
+    )
 
     M = T @ np.linalg.inv(R) @ Tinv
 
@@ -203,6 +208,6 @@ def add_motion(
     np.ndarray
         The data with motion added.
     """
-    rotated = apply_rotation_at_center(data, motion_params[3:])
-    rotated_and_translated = apply_shift(rotated, motion_params[:3])
+    rotated = apply_rotation_at_center(data, tuple(motion_params[3:]))
+    rotated_and_translated = apply_shift(rotated, tuple(motion_params[:3]))
     return rotated_and_translated

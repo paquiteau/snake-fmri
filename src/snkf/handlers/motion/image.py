@@ -63,14 +63,14 @@ class RandomMotionImageHandler(AbstractHandler):
         """Get dynamic informations."""
         n_frames = sim_conf.max_n_shots
 
-        if self._motion_data is not None:
+        if self._motion_data is not None and self.motion_file_tr_ms is not None:
             # resample the motion data to match the simulation framerate.
             motion = np.interp(
                 np.arange(n_frames) * sim_conf.sim_tr_ms,
-                np.arange(len(self._motion_data)) * self.motion_file_tr,
+                np.arange(len(self._motion_data)) * self.motion_file_tr_ms,
                 self._motion_data,
             )
-        else:
+        elif self.rs_std_degs is not None and self.ts_std_mms is not None:
             ts_std_pix = np.array(self.ts_std_mms) / np.array(sim_conf.res_mm)
             motion = motion_generator(
                 n_frames,

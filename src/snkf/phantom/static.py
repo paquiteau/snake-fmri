@@ -1,21 +1,24 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
-import logging
+
 import base64
 import contextlib
+import logging
 import os
+from collections.abc import Generator
 from dataclasses import dataclass
 from enum import IntEnum
 from importlib.resources import files
 from multiprocessing.managers import SharedMemoryManager
+from multiprocessing.shared_memory import SharedMemory
 from typing import TypeVar
 
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.engine.parallel import ArrayProps, run_parallel, array_from_shm, array_to_shm
+from snkf.engine.parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
 
 from ..simulation import SimConfig
 
@@ -38,7 +41,7 @@ class Phantom:
 
     name: str
     masks: NDArray[np.float32]
-    labels: NDArray[str]
+    labels: NDArray[np.string_]
     props: NDArray[np.float32]
 
     @classmethod
@@ -46,12 +49,12 @@ class Phantom:
         cls,
         sub_id: int,
         sim_conf: SimConfig,
-        tissue_file: os.PathLike = None,
-        tissue_select: list[str] = None,
-        tissue_ignore: list[str] = None,
+        tissue_file: str | None = None,
+        tissue_select: list[str] | None = None,
+        tissue_ignore: list[str] | None = None,
     ) -> Phantom:
         """Get the Brainweb Phantom."""
-        from brainweb_dl import get_mri, BrainWebTissuesV2
+        from brainweb_dl import BrainWebTissuesV2, get_mri
 
         from .utils import resize_tissues
 
@@ -68,7 +71,7 @@ class Phantom:
         tissues_mask = np.ascontiguousarray(tissues_mask.T)
         tissues_list = []
         if tissue_file is None:
-            tissue_file = files("snkf.phantom.data") / "tissues_properties.csv"
+            tissue_file = str(files("snkf.phantom.data") / "tissues_properties.csv")
         with open(tissue_file) as f:
             lines = f.readlines()
             select = []
@@ -176,14 +179,15 @@ class Phantom:
         mask_prop: ArrayProps,
         properties_prop: ArrayProps,
         label_prop: ArrayProps,
-    ) -> Phantom:
+    ) -> Generator[Phantom, None, None]:
         """Give access the tissue masks and properties in shared memory."""
         with array_from_shm(mask_prop, label_prop, properties_prop) as arrs:
             yield cls(name, *arrs)
 
-    def in_shared_memory(
-        self, manager: SharedMemoryManager
-    ) -> tuple[str, ArrayProps, ArrayProps, ArrayProps]:
+    def in_shared_memory(self, manager: SharedMemoryManager) -> tuple[
+        tuple[str, ArrayProps, ArrayProps, ArrayProps],
+        tuple[SharedMemory, SharedMemory, SharedMemory],
+    ]:
         """Add a copy of the phantom in shared memory."""
         tissue_mask, _, tisue_mask_smm = array_to_shm(self.masks, manager)
         tissue_props, _, tissue_prop_smm = array_to_shm(self.props, manager)
@@ -199,7 +203,7 @@ class Phantom:
         )
 
     @property
-    def anat_shape(self) -> tuple[int, int, int] | tuple[int, int]:
+    def anat_shape(self) -> tuple[int, ...]:
         """Get the shape of the base volume."""
         return self.masks.shape[1:]
 

@@ -97,7 +97,7 @@ def make_base_mrd(
     sampler: BaseSampler,
     phantom: Phantom,
     sim_conf: SimConfig,
-    dynamic_data: list[DynamicData] = None,
+    dynamic_data: list[DynamicData] | None = None,
 ) -> mrd.Dataset:
     """Generate a sampling pattern."""
     try:
@@ -109,14 +109,15 @@ def make_base_mrd(
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
     dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf)))
     with PerfLogger(logger=log, name="acq"):
-        sampler.add_all_acq_mrd(dataset, phantom, sim_conf)
+        sampler.add_all_acq_mrd(dataset, sim_conf)
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
 
     with PerfLogger(logger=log, name="dynamic"):
-        for dyn in dynamic_data:
-            if dyn is not None:
-                dataset = dyn.to_mrd_dataset(dataset, sim_conf)
+        if dynamic_data is not None:
+            for dyn in dynamic_data:
+                if dyn is not None:
+                    dataset = dyn.to_mrd_dataset(dataset, sim_conf)
 
     with PerfLogger(logger=log, name="smaps"):
         if sim_conf.hardware.n_coils > 1:

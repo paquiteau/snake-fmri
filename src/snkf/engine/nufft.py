@@ -1,6 +1,6 @@
 """Acquisition engine using nufft."""
 
-from collections.abc import Generator, Sequence
+from collections.abc import Sequence
 from copy import deepcopy
 
 import ismrmrd as mrd
@@ -11,9 +11,8 @@ from numpy.typing import NDArray
 from snkf.phantom import DynamicData, Phantom
 from snkf.simulation import SimConfig
 
-from .utils import get_contrast_gre
-
 from .base import BaseAcquisitionEngine
+from .utils import get_contrast_gre
 
 
 class NufftAcquisitionEngine(BaseAcquisitionEngine):
@@ -126,8 +125,8 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         phantom: Phantom,
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
-        trajectories: Generator[NDArray],
-        nufft: FourierOperatorBase,
+        trajectories: NDArray,
+        smaps: NDArray,
         backend: str,
         echo_sample_idx: int,
     ) -> np.ndarray:
@@ -136,6 +135,9 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
 
         final_ksp = np.zeros(
             (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
+        )
+        nufft = NufftAcquisitionEngine._init_model_nufft(
+            trajectories[0], sim_conf, smaps, backend=backend
         )
         # (n_tissues_true, n_samples) Filter the tissues that have NaN Values
         for i, traj in enumerate(trajectories):

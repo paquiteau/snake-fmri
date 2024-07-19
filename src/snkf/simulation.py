@@ -22,7 +22,6 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
     -------
         str: An HTML table string representing the dataclass.
     """
-
     class_name = obj.__class__.__name__
     table_rows = [
         '<table style="border:1px solid lightgray;">'
@@ -112,9 +111,9 @@ class SimConfig:
         return int(self.max_sim_time * 1000 / self.sim_tr_ms)
 
     @property
-    def res_mm(self) -> tuple[float, float, float]:
+    def res_mm(self) -> tuple[float, ...]:
         """Voxel resolution in mm."""
-        return tuple(f / s for f, s in zip(self.fov_mm, self.shape, strict=True))
+        return tuple(self.fov_mm[i] / self.shape[i] for i in range(3))
 
     @property
     def sim_tr_ms(self) -> float:

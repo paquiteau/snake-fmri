@@ -45,7 +45,10 @@ class BaseAcquisitionEngine(LogMixin):
 
     @staticmethod
     def _job_get_T2s_decay(
-        dwell_time_ms: int, echo_idx: int, n_samples: int, phantom: Phantom
+        dwell_time_ms: float,
+        echo_idx: int,
+        n_samples: int,
+        phantom: Phantom,
     ) -> NDArray:
         t = dwell_time_ms * (np.arange(n_samples, dtype=np.float32) - echo_idx)
         return np.exp(-t[None, :] / phantom.props[:, PropTissueEnum.T2s, None])
@@ -57,6 +60,8 @@ class BaseAcquisitionEngine(LogMixin):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
+        *args: Any,
+        **kwargs: Any,
     ) -> NDArray:
         raise NotImplementedError
 
@@ -67,6 +72,8 @@ class BaseAcquisitionEngine(LogMixin):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
+        *args: Any,
+        **kwargs: Any,
     ) -> NDArray:
         raise NotImplementedError
 
@@ -77,13 +84,15 @@ class BaseAcquisitionEngine(LogMixin):
 
     def _acquire_ksp_job(
         self,
-        filename: os.PathLike,
+        filename: os.PathLike | str,
         sim_conf: SimConfig,
         chunk: Sequence[int],
-        shared_phantom_props: tuple[ArrayProps] = None,
+        shared_phantom_props: (
+            tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
+        ) = None,
         mode: str = "T2s",
         **kwargs: Mapping[str, Any],
-    ) -> None:
+    ) -> str:
         """Entry point for worker.
 
         This handles the io part (Read dataset, write partial k-space),
@@ -118,9 +127,9 @@ class BaseAcquisitionEngine(LogMixin):
             with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
                 ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
 
-        filename = os.path.join(sim_conf.tmp_dir, f"partial_{chunk[0]}.npy")
-        np.save(filename, ksp)
-        return filename
+        chunk_file = os.path.join(sim_conf.tmp_dir, f"partial_{chunk[0]}.npy")
+        np.save(chunk_file, ksp)
+        return chunk_file
 
     def __call__(
         self,
@@ -160,13 +169,13 @@ class BaseAcquisitionEngine(LogMixin):
                 chunk = futures[future]
                 self.log.info(f"Done with chunk {min(chunk)}-{max(chunk)}")
                 try:
-                    filename = future.result()
+                    f_chunk = str(future.result())
                 except Exception as exc:
                     self.log.error(f"Error in chunk {min(chunk)}-{max(chunk)}")
                     dataset.close()
                     self.log.error("Closing the dataset, raising the error.")
                     raise exc
-                chunk_ksp = np.load(filename)
+                chunk_ksp = np.load(f_chunk)
                 # Add noise
                 noise = 1j * sim_conf.rng.standard_normal(
                     size=chunk_ksp.size, dtype=np.float32
@@ -181,6 +190,6 @@ class BaseAcquisitionEngine(LogMixin):
                     chunk,
                     chunk_ksp,
                 )
-                os.remove(filename)
+                os.remove(f_chunk)
                 gc.collect()
         dataset.close()

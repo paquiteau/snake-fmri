@@ -1,11 +1,10 @@
-#!/usr/bin/env python3
-import hydra
+"""Script for running snake-fmri simulations."""
+
 from omegaconf import DictConfig
-import numpy as np
-
-from .simulation import Phantom, SimConfig
 
 
-def main(cfg: DictConfig) -> None:
-
-    phantom = Phantom()
+def main(
+    cfg: DictConfig,
+) -> None:
+    """Entry point for snake-fmri simulations."""
+    raise NotImplementedError

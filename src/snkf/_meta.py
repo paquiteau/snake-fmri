@@ -7,10 +7,11 @@ import itertools
 import logging
 import sys
 from collections import defaultdict
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Callable, Iterator, Iterable
 from enum import Enum, EnumMeta
 from functools import wraps
 from typing import Any, TypeVar
+from functools import partial
 
 from typing_extensions import dataclass_transform
 
@@ -30,6 +31,8 @@ def make_log_property(dunder_name: str) -> Callable:
 @dataclass_transform(kw_only_default=True)
 class MetaDCRegister(type):
     """A MetaClass adding registration for subclasses and transform to dataclass."""
+
+    dunder_name: str
 
     def __new__(
         meta: type[MetaDCRegister],
@@ -89,18 +92,18 @@ class MethodRegister:
         The  register
     """
 
-    registry = defaultdict(dict)
+    registry: dict = defaultdict(dict)
 
     def __init__(self, register_name: str):
         self.register_name = register_name
 
     def __call__(
         self,
-        method_name: str | Callable[..., T],
-    ) -> Callable[Callable[..., T], Callable[..., T]]:
+        method_name: str | Callable,
+    ) -> Callable:
         """Register the function in the registry."""
 
-        def decorator(func: Callable[..., T]) -> Callable[..., T]:
+        def decorator(func: Callable[..., T], method_name: str) -> Callable[..., T]:
             self.registry[self.register_name][method_name] = func
             if func.__name__ != method_name:
                 func.__name__ += "__" + method_name
@@ -115,14 +118,14 @@ class MethodRegister:
         if callable(method_name):
             func = method_name
             method_name = func.__name__
-            return decorator(func)
+            return decorator(func, method_name)
         else:
-            return decorator
+            return partial(decorator, method_name=method_name)
 
 
 if sys.version_info <= (3, 12):
 
-    def batched(iterable: Iterable, n: int) -> Generator[Iterable]:
+    def batched(iterable: Iterable, n: int) -> Iterator[tuple[int]]:
         # batched('ABCDEFG', 3) --> ABC DEF G
         if n < 1:
             raise ValueError("n must be at least one")

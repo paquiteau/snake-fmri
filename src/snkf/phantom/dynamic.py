@@ -22,12 +22,12 @@ class DynamicData:
 
     name: str
     data: NDArray
-    func: Callable[[NDArray, Phantom], Phantom]
+    func: Callable[[Phantom, NDArray, int], Phantom]
     in_kspace: bool = False
 
-    def apply(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
+    def apply(self, phantom: Phantom, sim_conf: SimConfig, time_idx: int) -> Phantom:
         """Apply the dynamic data to the phantom."""
-        return self.func(self.data, phantom)
+        return self.func(phantom, self.data, time_idx)
 
     def to_mrd_dataset(self, dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
         """Add the dynamic data to the mrd dataset.
@@ -158,3 +158,12 @@ def get_waveform_id(input_string: str) -> int:
     unique_id = hash_digest % (2**16 - 1024) + 1024
 
     return unique_id
+
+
+class KspaceDynamicData(DynamicData):
+    """Dynamic DAta that will be applied in the k-space."""
+
+    name: str
+    data: NDArray
+    func: Callable[[NDArray, NDArray, int], Phantom]
+    in_kspace: bool = False

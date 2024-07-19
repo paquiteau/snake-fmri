@@ -1,1 +1,1 @@
-#!/usr/bin/env python3
+"""SNAKE-fMRI core package."""

@@ -13,7 +13,7 @@ import numpy as np
 from snkf._meta import LogMixin
 
 
-def obj2b64encode(f: Any) -> str:
+def obj2b64encode(f: Any) -> bytes:
     """Return the base64 encoded pickle of a python object."""
     return base64.b64encode(pickle.dumps(f))
 

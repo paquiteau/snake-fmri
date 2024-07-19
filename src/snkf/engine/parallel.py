@@ -1,7 +1,7 @@
 """Utilies for running parallel computations with processes and shared memory."""
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from contextlib import contextmanager
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
@@ -18,7 +18,7 @@ class ArrayProps(NamedTuple):
     """Properties of an array stored in shared memory."""
 
     name: str
-    shape: tuple[int]
+    shape: tuple[int, ...]
     dtype: DTypeLike
 
 
@@ -94,20 +94,19 @@ def run_parallel(
 
 
 @contextmanager
-def array_from_shm(*array_props: ArrayProps) -> list[NDArray]:
+def array_from_shm(
+    *array_props: ArrayProps,
+) -> Generator[list[NDArray], None, None]:
     """Get arrays from shared memory."""
     shms = []
-    arrays = []
+    arrays: list[NDArray] = []
     for prop in array_props:
-        nbytes = np.dtype(prop.dtype).itemsize * np.prod(prop.shape)
+        nbytes = int(np.dtype(prop.dtype).itemsize * np.prod(prop.shape))
         shms.append(SharedMemory(name=prop.name, size=nbytes))
         arrays.append(
             np.ndarray(shape=prop.shape, dtype=prop.dtype, buffer=shms[-1].buf)
         )
-    if len(arrays) == 1:
-        yield arrays[0]
-    else:
-        yield arrays
+    yield arrays
     del arrays
     for s in shms:
         s.close()
@@ -116,10 +115,10 @@ def array_from_shm(*array_props: ArrayProps) -> list[NDArray]:
 
 def array_to_shm(
     array: NDArray, smm: SharedMemoryManager
-) -> tuple[ArrayProps, NDArray]:
+) -> tuple[ArrayProps, NDArray, SharedMemory]:
     """Move an array to shared memory."""
     shm = smm.SharedMemory(size=array.nbytes)
-    array_sm = np.ndarray(array.shape, dtype=array.dtype, buffer=shm.buf)
+    array_sm: NDArray = np.ndarray(array.shape, dtype=array.dtype, buffer=shm.buf)
     array_sm[:] = array  # move to shared memory
     # Returning the shm object is required to avoid garbage collection (and segfault)
     return ArrayProps(shm.name, array.shape, str(array.dtype)), array_sm, shm

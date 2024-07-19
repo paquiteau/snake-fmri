@@ -1,14 +1,14 @@
-#!/usr/bin/env python3
+"""Generate Smaps for an antenna."""
+
 import numpy as np
-from numpy.typing import NDArray, DTypeLike
+from numpy.typing import NDArray
 
 
 def get_smaps(
     shape: tuple[int, ...],
     n_coils: int,
     antenna: str = "birdcage",
-    dtype: DTypeLike = np.complex64,
-) -> NDArray:
+) -> NDArray[np.complex64]:
     """Get sensitivity maps for a specific antenna.
 
     Parameters
@@ -23,7 +23,7 @@ def get_smaps(
         return datatype for the sensitivity maps.
     """
     if antenna == "birdcage":
-        return _birdcage_maps((n_coils, *shape), nzz=n_coils, dtype=dtype)
+        return _birdcage_maps((n_coils, *shape), nzz=n_coils)
     else:
         raise NotImplementedError
 
@@ -32,8 +32,7 @@ def _birdcage_maps(
     shape: tuple[int, ...],
     r: float = 1.5,
     nzz: int = 8,
-    dtype: DTypeLike = np.complex64,
-) -> NDArray:
+) -> NDArray[np.complex64]:
     """Simulate birdcage coil sensitivies.
 
     Parameters
@@ -85,4 +84,4 @@ def _birdcage_maps(
     rss = np.sqrt(np.sum(np.abs(out) ** 2, axis=0))
     out /= rss
     out = np.squeeze(out)
-    return np.complex64(out)
+    return out.astype(np.complex64)

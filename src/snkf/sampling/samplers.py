@@ -4,7 +4,6 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from ..phantom import Phantom
 from ..simulation import SimConfig
 from .base import BaseSampler
 from .factories import (
@@ -22,11 +21,10 @@ class NonCartesianAcquisitionSampler(BaseSampler):
     def add_all_acq_mrd(
         self,
         dataset: mrd.Dataset,
-        phantom: Phantom,
         sim_conf: SimConfig,
     ) -> mrd.Dataset:
         """Generate all mrd_acquisitions."""
-        single_frame = self._single_frame(phantom, sim_conf)
+        single_frame = self._single_frame(sim_conf)
         n_shots_frame = single_frame.shape[0]
         n_samples = single_frame.shape[1]
         TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
@@ -121,7 +119,7 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     accelz: int
     orderz: VDSorder = VDSorder.TOP_DOWN
     nb_revolutions: int = 10
-    spiral_name: str | float = "archimedes"
+    spiral_name: str = "archimedes"
     pdfz: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     rotate_angle: AngleRotation = AngleRotation.ZERO
@@ -175,7 +173,6 @@ class EPI3dAcquisitionSampler(BaseSampler):
     def add_all_acq_mrd(
         self,
         dataset: mrd.Dataset,
-        phantom: Phantom,
         sim_conf: SimConfig,
     ) -> mrd.Dataset:
         """Create the acquisitions associated with this sampler."""

@@ -5,8 +5,9 @@ from typing import ClassVar
 from numpy.typing import NDArray
 
 from .._meta import MetaDCRegister
-from ..phantom import Phantom
 from ..simulation import SimConfig
+
+import ismrmrd as mrd
 
 
 class MetaSampler(MetaDCRegister):
@@ -42,4 +43,8 @@ class BaseSampler(metaclass=MetaSampler):
 
     def _single_shot(self, sim_conf: SimConfig) -> NDArray:
         """Generate a single shot."""
+        raise NotImplementedError
+
+    def add_all_acq_mrd(self, dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
+        """Export the Sampling pattern to file."""
         raise NotImplementedError

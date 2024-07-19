@@ -2,10 +2,9 @@
 
 from .._meta import MetaDCRegister
 from typing import ClassVar, TypeVar
-from collections.abc import Callable
 
 from ..simulation import SimConfig
-from ..phantom import Phantom
+from ..phantom import Phantom, DynamicData
 
 T = TypeVar("T")
 
@@ -42,8 +41,6 @@ class AbstractHandler(metaclass=MetaHandler):
         """Get the static information of the handler."""
         return phantom
 
-    def get_dynamic(
-        self, phantom: Phantom, sim_conf: SimConfig
-    ) -> tuple[T, Callable[[Phantom, T], Phantom]]:
+    def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData | None:
         """Get the dynamic information of the handler."""
         return None
