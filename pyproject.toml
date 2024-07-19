@@ -79,11 +79,12 @@ requires = ["setuptools>=43.0.0", "setuptools_scm[toml]>=6.2", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-where=["src"]
-
+where = ["src"]
+include = ["snkf", "snkf_toolkit"]
+namespaces = false
 
 [tool.setuptools_scm]
-write_to = "src/snkf/_version.py"
+write_to = "src/_version.py"
 version_scheme = "python-simplified-semver"
 local_scheme="no-local-version"
 fallback_version="v99-dev"
