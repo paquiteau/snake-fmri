@@ -18,7 +18,7 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.engine.parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
+from ..parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
 
 from ..simulation import SimConfig
 

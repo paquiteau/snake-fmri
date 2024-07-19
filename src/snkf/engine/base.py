@@ -11,11 +11,11 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf._meta import LogMixin, batched
-from snkf.phantom import DynamicData, Phantom, PropTissueEnum
-from snkf.simulation import SimConfig
+from .._meta import LogMixin, batched
+from ..phantom import DynamicData, Phantom, PropTissueEnum
+from ..simulation import SimConfig
 
-from .parallel import ArrayProps
+from ..parallel import ArrayProps
 from .utils import get_ideal_phantom
 
 
