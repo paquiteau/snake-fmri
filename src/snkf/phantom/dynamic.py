@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 from collections.abc import Callable
 from dataclasses import dataclass
+import logging
 
 import ismrmrd as mrd
 import numpy as np
@@ -14,6 +15,9 @@ from snkf.mrd_utils import obj2b64encode, parse_waveform_information
 
 from ..simulation import SimConfig
 from .static import Phantom
+
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -119,7 +123,13 @@ class DynamicData:
         """Read the dataset once , and get all dynamic datas."""
         all_waveform_infos = parse_waveform_information(dataset)
         all_dyn_data = []
-        for i in range(dataset.number_of_waveforms()):
+        try:
+            n_waves = dataset.number_of_waveforms()
+        except Exception as e:
+            log.error(e)
+            return []
+
+        for i in range(n_waves):
             waveform = dataset.read_waveform(i)
             wave_info = all_waveform_infos[waveform.waveform_id]
             all_dyn_data.append(cls._from_waveform(waveform, wave_info))
