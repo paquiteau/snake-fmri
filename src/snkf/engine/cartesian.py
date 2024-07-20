@@ -79,7 +79,8 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
                         trajectories[0].reshape(-1, 3)
                         - (shape[0] // 2, shape[1] // 2, shape[2] // 2)
                     )
-                    ** 2
+                    ** 2,
+                    axis=-1,
                 )
             )
         )
