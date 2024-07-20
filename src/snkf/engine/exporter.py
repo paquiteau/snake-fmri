@@ -62,6 +62,16 @@ def get_mrd_header(sim_conf: SimConfig) -> mrd.xsd.ismrmrdHeader:
         TE=sim_conf.seq.TE,
         flipAngle_deg=sim_conf.seq.FA,
     )
+    H.userParameters = mrd.xsd.userParametersType(
+        userParameterDouble=[
+            mrd.xsd.userParameterDoubleType(name=name, value=value)
+            for name, value in [
+                ("gmax", sim_conf.hardware.gmax),
+                ("smax", sim_conf.hardware.smax),
+                ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
+            ]
+        ]
+    )
 
     return H
 
