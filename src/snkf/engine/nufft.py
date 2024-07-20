@@ -91,7 +91,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0], sim_conf, smaps, backend=backend
         )
-        echo_idx = np.argmin(np.sum(np.abs(trajectories[0]) ** 2), axis=1)
+        echo_idx = np.argmin(np.sum(np.abs(trajectories[0]) ** 2), axis=-1)
 
         t2s_decay = BaseAcquisitionEngine._job_get_T2s_decay(
             sim_conf.hardware.dwell_time_ms, echo_idx, n_samples, phantom
