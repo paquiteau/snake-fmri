@@ -6,6 +6,6 @@ pip install snake-fmri
 ```
 
 ```python 
-import snkf # for core simulation stuff 
-import snkf_toolkit # for reconstruction pipeline and analysis
+import snake # for core simulation stuff 
+import snake_toolkit # for reconstruction pipeline and analysis
 ```

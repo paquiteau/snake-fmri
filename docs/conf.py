@@ -72,9 +72,9 @@ highlight_language = "python"
 # -- Options for Sphinx Gallery ----------------------------------------------
 
 sphinx_gallery_conf = {
-    "doc_module": ["snkf", "snkf_toolkit"],
+    "doc_module": ["snake", "snake_toolkit"],
     "backreferences_dir": "generated/gallery_backreferences",
-    "reference_url": {"snkf": None, "snkf_toolkit": None},
+    "reference_url": {"snake": None, "snake_toolkit": None},
     "examples_dirs": ["../examples/"],
     "gallery_dirs": ["generated/autoexamples"],
     "filename_pattern": "/example_",

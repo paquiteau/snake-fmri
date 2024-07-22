@@ -69,7 +69,7 @@ doc = ["myst-parser", "sphinx-copybytton","sphinx-gallery","sphinx-book-theme"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-snkf-main ="snkf.cli.main:main_app"
+snake-main ="snake.cli.main:main_app"
 
 
 [build-system]
@@ -80,7 +80,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["snkf", "snkf_toolkit"]
+include = ["snake", "snake_toolkit"]
 namespaces = false
 
 [tool.setuptools_scm]
@@ -102,7 +102,7 @@ profile="black"
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = [
-    "--cov=snkf",
+    "--cov=snake",
     "--cov-report=term-missing",
     "--cov-report=xml"
 ]

@@ -12,7 +12,7 @@ from nilearn.glm import compute_contrast, expression_to_contrast_vector
 from nilearn.glm.thresholding import fdr_threshold
 from scipy.stats import norm
 
-from snkf.simulation import SimConfig
+from snake.simulation import SimConfig
 
 logger = logging.getLogger(__name__)
 

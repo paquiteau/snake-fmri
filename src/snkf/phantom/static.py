@@ -71,7 +71,7 @@ class Phantom:
         tissues_mask = np.ascontiguousarray(tissues_mask.T)
         tissues_list = []
         if tissue_file is None:
-            tissue_file = str(files("snkf.phantom.data") / "tissues_properties.csv")
+            tissue_file = str(files("snake.phantom.data") / "tissues_properties.csv")
         with open(tissue_file) as f:
             lines = f.readlines()
             select = []

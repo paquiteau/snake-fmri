@@ -11,7 +11,7 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.mrd_utils import obj2b64encode, parse_waveform_information
+from snake.mrd_utils import obj2b64encode, parse_waveform_information
 
 from ..simulation import SimConfig
 from .static import Phantom

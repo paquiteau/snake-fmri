@@ -7,8 +7,8 @@ import os
 import ismrmrd as mrd
 import numpy as np
 
-from snkf._meta import LogMixin
-from snkf.simulation import GreConfig, HardwareConfig, SimConfig, default_hardware
+from snake._meta import LogMixin
+from snake.simulation import GreConfig, HardwareConfig, SimConfig, default_hardware
 
 from .utils import b64encode2obj, ACQ
 

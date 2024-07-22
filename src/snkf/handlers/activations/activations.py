@@ -4,7 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 
-from snkf._meta import LogMixin
+from snake._meta import LogMixin
 from ...phantom import Phantom, DynamicData
 from ...simulation import SimConfig
 from ..base import AbstractHandler

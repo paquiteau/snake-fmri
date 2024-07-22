@@ -7,8 +7,8 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snkf.phantom import DynamicData, Phantom
-from snkf.simulation import SimConfig
+from snake.phantom import DynamicData, Phantom
+from snake.simulation import SimConfig
 
 from .base import BaseAcquisitionEngine
 from .utils import fft, get_contrast_gre
