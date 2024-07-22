@@ -6,6 +6,7 @@ from .loader import (
     NonCartesianFrameDataLoader,
     parse_sim_conf,
     parse_waveform_information,
+    read_mrd_header,
 )
 from .utils import ACQ
 from .writer import make_base_mrd
@@ -18,4 +19,5 @@ __all__ = [
     "parse_sim_conf",
     "parse_waveform_information",
     "make_base_mrd",
+    "read_mrd_header",
 ]

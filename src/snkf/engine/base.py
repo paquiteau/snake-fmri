@@ -13,6 +13,7 @@ from numpy.typing import NDArray
 
 from .._meta import LogMixin, batched
 from ..mrd_utils import parse_sim_conf
+from ..mrd_utils import parse_sim_conf, read_mrd_header
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 
@@ -101,7 +102,7 @@ class BaseAcquisitionEngine(LogMixin):
 
         """
         dataset = mrd.Dataset(filename)
-        hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+        hdr = read_mrd_header(dataset)
         # Get the Phantom, SimConfig, and all ...
         sim_conf = parse_sim_conf(hdr)
         ddatas = DynamicData.all_from_mrd_dataset(dataset)
@@ -141,7 +142,7 @@ class BaseAcquisitionEngine(LogMixin):
     ):
         """Perform the acquisition and fill the dataset."""
         dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
-        hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+        hdr = read_mrd_header(dataset)
         sim_conf = parse_sim_conf(hdr)
         phantom = Phantom.from_mrd_dataset(dataset)
         shot_idxs = self._get_chunk_list(dataset, hdr)

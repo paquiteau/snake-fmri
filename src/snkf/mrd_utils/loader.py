@@ -15,6 +15,21 @@ from .utils import b64encode2obj, ACQ
 log = logging.getLogger(__name__)
 
 
+def read_mrd_header(filename: os.PathLike | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
+    """Read the header of the MRD file."""
+    if isinstance(filename, mrd.Dataset):
+        dataset = filename
+    else:
+        dataset = mrd.Dataset(filename, create_if_needed=False)
+
+    header = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+
+    if not isinstance(filename, mrd.Dataset):
+        dataset.close()
+
+    return header
+
+
 class MRDLoader(LogMixin):
     """Base class for MRD data loader."""
 
