@@ -12,6 +12,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from .._meta import LogMixin, batched
+from ..mrd_utils import parse_sim_conf
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 
@@ -85,7 +86,6 @@ class BaseAcquisitionEngine(LogMixin):
     def _acquire_ksp_job(
         self,
         filename: os.PathLike | str,
-        sim_conf: SimConfig,
         chunk: Sequence[int],
         shared_phantom_props: (
             tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
@@ -103,6 +103,7 @@ class BaseAcquisitionEngine(LogMixin):
         dataset = mrd.Dataset(filename)
         hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
         # Get the Phantom, SimConfig, and all ...
+        sim_conf = parse_sim_conf(hdr)
         ddatas = DynamicData.all_from_mrd_dataset(dataset)
         # sim_conf = SimConfig.from_mrd_dataset(dataset)
         for d in ddatas:  # only keep the dynamic data that are in the chunk
@@ -134,7 +135,6 @@ class BaseAcquisitionEngine(LogMixin):
     def __call__(
         self,
         filename: str,
-        sim_conf: SimConfig,
         worker_chunk_size: int,
         n_workers: int,
         **kwargs: Mapping[str, Any],
@@ -142,7 +142,7 @@ class BaseAcquisitionEngine(LogMixin):
         """Perform the acquisition and fill the dataset."""
         dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
         hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
-
+        sim_conf = parse_sim_conf(hdr)
         phantom = Phantom.from_mrd_dataset(dataset)
         shot_idxs = self._get_chunk_list(dataset, hdr)
         chunk_list = list(batched(shot_idxs, worker_chunk_size))
@@ -157,7 +157,6 @@ class BaseAcquisitionEngine(LogMixin):
                 executor.submit(
                     self._acquire_ksp_job,
                     filename,
-                    sim_conf,
                     chunk,
                     shared_phantom_props=phantom_props,
                     mode=self.mode,
