@@ -4,7 +4,7 @@ from .._meta import MetaDCRegister
 from typing import ClassVar, TypeVar
 
 from ..simulation import SimConfig
-from ..phantom import Phantom, DynamicData
+from ..phantom import Phantom, DynamicData, KspaceDynamicData
 
 T = TypeVar("T")
 
@@ -16,26 +16,9 @@ class MetaHandler(MetaDCRegister):
 
 
 class AbstractHandler(metaclass=MetaHandler):
-    """Handler Interface.
-
-    An Handler is designed to modify a Simulation data object.
-
-    Handlers can be chained using the ``@`` operator.
-    Once created, an handler (and its chain of other registered handler) can be applied
-    on a simulation using the `handle` function
-
-    Examples
-    --------
-    >>> A = Handler()
-    >>> B = Handler()
-    >>> C = Handler() >> A
-    >>> s1 = Simulation()
-    >>> C.handle(s1.copy()) == B.handle(A.handle(s1))
-
-    """
+    """Handler Interface."""
 
     __handler_name__: ClassVar[str]
-    __is_kspace_handler__: ClassVar[bool] = False
 
     def get_static(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Get the static information of the handler."""
@@ -43,4 +26,8 @@ class AbstractHandler(metaclass=MetaHandler):
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData | None:
         """Get the dynamic information of the handler."""
+        return None
+
+    def get_dynamic_kspace(self, sim_conf: SimConfig) -> KspaceDynamicData | None:
+        """Get the dynamic kspace information of the handler."""
         return None
