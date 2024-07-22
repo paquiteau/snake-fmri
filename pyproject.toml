@@ -135,8 +135,8 @@ convention = "numpy"
 enabled = true
 live_mode = true
 strict = true
-overrides = ["--ignore-missing-imports"]
+#overrides = ["--ignore-missing-imports"]
 
 [tool.mypy]
 ignore_missing_imports=true
-overrides = ["--ignore-missing-imports"]
+#overrides = ["--ignore-missing-imports"]
