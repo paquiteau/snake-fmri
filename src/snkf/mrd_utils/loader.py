@@ -8,7 +8,7 @@ import ismrmrd as mrd
 import numpy as np
 
 from snkf._meta import LogMixin
-from snkf.simulation import GreConfig, HardwareConfig, SimConfig
+from snkf.simulation import GreConfig, HardwareConfig, SimConfig, default_hardware
 
 from .utils import b64encode2obj, ACQ
 
@@ -36,10 +36,10 @@ class MRDLoader(LogMixin):
     def __init__(self, filename: os.PathLike | mrd.Dataset):
         if isinstance(filename, mrd.Dataset):
             self.dataset = filename
-            self.filename = filename.filename
-        else:
-            self.dataset = filename
             self.filename = filename._file.filename
+        else:
+            self.filename = filename
+            self.dataset = mrd.Dataset(filename, create_if_needed=False)
 
         self.header = mrd.xsd.CreateFromDocument(self.dataset.read_xml_header())
         matrixSize = self.header.encoding[0].encodedSpace.matrixSize
@@ -197,24 +197,24 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
     TR = header.sequenceParameters.TR
     TE = header.sequenceParameters.TE
     FA = header.sequenceParameters.flipAngle_deg
-    seq = (GreConfig(TR=TR, TE=TE, FA=FA),)
+    seq = GreConfig(TR=TR, TE=TE, FA=FA)
 
-    gmax = None
-    smax = None
-    dwell_time_ms = None
+    gmax = default_hardware.gmax
+    smax = default_hardware.smax
+    dwell_time_ms = default_hardware.dwell_time_ms
 
     for up in header.userParameters.userParameterDouble:
         if up.name == "gmax":
-            gmax = up.value
+            gmax = float(up.value)
         elif up.name == "smax":
-            smax = up.value
+            smax = float(up.value)
         elif up.name == "dwell_time_ms":
-            dwell_time_ms = up.value
+            dwell_time_ms = float(up.value)
         elif up.name == "rng_seed":
             rng_seed = int(up.value)
     for p in [gmax, smax, dwell_time_ms]:
         if p is None:
-            log.warning(f"Missing {p} parameters for HardwareConfig.")
+            log.warning(f"Missing {p} parameters for HardwareConfig, .")
 
     hardware = HardwareConfig(
         gmax=gmax,
@@ -235,7 +235,6 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
         shape=shape,
         has_relaxation=False,
         rng_seed=rng_seed,
-        tmp_dir=None,
     )
 
 
