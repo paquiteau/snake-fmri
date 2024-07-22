@@ -14,6 +14,8 @@ SNAKE-fMRI
    :hidden:
    :maxdepth: 2
    :caption: Explanations
+   how-does-it-works
+   mrd-simulation
 
 
 .. toctree::
