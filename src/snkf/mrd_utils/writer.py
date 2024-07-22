@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
-
+from snkf._version import __version__ as version
 from snkf.phantom import DynamicData, Phantom
 from snkf.sampling import BaseSampler
 from snkf.simulation import SimConfig
@@ -16,7 +16,7 @@ from snkf.simulation import SimConfig
 log = logging.getLogger(__name__)
 
 
-def get_mrd_header(sim_conf: SimConfig) -> mrd.xsd.ismrmrdHeader:
+def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
     """Create a MRD Header for snake-fmri data."""
     H = mrd.xsd.ismrmrdHeader()
     # Experimental conditions
@@ -26,9 +26,9 @@ def get_mrd_header(sim_conf: SimConfig) -> mrd.xsd.ismrmrdHeader:
 
     # Acquisition System Information
     H.acquisitionSystemInformation = mrd.xsd.acquisitionSystemInformationType(
-        deviceID="SNAKE-fMRI",
-        systemVendor="SNAKE-fMRI",
-        systemModel="SNAKE-fMRI",
+        deviceID="SNAKE",
+        systemVendor="SNAKE",
+        systemModel=f"SNAKE-v{version}-{engine}",
         deviceSerialNumber=42,
         systemFieldStrength_T=sim_conf.hardware.field,
         receiverChannels=sim_conf.hardware.n_coils,
@@ -142,7 +142,7 @@ def make_base_mrd(
         log.error(e)
         pass
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
-    dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf)))
+    dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf, sampler.engine)))
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)
     with PerfLogger(logger=log, name="phantom"):

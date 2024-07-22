@@ -28,7 +28,7 @@ class BaseSampler(metaclass=MetaSampler):
     """
 
     __sampler_name__: ClassVar[str]
-    is_cartesian: bool = False
+    engine: str
     in_out: bool = True
     obs_time_ms: int = 25
 

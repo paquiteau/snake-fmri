@@ -18,6 +18,8 @@ from .factories import (
 class NonCartesianAcquisitionSampler(BaseSampler):
     """Base class for non-cartesian acquisition samplers."""
 
+    engine = "NUFFT"
+
     def add_all_acq_mrd(
         self,
         dataset: mrd.Dataset,
@@ -152,9 +154,9 @@ class EPI3dAcquisitionSampler(BaseSampler):
     """Sampling pattern for EPI-3D."""
 
     __sampler_name__ = "epi-3d"
-    is_cartesian = True
-    in_out = True
+    _engine = "cartesian"
 
+    in_out = True
     acsz: float | int
     accelz: int
     orderz: VDSorder = VDSorder.CENTER_OUT
