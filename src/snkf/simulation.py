@@ -95,15 +95,15 @@ class SimConfig:
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
     shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
     has_relaxation: bool = True
-    rng_seed: InitVar[int | None] = None
+    rng_seed: int | None = 19290506
     rng: np.random.Generator = field(init=False)
     tmp_dir: str = "/tmp"
 
     _repr_html_ = _repr_html_
 
-    def __post_init__(self, rng_seed: int | None):
+    def __post_init__(self):
         # To be compatible with frozen dataclass
-        super().__setattr__("rng", np.random.default_rng(rng_seed))
+        super().__setattr__("rng", np.random.default_rng(self.rng_seed))
 
     @property
     def max_n_shots(self) -> int:
