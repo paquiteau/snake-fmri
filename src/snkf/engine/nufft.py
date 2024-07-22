@@ -18,11 +18,10 @@ from .utils import get_contrast_gre
 class NufftAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine using nufft."""
 
-    def __init__(
-        self, mode: str = "T2s", snr: float = 10.0, nufft_backend: str = "gpunufft"
-    ):
-        super().__init__(mode, snr)
-        self.nufft_backend = nufft_backend
+    __engine_name__ = "NUFFT"
+    nufft_backend: str = "finufft"
+    mode: str = "simple"
+    snr: float = np.inf
 
     def _job_trajectories(
         self,

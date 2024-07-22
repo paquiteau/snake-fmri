@@ -10,9 +10,8 @@ from typing import Any
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
-
-from .._meta import LogMixin, batched
-from ..mrd_utils import parse_sim_conf
+from typing import ClassVar, Literal
+from .._meta import batched, MetaDCRegister
 from ..mrd_utils import parse_sim_conf, read_mrd_header
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
@@ -21,15 +20,28 @@ from ..parallel import ArrayProps
 from .utils import get_ideal_phantom
 
 
-class BaseAcquisitionEngine(LogMixin):
+class MetaEngine(MetaDCRegister):
+    """MetaClass for engines."""
+
+    dunder_name = "engine"
+
+
+class AbstractEngine(metaclass=MetaEngine):
+    """Abstract Engine Interface."""
+
+    __engine_name__: ClassVar[str]
+    mode: str
+    snr: float
+
+
+class BaseAcquisitionEngine(AbstractEngine):
     """Base acquisition engine.
 
     Specific step can be overwritten in subclasses.
     """
 
-    def __init__(self, mode: str = "T2s", snr: float = 10.0):
-        self.mode = mode
-        self.snr = snr
+    mode: Literal["T2s", "simple"] = "simple"
+    snr: float = np.inf
 
     def _get_chunk_list(
         self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader
@@ -177,14 +189,15 @@ class BaseAcquisitionEngine(LogMixin):
                     raise exc
                 chunk_ksp = np.load(f_chunk)
                 # Add noise
-                noise = 1j * sim_conf.rng.standard_normal(
-                    size=chunk_ksp.size, dtype=np.float32
-                )
-                noise += sim_conf.rng.standard_normal(
-                    size=chunk_ksp.size, dtype=np.float32
-                )
-                noise *= energy / self.snr
-                chunk_ksp += noise.reshape(chunk_ksp.shape)
+                if self.snr != np.inf:
+                    noise = 1j * sim_conf.rng.standard_normal(
+                        size=chunk_ksp.size, dtype=np.float32
+                    )
+                    noise += sim_conf.rng.standard_normal(
+                        size=chunk_ksp.size, dtype=np.float32
+                    )
+                    noise *= energy / self.snr
+                    chunk_ksp += noise.reshape(chunk_ksp.shape)
                 self._write_chunk_data(
                     dataset,
                     chunk,
@@ -193,3 +206,19 @@ class BaseAcquisitionEngine(LogMixin):
                 os.remove(f_chunk)
                 gc.collect()
         dataset.close()
+
+    @classmethod
+    def auto(
+        cls,
+        filename: os.PathLike,
+        n_workers: int,
+        worker_chunk_size: int,
+        *args: Any,
+        **kwargs: Any,
+    ):
+        """Get the engine specified in the file and use it."""
+        hdr = read_mrd_header(filename)
+        _, version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
+
+        klass = AbstractEngine.__registry__[engine]
+        return klass(*args, **kwargs)()

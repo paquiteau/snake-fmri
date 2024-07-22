@@ -17,6 +17,8 @@ from .utils import fft, get_contrast_gre
 class EPIAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine for EPI base trajectories."""
 
+    __engine_name__ = "EPI"
+
     def _get_chunk_list(
         self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader
     ) -> Sequence[int]:
