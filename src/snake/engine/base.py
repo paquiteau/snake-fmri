@@ -1,23 +1,24 @@
 """Engines are responsible for the acquisition of Kspace."""
 
+from __future__ import annotations
 import gc
 import os
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing.managers import SharedMemoryManager
 from typing import Any
-
+import logging
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 from typing import ClassVar, Literal
 from .._meta import batched, MetaDCRegister
-from ..mrd_utils import parse_sim_conf, read_mrd_header
+from ..mrd_utils import parse_sim_conf, read_mrd_header, load_coil_cov, load_smaps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 
 from ..parallel import ArrayProps
-from .utils import get_ideal_phantom
+from .utils import get_ideal_phantom, get_noise
 
 
 class MetaEngine(MetaDCRegister):
@@ -26,21 +27,16 @@ class MetaEngine(MetaDCRegister):
     dunder_name = "engine"
 
 
-class AbstractEngine(metaclass=MetaEngine):
-    """Abstract Engine Interface."""
-
-    __engine_name__: ClassVar[str]
-    mode: str
-    snr: float
-
-
-class BaseAcquisitionEngine(AbstractEngine):
+class BaseAcquisitionEngine(metaclass=MetaEngine):
     """Base acquisition engine.
 
     Specific step can be overwritten in subclasses.
     """
 
-    mode: Literal["T2s", "simple"] = "simple"
+    __engine_name__: ClassVar[str]
+    __registry__: ClassVar[dict[str, BaseAcquisitionEngine]]
+    log: logging.Logger
+    mode: str = "simple"
     snr: float = np.inf
 
     def _get_chunk_list(
@@ -125,15 +121,7 @@ class BaseAcquisitionEngine(AbstractEngine):
 
         _job_model = getattr(self, f"_job_model_{mode}")
 
-        smaps = None
-        try:
-            smaps = dataset.read_image("smaps", 0).data
-            self.log.info(
-                f"Sensitivity maps {smaps.shape}, {smaps.dtype} found in the dataset."
-            )
-        except LookupError:
-            self.log.warning("No sensitivity maps found in the dataset.")
-
+        smaps = load_smaps(dataset)
         if shared_phantom_props is None:
             phantom = Phantom.from_mrd_dataset(dataset)
             ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
@@ -156,11 +144,17 @@ class BaseAcquisitionEngine(AbstractEngine):
         dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
         hdr = read_mrd_header(dataset)
         sim_conf = parse_sim_conf(hdr)
+
         phantom = Phantom.from_mrd_dataset(dataset)
         shot_idxs = self._get_chunk_list(dataset, hdr)
         chunk_list = list(batched(shot_idxs, worker_chunk_size))
         ideal_phantom = get_ideal_phantom(phantom, sim_conf)
         energy = np.mean(ideal_phantom)
+
+        coil_cov = load_coil_cov(dataset) or np.eye(sim_conf.hardware.n_coils)
+
+        coil_cov = coil_cov * energy / self.snr
+
         del ideal_phantom
 
         with SharedMemoryManager() as smm, ProcessPoolExecutor(n_workers) as executor:
@@ -190,14 +184,8 @@ class BaseAcquisitionEngine(AbstractEngine):
                 chunk_ksp = np.load(f_chunk)
                 # Add noise
                 if self.snr != np.inf:
-                    noise = 1j * sim_conf.rng.standard_normal(
-                        size=chunk_ksp.size, dtype=np.float32
-                    )
-                    noise += sim_conf.rng.standard_normal(
-                        size=chunk_ksp.size, dtype=np.float32
-                    )
-                    noise *= energy / self.snr
-                    chunk_ksp += noise.reshape(chunk_ksp.shape)
+                    noise = get_noise(chunk_ksp, coil_cov, sim_conf.rng)
+                    chunk_ksp += noise
                 self._write_chunk_data(
                     dataset,
                     chunk,

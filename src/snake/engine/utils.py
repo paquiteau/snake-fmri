@@ -53,3 +53,20 @@ def fft(image: NDArray, axis: tuple[int, ...] | int = -1) -> NDArray:
         sp.fft.fftn(sp.fft.fftshift(image, axes=axis), norm="ortho", axes=axis),
         axes=axis,
     )
+
+
+def get_noise(chunk_data: NDArray, cov: NDArray, rng: np.random.Generator) -> NDArray:
+    """Generate noise for a given chunk of k-space data."""
+    n_coils = cov.shape[0]
+
+    chunk_size, n_coils, *xyz = chunk_data.shape
+
+    noise_shape = (2, *xyz[::-1], chunk_size)
+
+    noise = rng.multivariate_normal(np.zeros(n_coils), cov, size=noise_shape).T.astype(
+        np.float32, copy=False
+    )
+    noise = noise.view(np.complex64)
+    noise = np.moveaxis(noise, -1, 1)
+    assert noise.shape == chunk_data.shape
+    return noise

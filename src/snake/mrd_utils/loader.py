@@ -6,6 +6,7 @@ import os
 
 import ismrmrd as mrd
 import numpy as np
+from numpy.typing import NDArray
 
 from snake._meta import LogMixin
 from snake.simulation import GreConfig, HardwareConfig, SimConfig, default_hardware
@@ -266,3 +267,24 @@ def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
         waveform_info[int(wi.waveformType)] = infos
 
     return waveform_info
+
+
+def _load_image(dataset: mrd.Dataset, name: str, idx: int = 0) -> NDArray | None:
+    try:
+        image = dataset.read_image(name, idx)
+    except LookupError:
+        log.warning(f"No {name} found in the dataset.")
+        return None
+    return image
+
+
+def load_smaps(dataset: mrd.Dataset) -> NDArray | None:
+    """Load the sensitivity maps from the dataset."""
+    return _load_image(dataset, "smaps")
+
+
+def load_coil_cov(
+    dataset: mrd.Dataset, default: NDArray | None = None
+) -> NDArray | None:
+    """Load the coil covariance from the dataset."""
+    return _load_image(dataset, "coil_cov")

@@ -85,7 +85,9 @@ def add_phantom_mrd(
 
 
 def add_smaps_mrd(
-    dataset: mrd.Dataset, sim_conf: SimConfig, smaps: NDArray | None = None
+    dataset: mrd.Dataset,
+    sim_conf: SimConfig,
+    smaps: NDArray | None = None,
 ) -> mrd.Dataset:
     """Add the Smaps to the dataset."""
     if smaps is None:
@@ -110,13 +112,42 @@ def add_smaps_mrd(
     return dataset
 
 
+def add_coil_cov_mrd(
+    dataset: mrd.Dataset,
+    sim_conf: SimConfig,
+    coil_cov: NDArray | None = None,
+) -> mrd.Dataset:
+    """Add the Smaps to the dataset."""
+    n_coils = sim_conf.hardware.n_coils
+    if coil_cov is None:
+        return dataset
+    elif coil_cov.shape != (n_coils, n_coils):
+        raise ValueError(
+            f"Imcompatible coil_cov shape {coil_cov.shape} != {(n_coils, n_coils)} "
+        )
+    dataset.append_image(
+        "coil_cov",
+        mrd.image.Image(
+            head=mrd.image.ImageHeader(
+                matrixSize=mrd.xsd.matrixSizeType(*coil_cov.shape),
+                fieldOfView_mm=mrd.xsd.fieldOfViewMm(*coil_cov.shape),
+                channels=1,
+                acquisition_time_stamp=0,
+            ),
+            data=coil_cov,
+        ),
+    )
+    return dataset
+
+
 def make_base_mrd(
     filename: os.PathLike,
     sampler: BaseSampler,
     phantom: Phantom,
     sim_conf: SimConfig,
     dynamic_data: list[DynamicData] | None = None,
-    smaps: NDArray = None,
+    smaps: NDArray | None = None,
+    coil_cov: NDArray | None = None,
 ) -> mrd.Dataset:
     """
     Create a base `.mrd` file from the simulation configurations.
@@ -133,7 +164,10 @@ def make_base_mrd(
         The simulation configurations.
     dynamic_data : list[DynamicData], optional
         The dynamic data, by default None
-
+    smaps : NDArray, optional
+        The coil sensitivity maps, by default None
+    coil_covar : NDArray, optional
+        The coil covariance matrix, by default None
     """
     try:
         os.remove(filename)
@@ -157,5 +191,9 @@ def make_base_mrd(
     with PerfLogger(logger=log, name="smaps"):
         if sim_conf.hardware.n_coils > 1 and smaps is not None:
             add_smaps_mrd(dataset, sim_conf, smaps)
+    with PerfLogger(logger=log, name="coil_cov"):
+        if sim_conf.hardware.n_coils > 1 and coil_cov is not None:
+            add_coil_cov_mrd(dataset, sim_conf, coil_cov)
+
     dataset.close()
     return dataset
