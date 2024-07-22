@@ -203,10 +203,10 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         worker_chunk_size: int,
         *args: Any,
         **kwargs: Any,
-    ):
+    ) -> BaseAcquisitionEngine:
         """Get the engine specified in the file and use it."""
         hdr = read_mrd_header(filename)
         _, version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
 
-        klass = AbstractEngine.__registry__[engine]
+        klass = cls.__registry__[engine]
         return klass(*args, **kwargs)()

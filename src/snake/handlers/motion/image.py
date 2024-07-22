@@ -82,7 +82,6 @@ class RandomMotionImageHandler(AbstractHandler):
 
         return DynamicData(
             name=self.__handler_name__,
-            in_kspace=self.__is_kspace_handler__,
             data=motion.T,
             func=apply_motion_to_phantom,
         )

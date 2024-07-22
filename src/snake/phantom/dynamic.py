@@ -175,4 +175,4 @@ class KspaceDynamicData(DynamicData):
     name: str
     data: NDArray
     func: Callable[[NDArray, NDArray, int], Phantom]
-    in_kspace: bool = False
+    in_kspace: bool = True
