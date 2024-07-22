@@ -21,7 +21,7 @@ HeightControl = Literal["fpr", "fdr"]
 
 def contrast_zscore(
     image: np.ndarray,
-    sim: SimData,
+    sim: SimConfig,
     contrast_name: str,
     **kwargs: None,
 ) -> np.ndarray:
@@ -52,6 +52,8 @@ def contrast_zscore(
         Dictionary of thresholded images for each alpha level.
 
     """
+    # TODO rewrite this with new API !!!
+
     design_matrix = make_first_level_design_matrix(
         frame_times=np.arange(len(image)) * sim.extra_infos["TR_ms"] / 1000,
         events=pd.DataFrame(sim.extra_infos["events"]),

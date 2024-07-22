@@ -85,7 +85,7 @@ def add_phantom_mrd(
 
 
 def add_smaps_mrd(
-    dataset: mrd.Dataset, sim_conf: SimConfig, smaps: NDArray = None
+    dataset: mrd.Dataset, sim_conf: SimConfig, smaps: NDArray | None = None
 ) -> mrd.Dataset:
     """Add the Smaps to the dataset."""
     if smaps is None:
