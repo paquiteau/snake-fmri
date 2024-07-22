@@ -1,89 +1,39 @@
-"""Utilities for MRD file format."""
+"""Loader of MRD data."""
 
 import atexit
-import base64
+import logging
 import os
-import pickle
-from enum import IntFlag
-from typing import Any
 
 import ismrmrd as mrd
 import numpy as np
 
 from snkf._meta import LogMixin
+from snkf.simulation import GreConfig, HardwareConfig, SimConfig
 
+from .utils import b64encode2obj, ACQ
 
-def obj2b64encode(f: Any) -> bytes:
-    """Return the base64 encoded pickle of a python object."""
-    return base64.b64encode(pickle.dumps(f))
-
-
-def b64encode2obj(s: str) -> Any:
-    """Load a base64 string as a python object."""
-    return pickle.loads(base64.b64decode(s))
-
-
-# fmt: off
-class ACQ(IntFlag):
-    """Acquisition flags of MRD as an IntFlags."""
-
-    FIRST_IN_ENCODE_STEP1               = 1 << 0
-    LAST_IN_ENCODE_STEP1                = 1 << 1
-    FIRST_IN_ENCODE_STEP2               = 1 << 2
-    LAST_IN_ENCODE_STEP2                = 1 << 3
-    FIRST_IN_AVERAGE                    = 1 << 4
-    LAST_IN_AVERAGE                     = 1 << 5
-    FIRST_IN_SLICE                      = 1 << 6
-    LAST_IN_SLICE                       = 1 << 7
-    FIRST_IN_CONTRAST                   = 1 << 8
-    LAST_IN_CONTRAST                    = 1 << 9
-    FIRST_IN_PHASE                      = 1 << 10
-    LAST_IN_PHASE                       = 1 << 11
-    FIRST_IN_REPETITION                 = 1 << 12
-    LAST_IN_REPETITION                  = 1 << 13
-    FIRST_IN_SET                        = 1 << 14
-    LAST_IN_SET                         = 1 << 15
-    FIRST_IN_SEGMENT                    = 1 << 16
-    LAST_IN_SEGMENT                     = 1 << 17
-    IS_NOISE_MEASUREMENT                = 1 << 18
-    IS_PARALLEL_CALIBRATION             = 1 << 19
-    IS_PARALLEL_CALIBRATION_AND_IMAGING = 1 << 20
-    IS_REVERSE                          = 1 << 21
-    IS_NAVIGATION_DATA                  = 1 << 22
-    IS_PHASECORR_DATA                   = 1 << 23
-    LAST_IN_MEASUREMENT                 = 1 << 24
-    IS_HPFEEDBACK_DATA                  = 1 << 25
-    IS_DUMMYSCAN_DATA                   = 1 << 26
-    IS_RTFEEDBACK_DATA                  = 1 << 27
-    IS_SURFACECOILCORRECTIONSCAN_DATA   = 1 << 28
-    IS_PHASE_STABILIZATION_REFERENCE    = 1 << 29
-    IS_PHASE_STABILIZATION              = 1 << 30
-    COMPRESSION1                        = 1 << 52
-    COMPRESSION2                        = 1 << 53
-    COMPRESSION3                        = 1 << 54
-    COMPRESSION4                        = 1 << 55
-    USER1                               = 1 << 56
-    USER2                               = 1 << 57
-    USER3                               = 1 << 58
-    USER4                               = 1 << 59
-    USER5                               = 1 << 60
-    USER6                               = 1 << 61
-    USER7                               = 1 << 62
-    USER8                               = 1 << 63
-# fmt: on
+log = logging.getLogger(__name__)
 
 
 class MRDLoader(LogMixin):
     """Base class for MRD data loader."""
 
-    def __init__(self, filename: os.PathLike):
-        self.filename = filename
-        self.dataset = mrd.Dataset(filename, create_if_needed=False)
-        self.header = mrd.xsd.CreateFromDocument(self.dataset.read_xml_header())
+    def __init__(self, filename: os.PathLike | mrd.Dataset):
+        if isinstance(filename, mrd.Dataset):
+            self.dataset = filename
+            self.filename = filename.filename
+        else:
+            self.dataset = filename
+            self.filename = filename._file.filename
 
+        self.header = mrd.xsd.CreateFromDocument(self.dataset.read_xml_header())
         matrixSize = self.header.encoding[0].encodedSpace.matrixSize
         self.shape = matrixSize.x, matrixSize.y, matrixSize.z
         atexit.register(self._cleanup)
+
+    def get_sim_conf(self) -> SimConfig:
+        """Parse the header to populate SimConfig."""
+        return parse_sim_conf(self.header)
 
     @property
     def n_frames(self) -> int:
@@ -133,7 +83,7 @@ class CartesianFrameDataLoader(MRDLoader):
 
     Examples
     --------
-    >>> for kspace, mask in CartesianFrameDataLoader("test.mrd"):
+    >>> for mask, kspace in CartesianFrameDataLoader("test.mrd"):
             image = ifft(kspace)
     """
 
@@ -170,7 +120,19 @@ class CartesianFrameDataLoader(MRDLoader):
 
 
 class NonCartesianFrameDataLoader(MRDLoader):
-    """Non Cartesian Dataloader."""
+    """Non Cartesian Dataloader.
+
+    Iterate over the acquisition of the MRD file.
+
+    Examples
+    --------
+    >>> from mrinufft import get_operator
+    >>> dataloader =  NonCartesianFrameDataLoader("test.mrd")
+    >>> for mask, kspace in data_loader:
+    ...     nufft = get_operator("finufft")(traj,
+    ...     shape=dataloader.shape, n_coils=dataloader.n_coils)
+    ...     image = nufft.adj_op(kspace)
+    """
 
     def __iter__(self):
         counter = 0
@@ -207,6 +169,59 @@ class NonCartesianFrameDataLoader(MRDLoader):
                         raise ValueError(
                             f"Flags error at {counter} {ACQ(acq.flags).__repr__()}"
                         )
+
+
+def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
+    """Parse the header to populate SimConfig."""
+    if isinstance(header, mrd.Dataset):
+        header = mrd.xsd.CreateFromDocument(header.read_xml_header())
+
+    n_coils = header.acquisitionSystemInformation.receiverChannels
+    field = header.acquisitionSystemInformation.systemFieldStrength_T
+
+    TR = header.sequenceParameters.TR
+    TE = header.sequenceParameters.TE
+    FA = header.sequenceParameters.flipAngle_deg
+    seq = (GreConfig(TR=TR, TE=TE, FA=FA),)
+
+    gmax = None
+    smax = None
+    dwell_time_ms = None
+
+    for up in header.userParameters.userParameterDouble:
+        if up.name == "gmax":
+            gmax = up.value
+        elif up.name == "smax":
+            smax = up.value
+        elif up.name == "dwell_time_ms":
+            dwell_time_ms = up.value
+        elif up.name == "rng_seed":
+            rng_seed = int(up.value)
+    for p in [gmax, smax, dwell_time_ms]:
+        if p is None:
+            log.warning(f"Missing {p} parameters for HardwareConfig.")
+
+    hardware = HardwareConfig(
+        gmax=gmax,
+        smax=smax,
+        dwell_time_ms=dwell_time_ms,
+        n_coils=n_coils,
+        field=field,
+    )
+
+    fov_mm = header.encoding[0].encodedSpace.fieldOfView_mm
+    shape = header.encoding[0].encodedSpace.matrixSize
+
+    return SimConfig(
+        max_sim_time=0,
+        seq=seq,
+        hardware=hardware,
+        fov_mm=fov_mm,
+        shape=shape,
+        has_relaxation=False,
+        rng_seed=rng_seed,
+        tmp_dir=None,
+    )
 
 
 def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:

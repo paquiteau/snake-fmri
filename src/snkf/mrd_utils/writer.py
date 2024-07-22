@@ -69,6 +69,7 @@ def get_mrd_header(sim_conf: SimConfig) -> mrd.xsd.ismrmrdHeader:
                 ("gmax", sim_conf.hardware.gmax),
                 ("smax", sim_conf.hardware.smax),
                 ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
+                ("rng_seed", sim_conf.rng_seed),
             ]
         ]
     )
@@ -109,7 +110,23 @@ def make_base_mrd(
     sim_conf: SimConfig,
     dynamic_data: list[DynamicData] | None = None,
 ) -> mrd.Dataset:
-    """Generate a sampling pattern."""
+    """
+    Create a base `.mrd` file from the simulation configurations.
+
+    Parameters
+    ----------
+    filename : os.PathLike
+        The output filename.
+    sampler : BaseSampler
+        The sampling pattern generator.
+    phantom : Phantom
+        The phantom object.
+    sim_conf : SimConfig
+        The simulation configurations.
+    dynamic_data : list[DynamicData], optional
+        The dynamic data, by default None
+
+    """
     try:
         os.remove(filename)
         log.warning("Existing %s it will be overwritten", filename)
