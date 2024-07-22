@@ -5,13 +5,13 @@ import os
 
 import ismrmrd as mrd
 import numpy as np
+from numpy.typing import NDArray
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
 
 from snkf.phantom import DynamicData, Phantom
 from snkf.sampling import BaseSampler
 from snkf.simulation import SimConfig
-from snkf.smaps import get_smaps
 
 log = logging.getLogger(__name__)
 
@@ -84,10 +84,17 @@ def add_phantom_mrd(
     return phantom.to_mrd_dataset(dataset, sim_conf)
 
 
-def add_smaps_mrd(dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
+def add_smaps_mrd(
+    dataset: mrd.Dataset, sim_conf: SimConfig, smaps: NDArray = None
+) -> mrd.Dataset:
     """Add the Smaps to the dataset."""
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
-
+    if smaps is None:
+        return dataset
+    elif smaps.shape != (sim_conf.hardware.n_coils, *sim_conf.shape):
+        raise ValueError(
+            "Imcompatible smaps shape"
+            f"{smaps.shape} != {(sim_conf.hardware.n_coils, *sim_conf.shape)} "
+        )
     dataset.append_image(
         "smaps",
         mrd.image.Image(
@@ -109,6 +116,7 @@ def make_base_mrd(
     phantom: Phantom,
     sim_conf: SimConfig,
     dynamic_data: list[DynamicData] | None = None,
+    smaps: NDArray = None,
 ) -> mrd.Dataset:
     """
     Create a base `.mrd` file from the simulation configurations.
@@ -147,7 +155,7 @@ def make_base_mrd(
                     dataset = dyn.to_mrd_dataset(dataset, sim_conf)
 
     with PerfLogger(logger=log, name="smaps"):
-        if sim_conf.hardware.n_coils > 1:
-            add_smaps_mrd(dataset, sim_conf)
+        if sim_conf.hardware.n_coils > 1 and smaps is not None:
+            add_smaps_mrd(dataset, sim_conf, smaps)
     dataset.close()
     return dataset
