@@ -8,7 +8,9 @@ SNAKE-fMRI
    :caption: User Guides
 
    getting_started
+   extend-snake
    generated/autoexamples/index
+
 
 .. toctree::
    :hidden:
