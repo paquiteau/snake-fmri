@@ -1,17 +1,20 @@
 """Export data to mrd format."""
 
+from __future__ import annotations
 import logging
 import os
-
+from typing import TYPE_CHECKING
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
 from snake._version import __version__ as version
-from snake.phantom import DynamicData, Phantom
-from snake.sampling import BaseSampler
-from snake.simulation import SimConfig
+
+if TYPE_CHECKING:
+    from snake.phantom import DynamicData, Phantom
+    from snake.sampling import BaseSampler
+    from snake.simulation import SimConfig
 
 log = logging.getLogger(__name__)
 
