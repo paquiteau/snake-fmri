@@ -84,7 +84,7 @@ include = ["snake", "snake_toolkit"]
 namespaces = false
 
 [tool.setuptools_scm]
-write_to = "src/_version.py"
+write_to = "src/snake/_version.py"
 version_scheme = "python-simplified-semver"
 local_scheme="no-local-version"
 fallback_version="v99-dev"
