@@ -179,7 +179,9 @@ def make_base_mrd(
         log.error(e)
         pass
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
-    dataset.write_xml_header(mrd.xsd.ToXML(get_mrd_header(sim_conf, sampler.engine)))
+    dataset.write_xml_header(
+        mrd.xsd.ToXML(get_mrd_header(sim_conf, sampler.__engine__))
+    )
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)
     with PerfLogger(logger=log, name="phantom"):
