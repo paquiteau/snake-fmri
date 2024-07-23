@@ -195,9 +195,9 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
     n_coils = header.acquisitionSystemInformation.receiverChannels
     field = header.acquisitionSystemInformation.systemFieldStrength_T
 
-    TR = header.sequenceParameters.TR
-    TE = header.sequenceParameters.TE
-    FA = header.sequenceParameters.flipAngle_deg
+    TR = header.sequenceParameters.TR[0]
+    TE = header.sequenceParameters.TE[0]
+    FA = header.sequenceParameters.flipAngle_deg[0]
     seq = GreConfig(TR=TR, TE=TE, FA=FA)
 
     gmax = default_hardware.gmax
@@ -271,7 +271,7 @@ def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
 
 def _load_image(dataset: mrd.Dataset, name: str, idx: int = 0) -> NDArray | None:
     try:
-        image = dataset.read_image(name, idx)
+        image = dataset.read_image(name, idx).data
     except LookupError:
         log.warning(f"No {name} found in the dataset.")
         return None
