@@ -195,19 +195,3 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 os.remove(f_chunk)
                 gc.collect()
         dataset.close()
-
-    @classmethod
-    def auto(
-        cls,
-        filename: os.PathLike,
-        n_workers: int,
-        worker_chunk_size: int,
-        *args: Any,
-        **kwargs: Any,
-    ) -> BaseAcquisitionEngine:
-        """Get the engine specified in the file and use it."""
-        hdr = read_mrd_header(filename)
-        _, version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
-
-        klass = cls.__registry__[engine]
-        return klass(*args, **kwargs)()
