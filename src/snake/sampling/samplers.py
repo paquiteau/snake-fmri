@@ -63,30 +63,66 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             ),
             repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
         )
+        dataset.write_xml_header(mrd.xsd.ToXML(hdr))  # write the updated header back
+
+        # Write the acquisition.
+        # We create the dataset manualy with custom dtype.
+        # Compared to using mrd.Dataset.append_acquisition
+        # - this is faster (20-50%)
+        # - uses fixed sized array (All shot have the same size !)
+        # - allow for smart chunking (usefull for reading/writing efficiently)
+
+        acq_dtype = np.dtype(
+            [
+                ("head", mrd.hdf5.acquisition_header_dtype),
+                ("data", np.float32, (sim_conf.hardware.n_coils * n_samples * 2,)),
+                ("traj", np.float32, (n_samples * 3,)),
+            ]
+        )
+        acq_size = np.empty((1,), dtype=acq_dtype).nbytes
+        chunk = int(np.ceil((n_shots_frame * acq_size) / (1024**2)))
+        self.log.debug("chunk size for hdf5 %s, elem %s Bytes", chunk, acq_size)
+        dataset._dataset.create_dataset(
+            "data",
+            shape=(n_ksp_frames * n_shots_frame,),
+            dtype=acq_dtype,
+            chunks=(chunk,),
+        )
 
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
 
             for j in range(n_shots_frame):
-                acq = mrd.Acquisition.from_array(
-                    data=kspace_data_vol[j, :, :], trajectory=kspace_traj_vol[j, :]
-                )
-                acq.scan_counter = counter
-                acq.sample_time_us = self.obs_time_ms * 1000 / n_samples
-                acq.center_sample = n_samples // 2 if self.in_out else 0
-                acq.idx.repetition = i
-                acq.idx.kspace_encode_step_1 = j
-                acq.idx.kspace_encode_step_2 = 1
-
-                # Set flags: # TODO: upstream this in the acquisition handler.
+                flags = 0
                 if j == 0:
-                    acq.setFlag(mrd.ACQ_FIRST_IN_ENCODE_STEP1)
-                    acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
+                    flags |= mrd.ACQ_FIRST_IN_ENCODE_STEP1
+                    flags |= mrd.ACQ_FIRST_IN_REPETITION
                 if j == n_shots_frame - 1:
-                    acq.setFlag(mrd.ACQ_LAST_IN_ENCODE_STEP1)
-                    acq.setFlag(mrd.ACQ_LAST_IN_REPETITION)
+                    flags |= mrd.ACQ_LAST_IN_ENCODE_STEP1
+                    flags |= mrd.ACQ_LAST_IN_REPETITION
 
-                dataset.append_acquisition(acq)
+                acq = np.empty((1,), dtype=acq_dtype)
+                acq["head"] = np.frombuffer(
+                    mrd.AcquisitionHeader(
+                        version=1,
+                        flags=flags,
+                        scan_counter=counter,
+                        sample_time_us=self.obs_time_ms * 1000 / n_samples,
+                        center_sample=n_samples // 2 if self.in_out else 0,
+                        idx=mrd.EncodingCounter(
+                            repetition=i, kspace_encode_step_1=j, kspace_encode_step_2=1
+                        ),
+                        active_channels=sim_conf.hardware.n_coils,
+                        available_channels=sim_conf.hardware.n_coils,
+                        number_of_samples=n_samples,
+                        trajectory_dimensions=3,
+                    ),
+                    dtype=mrd.hdf5.acquisition_header_dtype,
+                )
+                acq["data"] = kspace_data_vol[j, :, :].view(np.float32).ravel()
+                acq["traj"] = kspace_traj_vol[j, :].view(np.float32).ravel()
+                # write to hdf5 mrd
+                dataset._dataset["data"][counter] = acq[0]
                 counter += 1
         return dataset
 
@@ -154,7 +190,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
     """Sampling pattern for EPI-3D."""
 
     __sampler_name__ = "epi-3d"
-    _engine = "cartesian"
+    __engine__ = "cartesian"
 
     in_out = True
     acsz: float | int
@@ -219,11 +255,38 @@ class EPI3dAcquisitionSampler(BaseSampler):
             kspace_encoding_step_1=mrd.xsd.limitType(
                 0, sim_conf.shape[1], sim_conf.shape[1] // 2
             ),
-            slice=mrd.xsd.limitType(0, sim_conf.shape[2], sim_conf.shape[2] // 2),
+            slice=mrd.xsd.limitType(0, sim_conf.shape[0], sim_conf.shape[0] // 2),
             repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
         )
 
         dataset.write_xml_header(mrd.xsd.ToXML(hdr))  # write the updated header back
+
+        acq_dtype = np.dtype(
+            [
+                ("head", mrd.hdf5.acquisition_header_dtype),
+                (
+                    "data",
+                    np.float32,
+                    (sim_conf.hardware.n_coils * sim_conf.shape[2] * 2,),
+                ),
+                ("traj", np.uint32, (sim_conf.shape[2] * 3,)),
+            ]
+        )
+
+        # Write the acquisition.
+        # We create the dataset manualy with custom dtype.
+        # Compared to using mrd.Dataset.append_acquisition
+        # - this is faster (20-50%)
+        # - uses fixed sized array (All shot have the same size !)
+        # - allow for smart chunking (usefull for reading/writing efficiently)
+
+        dataset._dataset.create_dataset(
+            "data",
+            shape=(n_ksp_frames * sim_conf.shape[0] * sim_conf.shape[1],),
+            dtype=acq_dtype,
+            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+        )
+
         for i in range(n_ksp_frames):
             stack_epi3d = self._single_frame(sim_conf)  # of shape N_stack, N, 3
             for j, epi2d in enumerate(stack_epi3d):
@@ -231,29 +294,44 @@ class EPI3dAcquisitionSampler(BaseSampler):
                     sim_conf.shape[1], sim_conf.shape[2], 3
                 )  # reorder to have
                 for k, readout in enumerate(epi2d_r):
-                    acq = mrd.Acquisition.from_array(data=zero_data, trajectory=readout)
-                    acq.scan_counter = counter
-                    acq.sample_time_us = self.obs_time_ms * 1000 / len(readout)
-                    acq.idx.kspace_encode_step_1 = readout[0, 1]
-                    acq.idx.slice = readout[0, 0]
-                    acq.idx.repetition = i
-                    val = dir_cos(readout[0], readout[1])
-                    acq.read_dir = val
-                    counter += 1
+                    flags = 0
                     if k == 0:
-                        acq.setFlag(mrd.ACQ_FIRST_IN_ENCODE_STEP1)
-                        acq.setFlag(mrd.ACQ_FIRST_IN_SLICE)
+                        flags |= mrd.ACQ_FIRST_IN_ENCODE_STEP1
+                        flags |= mrd.ACQ_FIRST_IN_SLICE
                         if j == 0:
-                            acq.setFlag(mrd.ACQ_FIRST_IN_REPETITION)
+                            flags |= mrd.ACQ_FIRST_IN_REPETITION
                     if k == len(epi2d_r) - 1:
-                        acq.setFlag(mrd.ACQ_LAST_IN_ENCODE_STEP1)
-                        acq.setFlag(mrd.ACQ_LAST_IN_SLICE)
+                        flags |= mrd.ACQ_LAST_IN_ENCODE_STEP1
+                        flags |= mrd.ACQ_LAST_IN_SLICE
                         if j == len(stack_epi3d) - 1:
-                            acq.setFlag(mrd.ACQ_LAST_IN_REPETITION)
+                            flags |= mrd.ACQ_LAST_IN_REPETITION
                             if i == n_ksp_frames - 1:
-                                acq.setFlag(mrd.ACQ_LAST_IN_MEASUREMENT)
-                    dataset.append_acquisition(acq)
-
+                                flags |= mrd.ACQ_LAST_IN_MEASUREMENT
+                    acq = np.empty((1,), dtype=acq_dtype)
+                    acq[0]["head"] = np.frombuffer(
+                        mrd.AcquisitionHeader(
+                            version=1,
+                            flags=flags,
+                            scan_counter=counter,
+                            sample_time_us=self.obs_time_ms * 1000 / n_samples,
+                            center_sample=n_samples // 2 if self.in_out else 0,
+                            idx=mrd.EncodingCounters(
+                                repetition=i,
+                                kspace_encode_step_1=readout[0, 1],
+                                slice=readout[0, 0],
+                            ),
+                            read_dir=dir_cos(readout[0], readout[1]),
+                            active_channels=sim_conf.hardware.n_coils,
+                            available_channels=sim_conf.hardware.n_coils,
+                            number_of_samples=len(readout),
+                            trajectory_dimensions=3,
+                        ),
+                        dtype=mrd.hdf5.acquisition_header_dtype,
+                    ).copy()
+                    acq["data"] = zero_data.view(np.float32).ravel()
+                    acq["traj"] = np.float32(readout).view(np.float32).ravel()
+                    dataset._dataset["data"][counter] = acq[0]
+                    counter += 1
         return dataset
 
 
