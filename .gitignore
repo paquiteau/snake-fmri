@@ -18,4 +18,6 @@ docs_build
 .ipynb_checkpoints/
 
 
-src/_version.py
+_version.py
+
+*.mrd
