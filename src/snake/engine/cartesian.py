@@ -18,6 +18,8 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine for EPI base trajectories."""
 
     __engine_name__ = "EPI"
+    mode: str = "simple"
+    snr: float = np.inf
 
     def _get_chunk_list(
         self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader

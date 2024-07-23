@@ -35,7 +35,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     __engine_name__: ClassVar[str]
     __registry__: ClassVar[dict[str, BaseAcquisitionEngine]]
-    log: logging.Logger
+    log: ClassVar[logging.Logger]
+
     mode: str = "simple"
     snr: float = np.inf
 
