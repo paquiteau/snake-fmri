@@ -3,6 +3,7 @@
 from __future__ import annotations
 import yaml
 import dataclasses
+from collections import UserList
 
 from .._meta import MetaDCRegister
 from typing import ClassVar, TypeVar, Any
@@ -42,24 +43,34 @@ class AbstractHandler(metaclass=MetaHandler):
         return yaml.dump(dataclasses.asdict(self))  # type: ignore
 
 
-class HandlerChain:
+class HandlerList(UserList):
     """Represent a Chain of Handler, that needs to be apply to a simulation."""
 
     def __init__(self, *args: AbstractHandler):
-        self._handlers = list(args)
+        self.data = list(args)
 
-    def __eq__(self, other: Any):
-        if not isinstance(other, HandlerChain):
-            return NotImplemented
-        return self._handlers == other._handlers
+    @classmethod
+    def from_cfg(cls, cfg: dict[str, Any]) -> HandlerList:
+        """Create a HandlerList from a configuration."""
+        self = cls()
+        for handler_name, handler_cfg in cfg.items():
+            handler = get_handler(handler_name)
+            self.append(handler(**handler_cfg))
+        return self
 
-    def __repr__(self):
-        """Represent a simulation."""
-        ret = "Handler Chain: "
-        for h in self._handlers:
-            ret += f"{h} >> "
-        ret = ret[:-3]
-        return ret
+    def to_yaml(self, filename: str | None = None) -> str:
+        """Serialize the handlerList as a yaml string."""
+        if filename:
+            with open(filename, "w") as f:
+                yaml.dump(self.serialize(), f)
+            return filename
+        else:
+            return yaml.dump(self.serialize())
+
+    def serialize(self) -> list[dict[str, Any]]:
+        """Serialize the handlerList as a list of dictionnary."""
+        # handlers are dataclasses.
+        return [dataclasses.asdict(h) for h in self.data]
 
 
 # short alias
