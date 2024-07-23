@@ -1,6 +1,5 @@
 """Activation handler module."""
-
-from .activation import BlockActivationHandler
+from .activations import BlockActivationHandler
 from .bold import get_bold
 from .roi import BRAINWEB_OCCIPITAL_ROI, get_indices_inside_ellipsoid
 

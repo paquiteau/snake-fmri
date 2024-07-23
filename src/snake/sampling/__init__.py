@@ -1,5 +1,15 @@
 """K-Space sampling module."""
 
 from .base import BaseSampler
+from .samplers import (
+    EPI3dAcquisitionSampler,
+    StackOfSpiralSampler,
+    NonCartesianAcquisitionSampler,
+)
 
-__all__ = ["BaseSampler"]
+__all__ = [
+    "BaseSampler",
+    "EPI3dAcquisitionSampler",
+    "StackOfSpiralSampler",
+    "NonCartesianAcquisitionSampler",
+]
