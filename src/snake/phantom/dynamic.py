@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from collections.abc import Callable
 from dataclasses import dataclass
-import logging
 
 import ismrmrd as mrd
 import numpy as np
@@ -15,7 +15,6 @@ from snake.mrd_utils import obj2b64encode, parse_waveform_information
 
 from ..simulation import SimConfig
 from .static import Phantom
-
 
 log = logging.getLogger(__name__)
 
