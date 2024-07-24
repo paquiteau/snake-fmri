@@ -69,7 +69,7 @@ doc = ["myst-parser", "sphinx-copybytton","sphinx-gallery","sphinx-book-theme"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-snake-acq = "snake_toolkit.cli.main:acquisition_cli"
+snake-acq = "snake_toolkit.cli.acquisition:acquisition_cli"
 snake-rec = "snake_toolkit.cli.main:reconstruction_cli"
 snake-main = "snake_toolkit.cli.main:main_cli"
 
