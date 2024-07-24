@@ -59,7 +59,7 @@ def run_parallel(
     """Run a function in parallel with shared memory."""
     with (
         SharedMemoryManager() as smm,
-        Parallel(n_jobs=n_jobs, backend="multiprocessing", verbose=100) as parallel,
+        Parallel(n_jobs=n_jobs, backend="multiprocessing") as parallel,
     ):
         # input_shm = smm.SharedMemory(size=input_array.nbytes)
         # input_array_sm = np.ndarray(
