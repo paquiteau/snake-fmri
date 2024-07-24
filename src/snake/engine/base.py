@@ -1,23 +1,25 @@
 """Engines are responsible for the acquisition of Kspace."""
 
 from __future__ import annotations
+
 import gc
+import logging
 import os
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing.managers import SharedMemoryManager
-from typing import Any
-import logging
+from typing import Any, ClassVar
+
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
-from typing import ClassVar, Literal
-from .._meta import batched, MetaDCRegister
-from ..mrd_utils import parse_sim_conf, read_mrd_header, load_coil_cov, load_smaps
+from tqdm.auto import tqdm
+
+from .._meta import MetaDCRegister, batched
+from ..mrd_utils import load_coil_cov, load_smaps, parse_sim_conf, read_mrd_header
+from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
-
-from ..parallel import ArrayProps
 from .utils import get_ideal_phantom, get_noise
 
 
