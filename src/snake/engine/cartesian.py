@@ -178,6 +178,8 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     ) -> None:
         for i, shot in enumerate(chunk):
             for ii in range(self.n_lines_epi):
-                acq = dataset.read_acquisition(shot * self.n_lines_epi + ii)
-                acq.data[:] = chunk_data[i, :, ii]
-                dataset.write_acquisition(acq, shot * self.n_lines_epi + ii)
+                # Direct write to hdf5
+                acq = dataset._dataset["data"][shot * self.n_lines_epi + ii]
+                acq["data"] = (chunk_data[i, :, ii]).view(np.float32).ravel()
+                dataset._dataset["data"][shot * self.n_lines_epi + ii] = acq
+        dataset._file.flush()
