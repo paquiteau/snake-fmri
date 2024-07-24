@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field, InitVar
+from dataclasses import dataclass
 from typing import Any
 import numpy as np
 
@@ -58,7 +58,7 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
     return "\n".join(table_rows)
 
 
-@dataclass(frozen=True)
+@dataclass
 class GreConfig:
     """Gradient Recall Echo Sequence parameters."""
 
@@ -69,7 +69,7 @@ class GreConfig:
     _repr_html_ = _repr_html_
 
 
-@dataclass(frozen=True)
+@dataclass
 class HardwareConfig:
     """Scanner Hardware parameters."""
 
@@ -84,26 +84,27 @@ class HardwareConfig:
 
 default_hardware = HardwareConfig(gmax=40, smax=200, dwell_time_ms=1e-3, n_coils=8)
 
+default_gre = GreConfig(TR=50, TE=30, FA=15)
 
-@dataclass(frozen=True)
+
+@dataclass
 class SimConfig:
     """All base configuration of a simulation."""
 
-    max_sim_time: float
-    seq: GreConfig
+    max_sim_time: float = 300
+    seq: GreConfig = default_gre
     hardware: HardwareConfig = default_hardware
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
     shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
     has_relaxation: bool = True
     rng_seed: int | None = 19290506
-    rng: np.random.Generator = field(init=False)
     tmp_dir: str = "/tmp"
 
     _repr_html_ = _repr_html_
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         # To be compatible with frozen dataclass
-        super().__setattr__("rng", np.random.default_rng(self.rng_seed))
+        self.rng: np.random.Generator = np.random.default_rng(self.rng_seed)
 
     @property
     def max_n_shots(self) -> int:
