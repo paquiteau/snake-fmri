@@ -66,8 +66,6 @@ def get_noise(chunk_data: NDArray, cov: NDArray, rng: np.random.Generator) -> ND
         rng.multivariate_normal(np.zeros(n_coils), cov, size=noise_shape).T,
         dtype=np.float32,
     )
-    if len(cov) == 1:
-        noise = noise[0]  # work with single coil data.
     noise = noise.view(np.complex64)
     noise = noise[..., 0]
     noise = np.moveaxis(noise, 1, 0)
