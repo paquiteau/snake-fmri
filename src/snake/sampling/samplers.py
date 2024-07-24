@@ -3,7 +3,7 @@
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
-
+from tqdm.auto import tqdm
 from ..simulation import SimConfig
 from .base import BaseSampler
 from .factories import (
@@ -88,7 +88,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             dtype=acq_dtype,
             chunks=(chunk,),
         )
-
+        pbar = tqdm(total=n_ksp_frames * n_shots_frame)
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
 
@@ -124,6 +124,8 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                 # write to hdf5 mrd
                 dataset._dataset["data"][counter] = acq[0]
                 counter += 1
+                pbar.update(1)
+        pbar.close()
         return dataset
 
 
@@ -190,7 +192,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
     """Sampling pattern for EPI-3D."""
 
     __sampler_name__ = "epi-3d"
-    __engine__ = "cartesian"
+    __engine__ = "EPI"
 
     in_out = True
     acsz: float | int
