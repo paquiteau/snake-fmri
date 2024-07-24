@@ -121,8 +121,9 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         trajs = self._job_trajectories(dataset, hdr, sim_conf, chunk)
 
         _job_model = getattr(self, f"_job_model_{mode}")
-
-        smaps = load_smaps(dataset)
+        smaps = None
+        if sim_conf.hardware.n_coils > 1:
+            smaps = load_smaps(dataset)
         if shared_phantom_props is None:
             phantom = Phantom.from_mrd_dataset(dataset)
             ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
@@ -158,7 +159,11 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         del ideal_phantom
 
-        with SharedMemoryManager() as smm, ProcessPoolExecutor(n_workers) as executor:
+        with (
+            SharedMemoryManager() as smm,
+            ProcessPoolExecutor(n_workers) as executor,
+            tqdm(total=len(chunk_list)) as pbar,
+        ):
             phantom_props, shms = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
             futures = {
@@ -174,7 +179,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             }
             for future in as_completed(futures):
                 chunk = futures[future]
-                self.log.info(f"Done with chunk {min(chunk)}-{max(chunk)}")
                 try:
                     f_chunk = str(future.result())
                 except Exception as exc:
@@ -182,6 +186,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     dataset.close()
                     self.log.error("Closing the dataset, raising the error.")
                     raise exc
+                else:
+                    pbar.update(1)
                 chunk_ksp = np.load(f_chunk)
                 # Add noise
                 if self.snr != np.inf:
