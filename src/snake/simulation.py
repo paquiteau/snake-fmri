@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 import numpy as np
 
@@ -96,9 +96,8 @@ class SimConfig:
     hardware: HardwareConfig = default_hardware
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
     shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
-    has_relaxation: bool = True
     rng_seed: int | None = 19290506
-    tmp_dir: str = "/tmp"
+    tmp_dir: str = field(default="/tmp", compare=False)
 
     _repr_html_ = _repr_html_
 
