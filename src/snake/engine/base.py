@@ -16,7 +16,10 @@ from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
 from .._meta import MetaDCRegister, batched
-from ..mrd_utils import load_coil_cov, load_smaps, parse_sim_conf, read_mrd_header
+from ..mrd_utils import (
+    load_coil_cov,
+    MRDLoader,
+)
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
@@ -112,22 +115,22 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         for getting the k-space.
 
         """
-        dataset = mrd.Dataset(filename)
-        hdr = read_mrd_header(dataset)
+        data_loader = MRDLoader(filename)
+        hdr = data_loader.header
         # Get the Phantom, SimConfig, and all ...
-        sim_conf = parse_sim_conf(hdr)
-        ddatas = DynamicData.all_from_mrd_dataset(dataset)
+        sim_conf = data_loader.parse_sim_conf()
+        ddatas = data_loader.get_all_dynamic()
         # sim_conf = SimConfig.from_mrd_dataset(dataset)
         for d in ddatas:  # only keep the dynamic data that are in the chunk
             d.data = d.data[:, chunk]
-        trajs = self._job_trajectories(dataset, hdr, sim_conf, chunk)
+        trajs = self._job_trajectories(data_loader.dataset, hdr, sim_conf, chunk)
 
         _job_model = getattr(self, f"_job_model_{mode}")
         smaps = None
         if sim_conf.hardware.n_coils > 1:
-            smaps = load_smaps(dataset)
+            smaps = data_loader.get_smaps()
         if shared_phantom_props is None:
-            phantom = Phantom.from_mrd_dataset(dataset)
+            phantom = data_loader.get_phantom()
             ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
         else:
             with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
@@ -146,10 +149,11 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ):
         """Perform the acquisition and fill the dataset."""
         dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
-        hdr = read_mrd_header(dataset)
-        sim_conf = parse_sim_conf(hdr)
+        data_loader = MRDLoader(dataset)
+        hdr = data_loader.header
+        sim_conf = data_loader.parse_sim_conf()
 
-        phantom = Phantom.from_mrd_dataset(dataset)
+        phantom = data_loader.get_phantom()
         shot_idxs = self._get_chunk_list(dataset, hdr)
         chunk_list = list(batched(shot_idxs, worker_chunk_size))
         ideal_phantom = get_ideal_phantom(phantom, sim_conf)
