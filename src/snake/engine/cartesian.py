@@ -93,7 +93,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             sim_conf.hardware.dwell_time_ms, echo_idx, n_samples, phantom
         )
 
-        for i, epi_2d in tqdm(enumerate(trajectories)):
+        for i, epi_2d in enumerate(trajectories):
             frame_phantom = deepcopy(phantom)
             for dyn_data in dyn_datas:
                 frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
