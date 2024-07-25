@@ -13,6 +13,7 @@ from .factories import (
     stack_spiral_factory,
     stacked_epi_factory,
 )
+from snake.mrd_utils.utils import ACQ
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):
@@ -95,11 +96,11 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             for j in range(n_shots_frame):
                 flags = 0
                 if j == 0:
-                    flags |= mrd.ACQ_FIRST_IN_ENCODE_STEP1
-                    flags |= mrd.ACQ_FIRST_IN_REPETITION
+                    flags |= ACQ.FIRST_IN_ENCODE_STEP1
+                    flags |= ACQ.FIRST_IN_REPETITION
                 if j == n_shots_frame - 1:
-                    flags |= mrd.ACQ_LAST_IN_ENCODE_STEP1
-                    flags |= mrd.ACQ_LAST_IN_REPETITION
+                    flags |= ACQ.LAST_IN_ENCODE_STEP1
+                    flags |= ACQ.LAST_IN_REPETITION
 
                 acq = np.empty((1,), dtype=acq_dtype)
                 acq["head"] = np.frombuffer(
@@ -298,17 +299,17 @@ class EPI3dAcquisitionSampler(BaseSampler):
                 for k, readout in enumerate(epi2d_r):
                     flags = 0
                     if k == 0:
-                        flags |= mrd.ACQ_FIRST_IN_ENCODE_STEP1
-                        flags |= mrd.ACQ_FIRST_IN_SLICE
+                        flags |= ACQ.FIRST_IN_ENCODE_STEP1
+                        flags |= ACQ.FIRST_IN_SLICE
                         if j == 0:
-                            flags |= mrd.ACQ_FIRST_IN_REPETITION
+                            flags |= ACQ.FIRST_IN_REPETITION
                     if k == len(epi2d_r) - 1:
-                        flags |= mrd.ACQ_LAST_IN_ENCODE_STEP1
-                        flags |= mrd.ACQ_LAST_IN_SLICE
+                        flags |= ACQ.LAST_IN_ENCODE_STEP1
+                        flags |= ACQ.LAST_IN_SLICE
                         if j == len(stack_epi3d) - 1:
-                            flags |= mrd.ACQ_LAST_IN_REPETITION
+                            flags |= ACQ.LAST_IN_REPETITION
                             if i == n_ksp_frames - 1:
-                                flags |= mrd.ACQ_LAST_IN_MEASUREMENT
+                                flags |= ACQ.LAST_IN_MEASUREMENT
                     acq = np.empty((1,), dtype=acq_dtype)
                     acq[0]["head"] = np.frombuffer(
                         mrd.AcquisitionHeader(
