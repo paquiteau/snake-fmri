@@ -5,12 +5,12 @@ from numpy.typing import NDArray
 import pandas as pd
 
 from snake._meta import LogMixin
-from ...phantom import Phantom, DynamicData
+from ...phantom import Phantom, DynamicData, PropTissueEnum
 from ...simulation import SimConfig
 from ..base import AbstractHandler
 from ..utils import apply_weights
 from .roi import BRAINWEB_OCCIPITAL_ROI, get_indices_inside_ellipsoid
-from .bold import get_bold, block_design
+from .bold import get_bold, block_design, get_event_ts
 
 
 class ActivationMixin(LogMixin):
@@ -43,7 +43,8 @@ class ActivationMixin(LogMixin):
     duration: float
     offset: float = 0
     event_name: str
-    bold_strength: float = 0.02
+    roi_tissue_name: str = "ROI"
+    delta_r2s: float = 1000.0
     hrf_model: str = "glover"
     oversampling: int = 10
     min_onset: float = -24.0
@@ -108,7 +109,7 @@ class ActivationMixin(LogMixin):
         new_phantom = Phantom(
             phantom.name + "-roi",
             masks=np.concatenate((phantom.masks, roi[None, ...]), axis=0),
-            labels=np.concatenate((phantom.labels, np.array(["ROI"]))),
+            labels=np.concatenate((phantom.labels, np.array([self.roi_tissue_name]))),
             props=np.concatenate(
                 (phantom.props, phantom.props[tissue_index, :]),
                 axis=0,
@@ -118,24 +119,35 @@ class ActivationMixin(LogMixin):
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic time series for adding Activations."""
+
+        bold_strength = sim_conf.seq.TE / self.delta_r2s
+
+        self.log.info("Computed BOLD Strenght: %s", bold_strength)
+        bold = get_bold(
+            sim_conf.sim_tr_ms,
+            sim_conf.max_sim_time,
+            self.event_condition,
+            self.hrf_model,
+            self.oversampling,
+            self.min_onset,
+            bold_strength,
+        ).squeeze()
+        events = get_event_ts(
+            self.event_condition,
+            sim_conf.max_sim_time,
+            sim_conf.sim_tr_ms,
+            self.min_onset,
+        ).squeeze()
         return DynamicData(
             name="-".join(["activation", self.event_name]),
-            data=get_bold(
-                sim_conf.sim_tr_ms,
-                sim_conf.max_sim_time,
-                self.event_condition,
-                self.hrf_model,
-                self.oversampling,
-                self.min_onset,
-                self.bold_strength,
-            ).T,
+            data=np.concatenate([bold[None, :], events[None, :]]),
             func=self.apply_weights,
         )
 
     @staticmethod
     def apply_weights(phantom: Phantom, data: NDArray, time_idx: int) -> Phantom:
         """Apply weights to the ROI."""
-        return apply_weights(phantom, "ROI", data, time_idx)
+        return apply_weights(phantom, "ROI", data[0], time_idx)
 
 
 class BlockActivationHandler(ActivationMixin, AbstractHandler):
@@ -147,8 +159,9 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
     block_off: float
     duration: float
     offset: float = 0
+    roi_tissue_name: str = "ROI"
     event_name: str = "block_on"
-    bold_strength: float = 0.02
+    delta_r2s: float = 1000.0
     hrf_model: str = "glover"
     oversampling: int = 50
     min_onset: float = -24.0

@@ -128,3 +128,22 @@ def get_bold(
     computed_regressors = _resample_regressor(conv_reg, frame_times_hr, frame_times)
     computed_regressors *= bold_strength / np.max(computed_regressors, axis=0)
     return computed_regressors
+
+
+def get_event_ts(
+    event_condition: pd.DataFrame, max_time: float, tr_ms: float, min_onset: float
+) -> np.ndarray:
+    """Get the event time series, sampled at tr_ms."""
+    frame_times = np.arange(0, max_time, tr_ms / 1000)
+    hr_regressor, frame_times_hr = _sample_condition(
+        [
+            event_condition["onset"].values,
+            event_condition["duration"].values,
+            event_condition["amplitude"].values,
+        ],
+        frame_times,
+        oversampling=1,
+        min_onset=min_onset,
+    )
+    events = _resample_regressor(hr_regressor, frame_times_hr, frame_times)
+    return events
