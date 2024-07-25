@@ -25,7 +25,7 @@ def get_contrast_gre(phantom: Phantom, FA: float, TE: float, TR: float) -> NDArr
 def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
     """Apply the contrast to the phantom and return volume."""
     contrast = get_contrast_gre(
-        phantom, sim_conf.seq.FA, sim_conf.seq.TE, sim_conf.seq.TR
+        phantom, FA=sim_conf.seq.FA, TE=sim_conf.seq.TE, TR=sim_conf.seq.TR
     )
     phantom_state = np.sum(
         phantom.masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
