@@ -164,7 +164,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         with (
             SharedMemoryManager() as smm,
             ProcessPoolExecutor(n_workers) as executor,
-            tqdm(total=len(chunk_list)) as pbar,
+            tqdm(total=len(shot_idxs)) as pbar,
         ):
             phantom_props, shms = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
@@ -189,7 +189,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     self.log.error("Closing the dataset, raising the error.")
                     raise exc
                 else:
-                    pbar.update(1)
+                    pbar.update(worker_chunk_size)
                 chunk_ksp = np.load(f_chunk)
                 # Add noise
                 if self.snr != np.inf:
