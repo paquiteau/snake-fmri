@@ -1,14 +1,17 @@
 """Configuration of SNAKE using Hydra."""
 
+from pathlib import Path
 from typing import Any
 from dataclasses import dataclass, field
 from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictConfig
 
 from snake.simulation import SimConfig
 
 from snake.handlers import AbstractHandler
 from snake.sampling import BaseSampler
+
+from snake_toolkit.reconstructors import BaseReconstructor
 
 
 @dataclass
@@ -32,19 +35,38 @@ class PhantomConfig:
 
 
 @dataclass
+class StatConfig:
+    """Statistical configuration for SNAKE."""
+
+    roi_tissue_name: str = "ROI"
+    roi_threshold: float = 0.5
+    event_name: str = "block_on"
+
+
+@dataclass
 class ConfigSNAKE:
     """Configuration for SNAKE."""
 
     handlers: Any
     sampler: Any
+    reconstructors: Any
     sim_conf: SimConfig = SimConfig()
     engine: EngineConfig = EngineConfig()
     phantom: PhantomConfig = PhantomConfig()
+    stats: StatConfig = StatConfig()
+    cache_dir: Path = "${oc.env:PWD}/cache"  # type: ignore
+    result_dir: Path = "${oc.env:PWD}/results"  # type: ignore
+    filename: Path = "test.mrd"  # type: ignore
 
-    cache_dir: str = "${oc.env:PWD}/cache"
-    result_dir: str = "${oc.env:PWD}/results"
-    ignore_patterns: list[str] = field(default_factory=lambda: ["n_jobs"])
-    filename: str = "test.mrd"
+
+def conf_validator(cfg: DictConfig) -> ConfigSNAKE:
+    """Validate the simulation configuration."""
+    cfg_obj: ConfigSNAKE = OmegaConf.to_object(cfg)
+
+    cfg_obj.sim_conf.fov_mm = tuple(cfg_obj.sim_conf.fov_mm)
+    cfg_obj.sim_conf.shape = tuple(cfg_obj.sim_conf.shape)
+
+    return cfg_obj
 
 
 # Custom Resolver for OmegaConf
@@ -81,3 +103,6 @@ for handler_name, cls in AbstractHandler.__registry__.items():
 
 for sampler, cls in BaseSampler.__registry__.items():
     cs.store(group="sampler", name=sampler, node={sampler: cls})
+
+for reconstructor, cls in BaseReconstructor.__registry__.items():
+    cs.store(group="reconstructors", name=reconstructor, node={reconstructor: cls})

@@ -1,57 +1,112 @@
 """CLI for SNAKE."""
 
+import json
+import os
+import gc
+import dataclasses
+from pathlib import Path
 import logging
-
+import numpy as np
 import hydra
-from hydra.core.config_store import ConfigStore
-from omegaconf import OmegaConf
-from snake.handlers import AbstractHandler
-from snake.mrd_utils import MRDLoader, read_mrd_header
-from snake.sampling import BaseSampler
-
-from .config import (
-    ConfigSNAKE,
-    snake_handler_resolver,
-    snake_sampler_resolver,
+from omegaconf import DictConfig, OmegaConf
+from snake.mrd_utils import (
+    read_mrd_header,
+    CartesianFrameDataLoader,
+    NonCartesianFrameDataLoader,
+    parse_sim_conf,
 )
 
-OmegaConf.register_new_resolver("snake.handler", snake_handler_resolver)
-OmegaConf.register_new_resolver("snake.sampler", snake_sampler_resolver)
-
-
-cs = ConfigStore.instance()
-cs.store(name="base_config", node=ConfigSNAKE)
-
-for handler_name, cls in AbstractHandler.__registry__.items():
-    cs.store(group="handlers", name=handler_name, node={handler_name: cls})
-
-for sampler, cls in BaseSampler.__registry__.items():
-    cs.store(group="sampler", name=sampler, node={sampler: cls})
+from .config import conf_validator
+from snake_toolkit.analysis.stats import contrast_zscore, get_scores
 
 log = logging.getLogger(__name__)
 
 
-def reconstruction(cfg: ConfigSNAKE) -> None:
+def reconstruction(cfg: DictConfig) -> None:
     """Reconstruction function."""
+    cfg = conf_validator(cfg)
     log.info("Starting Reconstruction")
     hdr = read_mrd_header(cfg.filename)
-    _, version, engine = hdr.systemModel.split("-")
+    _, version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
     log.info(f"Data from {version}, using engine {engine}")
 
-    # Get the appropriate loader
     # Extract sim_confg
+    sim_conf = parse_sim_conf(hdr)
+    if sim_conf != cfg.sim_conf:
+        log.warning(
+            "Loaded simulation configuration is different from the one in the config."
+            " using the one from CLI."
+        )
+        log.warning("Loaded: %s", sim_conf)
+        log.warning("Config: %s", cfg.sim_conf)
+        sim_conf = cfg.sim_conf
+
+    if engine == "EPI":
+        DataLoader = CartesianFrameDataLoader
+    elif engine == "NUFFT":
+        DataLoader = NonCartesianFrameDataLoader
+
     # Reconstructor.setup(sim_conf) # initialize operators
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
+    data_loader = DataLoader(cfg.filename)
+    for name, rec in cfg.reconstructors.items():
+        rec_str = name  # FIXME Also use parameters  of reconstructors
+        data_rec_file = Path(f"data_rec_{rec_str}.npy")
+        log.info(f"Using {name} reconstructor")
+        rec.setup(sim_conf)
+        rec_data = rec.reconstruct(data_loader, sim_conf)
+        log.info(f"Reconstruction done with {name}")
+        # Save the reconstruction
+        np.save(data_rec_file, rec_data)
+        log.info(f"Saved to {data_rec_file.resolve()}")
 
-    # Do the statistical analysis
-    # extract the ROI from the phantom
-    # cfg.stats_conf:
-    #  - roi_tissue_name # same as in the activation handler !
-    #  - roi_threshold
-    #  -
-    # Save the results as a .nii file in the result directory (not in the cache directory)
-    #
-    #
+    phantom = data_loader.get_phantom()
+    roi_mask = phantom.masks[phantom.labels == cfg.stats.roi_tissue_name]
+    dyn_datas = data_loader.get_all_dynamic()
+    waveform_name = f"activation-{cfg.stats.event_name}"
+    good_d = None
+    for d in dyn_datas:
+        if d.name == waveform_name:
+            good_d = d
+    if good_d is None:
+        raise ValueError("No dynamic data found matching waveform name")
+
+    bold_signal = good_d.data[0]
+    bold_sample_time = np.arange(len(bold_signal)) * sim_conf.seq.TR / 1000
+    del phantom
+    del dyn_datas
+    gc.collect()
+
+    results = []
+    for name in cfg.reconstructors:
+        rec_str = name  # FIXME Also use parameters  of reconstructors
+        data_rec_file = Path(f"data_rec_{rec_str}.npy").resolve()
+        data_zscore_file = Path(f"data_zscore_{rec_str}.npy").resolve()
+        rec_data = np.load(data_rec_file)
+        TR_vol = sim_conf.max_sim_time / len(rec_data)
+
+        z_score = contrast_zscore(
+            rec_data, TR_vol, bold_signal, bold_sample_time, cfg.stats.event_name
+        )
+        stats_results = get_scores(z_score, roi_mask, cfg.stats.roi_threshold)
+        np.save(data_zscore_file, z_score)
+
+        # Reload the config from hydra and add it to the result file
+        # This way OmegaConf does all the serialization for us.
+        conf_dict = OmegaConf.load(Path.cwd() / ".hydra" / "config.yaml")
+        conf_dict = OmegaConf.to_container(conf_dict)
+        results.append(
+            conf_dict
+            | {
+                "results": stats_results,
+                "data_zscore": data_zscore_file,
+                "data_rec": data_rec_file,
+                "data_raw": cfg.filename.resolve(),
+            }
+        )
+
+    with open("results.json", "w") as f:
+        json.dump(results, f, default=lambda o: str(o))
 
 
 reconstruction_cli = hydra.main(

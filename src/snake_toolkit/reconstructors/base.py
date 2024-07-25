@@ -1,10 +1,12 @@
 """Base Class for Reconstructors."""
 
+from numpy.typing import NDArray
+
 import logging
 from dataclasses import field
 from typing import Any, ClassVar
 from snake._meta import MetaDCRegister
-
+from snake.mrd_utils import MRDLoader
 from snake.simulation import SimConfig
 
 
@@ -19,20 +21,22 @@ class BaseReconstructor(metaclass=MetaReconstructor):
 
     __registry__: ClassVar[dict]
     __reconstructor_name__: ClassVar[str]
+    __requires__: ClassVar[list[str]]
     log: ClassVar[logging.Logger]
 
     nufft_kwargs: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self):
+        # TODO: Check if all module in requires are available
         pass
 
-    def setup(self, sim: SimConfig) -> None:
+    def setup(self, sim_conf: SimConfig) -> None:
         """Set up the reconstructor."""
         self.log.info(f"Setup reconstructor {self.__class__.__name__}")
 
-    def reconstruct(self, sim: SimConfig) -> np.ndarray:
-        """Reconstruct data."""
-        raise NotImplementedError()
+    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> NDArray:
+        """Reconstruct the kspace data to image space."""
+        raise NotImplementedError
 
 
 def get_reconstructor(name: str) -> type[BaseReconstructor]:
