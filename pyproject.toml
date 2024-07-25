@@ -70,7 +70,7 @@ doc = ["myst-parser", "sphinx-copybytton","sphinx-gallery","sphinx-book-theme"]
 
 [project.scripts]
 snake-acq = "snake_toolkit.cli.acquisition:acquisition_cli"
-snake-rec = "snake_toolkit.cli.main:reconstruction_cli"
+snake-rec = "snake_toolkit.cli.reconstruction:reconstruction_cli"
 snake-main = "snake_toolkit.cli.main:main_cli"
 
 [build-system]
