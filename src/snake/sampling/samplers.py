@@ -49,6 +49,8 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                 "Volumic TR does not align with max simulation time, "
                 "last incomplete frame will be discarded."
             )
+            self.log.warning("Updating the max_sim_time to match.")
+            sim_conf.max_sim_time = TR_vol_ms * n_ksp_frames / 1000
         self.log.info("Start Sampling pattern generation")
         counter = 0
         kspace_data_vol = np.zeros(
@@ -240,6 +242,8 @@ class EPI3dAcquisitionSampler(BaseSampler):
                 "Volumic TR does not align with max simulation time, "
                 "last incomplete frame will be discarded."
             )
+            self.log.warning("Updating the max_sim_time to match.")
+            sim_conf.max_sim_time = TR_vol_ms * n_ksp_frames / 1000
         self.log.info("Start Sampling pattern generation")
         counter = 0
         zero_data = np.zeros(
