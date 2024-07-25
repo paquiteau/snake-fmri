@@ -4,12 +4,14 @@ import atexit
 import logging
 import os
 
+from functools import cached_property
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
 from snake._meta import LogMixin
-from snake.simulation import GreConfig, HardwareConfig, SimConfig, default_hardware
+from snake.phantom import Phantom, DynamicData
+from snake.simulation import GreConfig, HardwareConfig, SimConfig
 
 from .utils import b64encode2obj, ACQ
 
@@ -78,6 +80,47 @@ class MRDLoader(LogMixin):
         for EPI this is the number of phase encoding lines in the EPI zigzag.
         """
         return self.header.encoding[0].limits.kspace_encoding_step_1.maximum
+
+    def get_smaps(self) -> NDArray | None:
+        """Load the sensitivity maps from the dataset."""
+        return load_smaps(self.dataset)
+
+    def get_coil_cov(self) -> NDArray | None:
+        """Load the coil covariances from the dataset."""
+        return load_coil_cov(self.dataset)
+
+    def get_phantom(self) -> Phantom:
+        """Load the phantom from the dataset."""
+        return Phantom.from_mrd_dataset(self.dataset)
+
+    @cached_property
+    def _all_waveform_infos(self) -> dict[int, dict]:
+        return parse_waveform_information(self.dataset)
+
+    def get_dynamic(self, waveform_num: int) -> DynamicData:
+        """Get dynamic data."""
+        waveform = self.dataset.read_waveform(waveform_num)
+        wave_info = self._all_waveform_infos[waveform.waveform_id]
+        return DynamicData._from_waveform(waveform, wave_info)
+
+    def get_all_dynamic(self) -> list[DynamicData]:
+        """Get all dynamic data."""
+        all_dyn_data = []
+        try:
+            n_waves = self.dataset.number_of_waveforms()
+        except Exception as e:
+            log.error(e)
+            return []
+
+        for i in range(n_waves):
+            waveform = self.dataset.read_waveform(i)
+            wave_info = self._all_waveform_infos[waveform.waveform_id]
+            all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
+        return all_dyn_data
+
+    def parse_sim_conf(self) -> SimConfig:
+        """Parse the sim config."""
+        return parse_sim_conf(self.header)
 
     def _cleanup(self) -> None:
         try:
@@ -200,42 +243,44 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
     FA = header.sequenceParameters.flipAngle_deg[0]
     seq = GreConfig(TR=TR, TE=TE, FA=FA)
 
-    gmax = default_hardware.gmax
-    smax = default_hardware.smax
-    dwell_time_ms = default_hardware.dwell_time_ms
+    caster = {
+        "gmax": float,
+        "smax": float,
+        "dwell_time_ms": float,
+        "max_sim_time": int,
+        "rng_seed": int,
+    }
 
-    for up in header.userParameters.userParameterDouble:
-        if up.name == "gmax":
-            gmax = float(up.value)
-        elif up.name == "smax":
-            smax = float(up.value)
-        elif up.name == "dwell_time_ms":
-            dwell_time_ms = float(up.value)
-        elif up.name == "rng_seed":
-            rng_seed = int(up.value)
-    for p in [gmax, smax, dwell_time_ms]:
-        if p is None:
-            log.warning(f"Missing {p} parameters for HardwareConfig, .")
+    parsed = {
+        up.name: caster[up.name](up.value)
+        for up in header.userParameters.userParameterDouble
+        if up.name in caster.keys()
+    }
+    if set(caster.keys()) != set(parsed.keys()):
+        raise ValueError(
+            f"Missing parameters {set(caster.keys()) - set(parsed.keys())}"
+        )
 
     hardware = HardwareConfig(
-        gmax=gmax,
-        smax=smax,
-        dwell_time_ms=dwell_time_ms,
+        gmax=parsed.pop("gmax"),
+        smax=parsed.pop("smax"),
+        dwell_time_ms=parsed.pop("dwell_time_ms"),
         n_coils=n_coils,
         field=field,
     )
 
     fov_mm = header.encoding[0].encodedSpace.fieldOfView_mm
+    fov_mm = (fov_mm.x, fov_mm.y, fov_mm.z)
     shape = header.encoding[0].encodedSpace.matrixSize
+    shape = (shape.x, shape.y, shape.z)
 
     return SimConfig(
-        max_sim_time=0,
+        max_sim_time=parsed.pop("max_sim_time"),
         seq=seq,
         hardware=hardware,
         fov_mm=fov_mm,
         shape=shape,
-        has_relaxation=False,
-        rng_seed=rng_seed,
+        rng_seed=parsed.pop("rng_seed"),
     )
 
 
