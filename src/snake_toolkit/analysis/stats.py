@@ -8,11 +8,11 @@ import pandas as pd
 import numpy as np
 
 from nilearn.glm.first_level import make_first_level_design_matrix, run_glm
+from nilearn.glm.first_level.hemodynamic_models import _resample_regressor
 from nilearn.glm import compute_contrast, expression_to_contrast_vector
 from nilearn.glm.thresholding import fdr_threshold
 from scipy.stats import norm
 
-from snake.simulation import SimConfig
 
 logger = logging.getLogger(__name__)
 
@@ -20,48 +20,25 @@ HeightControl = Literal["fpr", "fdr"]
 
 
 def contrast_zscore(
-    image: np.ndarray,
-    sim: SimConfig,
+    data: NDArray,
+    TR_vol: float,
+    bold_signal: NDArray,
+    bold_sample_time: NDArray,
     contrast_name: str,
-    **kwargs: None,
-) -> np.ndarray:
-    """Compute z-score of contrast_name.
-
-    For now only a single contrast is supported.
-
-    Parameters
-    ----------
-    image : np.ndarray
-        4D image data.
-    sim : SimData
-        Simulation data object.
-    contrast_name : str
-        Contrast name.
-    alpha : float or list of float, optional
-        Alpha level(s) for thresholding, by default 0.001.
-    height_control : str, optional
-        Height control method, by default "fpr".
-    **kwargs : dict
-        Additional arguments passed to `nilearn.glm.compute_contrast`.
-
-    Returns
-    -------
-    z_image : np.ndarray
-        Z-score image.
-    thresh_dict : dict
-        Dictionary of thresholded images for each alpha level.
-
-    """
-    # TODO rewrite this with new API !!!
-
-    design_matrix = make_first_level_design_matrix(
-        frame_times=np.arange(len(image)) * sim.extra_infos["TR_ms"] / 1000,
-        events=pd.DataFrame(sim.extra_infos["events"]),
-        drift_model=sim.extra_infos.get("drift_model", None),
+) -> NDArray:
+    """Compute the contrast Z-score."""
+    frame_times = np.arange(len(data)) * TR_vol
+    regs = _resample_regressor(
+        bold_signal, bold_sample_time, np.arange(len(data)) * TR_vol
     )
-    # Create a mask from reference data (not ideal, but best)
-    mask = sim.static_vol > 0
-    image_ = abs(image)[..., mask].squeeze()
+    design_matrix = make_first_level_design_matrix(
+        frame_times=frame_times,
+        events=None,
+        add_regs=regs[:, None],
+        add_reg_names=[contrast_name],
+        drift_model=None,
+    )
+    image_ = abs(data).reshape(data.shape[0], -1)
     logger.debug(f"image_={image_.shape}, design matrix={design_matrix.shape}")
     labels, results = run_glm(image_, design_matrix.values)
     # Translate formulas to vectors
@@ -71,8 +48,8 @@ def contrast_zscore(
 
     contrast = compute_contrast(labels, results, con_val, contrast_type="t")
 
-    z_image = np.zeros(mask.shape)
-    z_image[mask] = contrast.z_score()
+    z_image = np.zeros(data.shape[1:])
+    z_image = contrast.z_score().reshape(z_image.shape)
 
     return z_image
 
@@ -102,8 +79,7 @@ def get_thresh_map(
 
 
 def get_scores(
-    contrast: np.ndarray,
-    ground_truth: np.ndarray,
+    contrast: np.ndarray, roi_mask: np.ndarray, roi_threshold: float
 ) -> dict[str, float]:
     """Get sklearn metrics scores.
 
@@ -122,11 +98,11 @@ def get_scores(
 
     """
     stats = {}
-    gt_f = ground_truth.flatten() >= 0.5
+    gt_f = roi_mask.ravel() >= roi_threshold
     P = np.sum(gt_f)
     N = gt_f.size - P
 
-    fpr, tpr, thresholds = roc_curve(gt_f, contrast.flatten())
+    fpr, tpr, thresholds = roc_curve(gt_f, contrast.ravel())
     stats["fpr"] = fpr.tolist()
     stats["tpr"] = tpr.tolist()
     stats["tresh"] = thresholds.tolist()
