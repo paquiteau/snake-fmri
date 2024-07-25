@@ -11,6 +11,8 @@ from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
 from snake._version import __version__ as version
 
+from .utils import get_waveform_id, obj2b64encode
+
 if TYPE_CHECKING:
     from snake.phantom import DynamicData, Phantom
     from snake.sampling import BaseSampler
@@ -73,6 +75,7 @@ def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
                 ("smax", sim_conf.hardware.smax),
                 ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
                 ("rng_seed", sim_conf.rng_seed),
+                ("max_sim_time", sim_conf.max_sim_time),
             ]
         ]
     )
@@ -111,6 +114,55 @@ def add_smaps_mrd(
             ),
             data=smaps,
         ),
+    )
+    return dataset
+
+
+def add_dynamic_mrd(
+    dataset: mrd.Dataset, dynamic: DynamicData, sim_conf: SimConfig
+) -> mrd.Dataset:
+    """Add the dynamic data to the dataset."""
+    waveform_id = get_waveform_id(dynamic.name)
+
+    # add the type to the header.
+    hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+    hdr.waveformInformation.append(
+        mrd.xsd.waveformInformationType(
+            waveformName=dynamic.name,
+            waveformType=waveform_id,
+            userParameters=mrd.xsd.userParametersType(
+                userParameterBase64=[
+                    mrd.xsd.userParameterBase64Type(
+                        dynamic.name, obj2b64encode(dynamic.func)
+                    )
+                ],
+                userParameterString=[
+                    mrd.xsd.userParameterStringType(
+                        "domain", "kspace" if dynamic.in_kspace else "image"
+                    )
+                ],
+            ),
+        )
+    )
+    dataset.write_xml_header(mrd.xsd.ToXML(hdr))
+
+    if dynamic.data.ndim == 1:
+        channels = 1
+        nsamples = dynamic.data.shape[0]
+    elif dynamic.data.ndim == 2:
+        channels, nsamples = dynamic.data.shape
+    else:
+        raise ValueError(f"Invalid data shape: {dynamic.data.shape}")
+    dataset.append_waveform(
+        mrd.Waveform(
+            mrd.WaveformHeader(
+                waveform_id=waveform_id,
+                number_of_samples=nsamples,
+                channels=channels,
+                sample_time_us=sim_conf.sim_tr_ms * 1000,
+            ),
+            data=np.float32(dynamic.data).view(np.uint32),
+        )
     )
     return dataset
 
@@ -191,7 +243,7 @@ def make_base_mrd(
         if dynamic_data is not None:
             for dyn in dynamic_data:
                 if dyn is not None:
-                    dataset = dyn.to_mrd_dataset(dataset, sim_conf)
+                    add_dynamic_mrd(dataset, dyn, sim_conf)
 
     with PerfLogger(logger=log, name="smaps"):
         if sim_conf.hardware.n_coils > 1 and smaps is not None:

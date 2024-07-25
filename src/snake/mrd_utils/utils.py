@@ -1,9 +1,43 @@
 """Utils for the MRD format."""
 
+import hashlib
 import base64
 import pickle
 from enum import IntFlag
 from typing import Any
+
+
+def get_waveform_id(input_string: str) -> int:
+    """
+    Generate a unique id from an input string.
+
+    The generated id is guaranteed to be bigger than 1024 and smaller than 2^16.
+
+    Parameters
+    ----------
+    input_string : str
+        The input string from which to generate the unique id.
+
+    Returns
+    -------
+    int
+       Unique id generated from the input string.
+
+    Examples
+    --------
+    >>> generate_unique_id('hello_world')
+    32767
+    >>> generate_unique_id('this_is_a_test')
+    20481
+    """
+    # Convert the input string to a hash digest
+    hash_object = hashlib.md5(input_string.encode())
+    hash_digest = int(hash_object.hexdigest(), 16)
+
+    # Ensure the id is bigger than 1024 and smaller than 2^16
+    unique_id = hash_digest % (2**16 - 1024) + 1024
+
+    return unique_id
 
 
 def obj2b64encode(f: Any) -> bytes:
