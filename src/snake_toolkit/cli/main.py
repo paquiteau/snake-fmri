@@ -8,9 +8,9 @@ from snake.mrd_utils import make_base_mrd, MRDLoader
 from snake.engine import BaseAcquisitionEngine
 
 
-from .acquisition import acquisition
-from .config import ConfigSNAKE
-from .reconstruction import reconstruction
+from snake_toolkit.cli.acquisition import acquisition
+from snake_toolkit.cli.config import ConfigSNAKE
+from snake_toolkit.cli.reconstruction import reconstruction
 
 
 def main(cfg: ConfigSNAKE) -> None:
