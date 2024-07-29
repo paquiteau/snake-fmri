@@ -15,8 +15,6 @@ from .reconstruction import reconstruction
 
 def main(cfg: ConfigSNAKE) -> None:
     """Do Acquisition and Reconstruction sequentially."""
-    cfg = OmegaConf.to_object(cfg)
-    print(cfg)
     acquisition(cfg)
     reconstruction(cfg)
 
