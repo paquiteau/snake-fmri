@@ -85,16 +85,11 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         acq_size = np.empty((1,), dtype=acq_dtype).nbytes
         chunk = int(np.ceil((n_shots_frame * acq_size) / (1024**2)))
         self.log.debug("chunk size for hdf5 %s, elem %s Bytes", chunk, acq_size)
-        dataset._dataset.create_dataset(
-            "data",
-            shape=(n_ksp_frames * n_shots_frame,),
-            dtype=acq_dtype,
-            chunks=(chunk,),
-        )
+
         pbar = tqdm(total=n_ksp_frames * n_shots_frame)
+        acq = np.empty((n_shots_frame,), dtype=acq_dtype)
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
-
             for j in range(n_shots_frame):
                 flags = 0
                 if j == 0:
@@ -104,8 +99,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                     flags |= ACQ.LAST_IN_ENCODE_STEP1
                     flags |= ACQ.LAST_IN_REPETITION
 
-                acq = np.empty((1,), dtype=acq_dtype)
-                acq["head"] = np.frombuffer(
+                acq[counter]["head"] = np.frombuffer(
                     mrd.AcquisitionHeader(
                         version=1,
                         flags=flags,
@@ -122,12 +116,17 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                     ),
                     dtype=mrd.hdf5.acquisition_header_dtype,
                 )
-                acq["data"] = kspace_data_vol[j, :, :].view(np.float32).ravel()
-                acq["traj"] = kspace_traj_vol[j, :].view(np.float32).ravel()
+                acq[counter]["data"] = kspace_data_vol[j, :, :].view(np.float32).ravel()
+                acq[counter]["traj"] = kspace_traj_vol[j, :].view(np.float32).ravel()
                 # write to hdf5 mrd
-                dataset._dataset["data"][counter] = acq[0]
                 counter += 1
                 pbar.update(1)
+        dataset._dataset.create_dataset(
+            "data",
+            data=acq,
+            chunks=(chunk,),
+        )
+        dataset._dataset["data"] = acq
         pbar.close()
         return dataset
 
@@ -283,15 +282,11 @@ class EPI3dAcquisitionSampler(BaseSampler):
         # Write the acquisition.
         # We create the dataset manualy with custom dtype.
         # Compared to using mrd.Dataset.append_acquisition
-        # - this is faster (20-50%)
+        # - this is faster !
         # - uses fixed sized array (All shot have the same size !)
         # - allow for smart chunking (usefull for reading/writing efficiently)
-
-        dataset._dataset.create_dataset(
-            "data",
-            shape=(n_ksp_frames * sim_conf.shape[0] * sim_conf.shape[1],),
-            dtype=acq_dtype,
-            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+        acq = np.empty(
+            (n_ksp_frames * sim_conf.shape[1] * sim_conf.shape[0],), dtype=acq_dtype
         )
 
         for i in range(n_ksp_frames):
@@ -314,8 +309,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
                             flags |= ACQ.LAST_IN_REPETITION
                             if i == n_ksp_frames - 1:
                                 flags |= ACQ.LAST_IN_MEASUREMENT
-                    acq = np.empty((1,), dtype=acq_dtype)
-                    acq[0]["head"] = np.frombuffer(
+                    acq[counter]["head"] = np.frombuffer(
                         mrd.AcquisitionHeader(
                             version=1,
                             flags=flags,
@@ -335,10 +329,15 @@ class EPI3dAcquisitionSampler(BaseSampler):
                         ),
                         dtype=mrd.hdf5.acquisition_header_dtype,
                     ).copy()
-                    acq["data"] = zero_data.view(np.float32).ravel()
-                    acq["traj"] = np.float32(readout).view(np.float32).ravel()
-                    dataset._dataset["data"][counter] = acq[0]
+                    acq[counter]["data"] = zero_data.view(np.float32).ravel()
+                    acq[counter]["traj"] = np.float32(readout).view(np.float32).ravel()
                     counter += 1
+
+        dataset._dataset.create_dataset(
+            "data",
+            data=acq,
+            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+        )
         return dataset
 
 
