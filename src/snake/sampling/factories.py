@@ -454,9 +454,9 @@ def evi_factory(
     """Generate a Echo Volume Imaging trajectory."""
     epi_3d_coord = stacked_epi2d(
         shape,
-        phase_locs=np.arange(shape[0]),
-        freq_locs=np.arange(shape[1]),
-        slice_locs=np.arange(shape[2]),
+        slice_locs=np.arange(shape[0]),
+        phase_locs=np.arange(shape[1]),
+        freq_locs=np.arange(shape[2]),
     )
 
     evi = epi_3d_coord.reshape(-1, 3)

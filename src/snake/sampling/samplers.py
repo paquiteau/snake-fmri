@@ -12,6 +12,7 @@ from .factories import (
     VDSpdf,
     stack_spiral_factory,
     stacked_epi_factory,
+    evi_factory,
 )
 from snake.mrd_utils.utils import ACQ
 
@@ -37,7 +38,8 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         self.log.info("Generating %d frames", n_ksp_frames)
         self.log.info("Frame have %d shots", n_shots_frame)
         self.log.info("Shot have %d samples", n_samples)
-        self.log.info("volume TR: %f ms", TR_vol_ms)
+        self.log.info("Tobs %.3f ms", n_samples * sim_conf.hardware.dwell_time_ms)
+        self.log.info("volume TR: %.3f ms", TR_vol_ms)
 
         if n_ksp_frames == 0:
             raise ValueError(
@@ -210,6 +212,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
             orderz=self.orderz,
             rng=sim_conf.rng,
         )
+
         return epi_coords
 
     def add_all_acq_mrd(
@@ -228,6 +231,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
 
         self.log.info("Generating %d frames", n_ksp_frames)
         self.log.info("Frame have %d shots", n_shots_frame)
+        self.log.info("Tobs %.3f ms", n_samples * sim_conf.hardware.dwell_time_ms)
         self.log.info("Shot have %d samples", n_samples)
         self.log.info("volume TR: %f ms", TR_vol_ms)
 
@@ -314,7 +318,157 @@ class EPI3dAcquisitionSampler(BaseSampler):
                             version=1,
                             flags=flags,
                             scan_counter=counter,
-                            sample_time_us=self.obs_time_ms * 1000 / n_samples,
+                            sample_time_us=sim_conf.hardware.dwell_time_ms
+                            * 1000
+                            / n_samples,
+                            center_sample=n_samples // 2 if self.in_out else 0,
+                            idx=mrd.EncodingCounters(
+                                repetition=i,
+                                kspace_encode_step_1=readout[0, 1],
+                                slice=readout[0, 0],
+                            ),
+                            read_dir=dir_cos(readout[0], readout[1]),
+                            active_channels=sim_conf.hardware.n_coils,
+                            available_channels=sim_conf.hardware.n_coils,
+                            number_of_samples=len(readout),
+                            trajectory_dimensions=3,
+                        ),
+                        dtype=mrd.hdf5.acquisition_header_dtype,
+                    ).copy()
+                    acq[counter]["data"] = zero_data.view(np.float32).ravel()
+                    acq[counter]["traj"] = np.float32(readout).view(np.float32).ravel()
+                    counter += 1
+
+        dataset._dataset.create_dataset(
+            "data",
+            data=acq,
+            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+        )
+        return dataset
+
+
+class EVI3dAcquisitionSampler(BaseSampler):
+    """SAmpler for EVI acquisition."""
+
+    __sampler_name__ = "evi"
+    __engine__ = "EVI"
+
+    in_out = True
+
+    def _single_frame(self, sim_conf: SimConfig) -> NDArray:
+        """Generate the sampling pattern."""
+        epi_coords = evi_factory(
+            shape=sim_conf.shape,
+        ).reshape(*sim_conf.shape, 3)
+        return epi_coords
+
+    def add_all_acq_mrd(
+        self,
+        dataset: mrd.Dataset,
+        sim_conf: SimConfig,
+    ) -> mrd.Dataset:
+        """Create the acquisitions associated with this sampler."""
+        single_frame = self._single_frame(sim_conf)
+        n_samples = (
+            single_frame.shape[1] * single_frame.shape[2] * single_frame.shape[0]
+        )
+
+        TR_vol_ms = sim_conf.seq.TR
+        n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
+        n_ksp_frames = int(n_ksp_frames_true)
+
+        self.log.info("Generating %d frames", n_ksp_frames)
+        self.log.info("Frame have %d shots", 1)
+        self.log.info("Tobs %.3f ms", n_samples * sim_conf.hardware.dwell_time_ms)
+        self.log.info("Shot have %d samples", n_samples)
+        self.log.info("volume TR: %f ms", TR_vol_ms)
+
+        if n_ksp_frames == 0:
+            raise ValueError(
+                "No frame can be generated with the current configuration"
+                " (TR/shot too long or max_sim_time too short)"
+            )
+        if n_ksp_frames != n_ksp_frames_true:
+            self.log.warning(
+                "Volumic TR does not align with max simulation time, "
+                "last incomplete frame will be discarded."
+            )
+            self.log.warning("Updating the max_sim_time to match.")
+            sim_conf.max_sim_time = TR_vol_ms * n_ksp_frames / 1000
+        self.log.info("Start Sampling pattern generation")
+        counter = 0
+        zero_data = np.zeros(
+            (sim_conf.hardware.n_coils, sim_conf.shape[2]), dtype=np.complex64
+        )
+
+        # Update the encoding limits.
+        # step 0 : frequency (readout directionz)
+        # step 1 : phase encoding (blip epi)
+        #
+        hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
+        hdr.encoding[0].encodingLimits = mrd.xsd.encodingLimitsType(
+            kspace_encoding_step_0=mrd.xsd.limitType(
+                0, sim_conf.shape[2], sim_conf.shape[2] // 2
+            ),
+            kspace_encoding_step_1=mrd.xsd.limitType(
+                0, sim_conf.shape[1], sim_conf.shape[1] // 2
+            ),
+            slice=mrd.xsd.limitType(0, sim_conf.shape[0], sim_conf.shape[0] // 2),
+            repetition=mrd.xsd.limitType(0, n_ksp_frames, 0),
+        )
+
+        dataset.write_xml_header(mrd.xsd.ToXML(hdr))  # write the updated header back
+
+        acq_dtype = np.dtype(
+            [
+                ("head", mrd.hdf5.acquisition_header_dtype),
+                (
+                    "data",
+                    np.float32,
+                    (sim_conf.hardware.n_coils * sim_conf.shape[2] * 2,),
+                ),
+                ("traj", np.uint32, (sim_conf.shape[2] * 3,)),
+            ]
+        )
+
+        # Write the acquisition.
+        # We create the dataset manualy with custom dtype.
+        # Compared to using mrd.Dataset.append_acquisition
+        # - this is faster !
+        # - uses fixed sized array (All shot have the same size !)
+        # - allow for smart chunking (usefull for reading/writing efficiently)
+        acq = np.empty(
+            (n_ksp_frames * sim_conf.shape[1] * sim_conf.shape[0],), dtype=acq_dtype
+        )
+
+        for i in range(n_ksp_frames):
+            stack_epi3d = self._single_frame(sim_conf)  # of shape N_stack, N, 3
+            for j, epi2d in enumerate(stack_epi3d):
+                epi2d_r = epi2d.reshape(
+                    sim_conf.shape[1], sim_conf.shape[2], 3
+                )  # reorder to have
+                for k, readout in enumerate(epi2d_r):
+                    flags = 0
+                    if k == 0:
+                        flags |= ACQ.FIRST_IN_ENCODE_STEP1
+                        flags |= ACQ.FIRST_IN_SLICE
+                        if j == 0:
+                            flags |= ACQ.FIRST_IN_REPETITION
+                    if k == len(epi2d_r) - 1:
+                        flags |= ACQ.LAST_IN_ENCODE_STEP1
+                        flags |= ACQ.LAST_IN_SLICE
+                        if j == len(stack_epi3d) - 1:
+                            flags |= ACQ.LAST_IN_REPETITION
+                            if i == n_ksp_frames - 1:
+                                flags |= ACQ.LAST_IN_MEASUREMENT
+                    acq[counter]["head"] = np.frombuffer(
+                        mrd.AcquisitionHeader(
+                            version=1,
+                            flags=flags,
+                            scan_counter=counter,
+                            sample_time_us=sim_conf.hardware.dwell_time_ms
+                            * 1000
+                            / n_samples,
                             center_sample=n_samples // 2 if self.in_out else 0,
                             idx=mrd.EncodingCounters(
                                 repetition=i,

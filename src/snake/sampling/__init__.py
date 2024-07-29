@@ -5,6 +5,7 @@ from .samplers import (
     EPI3dAcquisitionSampler,
     StackOfSpiralSampler,
     NonCartesianAcquisitionSampler,
+    EVI3dAcquisitionSampler,
 )
 
 __all__ = [

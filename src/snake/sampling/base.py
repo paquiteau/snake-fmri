@@ -1,5 +1,6 @@
 """Sampling pattern generations."""
 
+from __future__ import annotations
 import logging
 from typing import ClassVar
 from numpy.typing import NDArray
@@ -29,8 +30,8 @@ class BaseSampler(metaclass=MetaSampler):
 
     __sampler_name__: ClassVar[str]
     __engine__: ClassVar[str]
+    __registry__: ClassVar[dict[str, type[BaseSampler]]]
     in_out: bool = True
-    obs_time_ms: int = 25
 
     @property
     def log(self) -> logging.Logger:
