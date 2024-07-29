@@ -11,6 +11,7 @@ import hydra
 from omegaconf import DictConfig, OmegaConf
 from snake.mrd_utils import (
     read_mrd_header,
+    MRDLoader,
     CartesianFrameDataLoader,
     NonCartesianFrameDataLoader,
     parse_sim_conf,
@@ -41,7 +42,8 @@ def reconstruction(cfg: DictConfig) -> None:
         log.warning("Config: %s", cfg.sim_conf)
         sim_conf = cfg.sim_conf
 
-    if engine == "EPI":
+    DataLoader: type[MRDLoader]
+    if engine in ["EPI", "EVI"]:
         DataLoader = CartesianFrameDataLoader
     elif engine == "NUFFT":
         DataLoader = NonCartesianFrameDataLoader
