@@ -146,7 +146,25 @@ class CartesianFrameDataLoader(MRDLoader):
             image = ifft(kspace)
     """
 
-    def __iter__(self):
+    def get_kspace_frame(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
+        """Get the k-space frame."""
+        kspace = np.zeros((self.n_coils, *self.shape), dtype=np.complex64)
+        mask = np.zeros(self.shape, dtype=bool)
+
+        n_acq_per_frame = self.dataset.number_of_acquisitions() // self.n_frames
+        start = idx * n_acq_per_frame
+        end = (idx + 1) * n_acq_per_frame
+        # Do a single read of the dataset much faster !
+        acq = self.dataset._dataset["data"][start:end]
+        traj = acq["traj"].reshape(-1, 3)
+        data = acq["data"].reshape(self.n_coils, -1).view(np.complex64)
+        traj_locs: tuple = tuple(np.int32(traj.T))  # type: ignore
+        for c in range(self.n_coils):
+            kspace[c][traj_locs] = data[c]
+        mask[traj_locs] = True
+        return mask, kspace
+
+    def __iter__(self):  # This is slow !
         counter = 0
         yielded = False
         kspace = np.zeros((self.n_coils, *self.shape), dtype=np.complex64)
