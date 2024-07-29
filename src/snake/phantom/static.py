@@ -19,7 +19,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
-
+from .._meta import NoCaseEnum
 from ..simulation import SimConfig
 
 log = logging.getLogger(__name__)
@@ -33,6 +33,13 @@ class PropTissueEnum(IntEnum):
     T2s = 2
     rho = 3
     chi = 4
+
+
+class TissueFile(str, NoCaseEnum):
+    """Enum for the tissue properties file."""
+
+    tissue_1T5 = "tissues_properties_1T5.csv"
+    tissue_7T = "tissues_properties_1T7.csv"
 
 
 @dataclass
@@ -49,7 +56,7 @@ class Phantom:
         cls,
         sub_id: int,
         sim_conf: SimConfig,
-        tissue_file: str | None = None,
+        tissue_file: str | TissueFile = TissueFile.tissue_1T5,
         tissue_select: list[str] | None = None,
         tissue_ignore: list[str] | None = None,
     ) -> Phantom:
@@ -58,7 +65,7 @@ class Phantom:
 
         from .utils import resize_tissues
 
-        if tissue_ignore is not None and tissue_select is not None:
+        if tissue_ignore and tissue_select:
             raise ValueError("Only one of tissue_select or tissue_ignore can be used.")
 
         # TODO: Use the sim shape properly.
@@ -70,8 +77,14 @@ class Phantom:
         )
         tissues_mask = np.ascontiguousarray(tissues_mask.T)
         tissues_list = []
-        if tissue_file is None:
-            tissue_file = str(files("snake.phantom.data") / "tissues_properties.csv")
+        try:
+            tissue_file = TissueFile(tissue_file)
+        except ValueError as exc:
+            if not os.path.exists(tissue_file):
+                raise FileNotFoundError(f"File {tissue_file} does not exist.") from exc
+        finally:
+            tissue_file = str(files("snake.phantom.data") / tissue_file)
+
         with open(tissue_file) as f:
             lines = f.readlines()
             select = []

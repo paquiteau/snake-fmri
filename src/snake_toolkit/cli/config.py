@@ -7,7 +7,7 @@ from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, DictConfig
 
 from snake.simulation import SimConfig
-
+from snake.phantom.static import TissueFile
 from snake.handlers import AbstractHandler
 from snake.sampling import BaseSampler
 
@@ -32,6 +32,8 @@ class PhantomConfig:
     name: str = "brainweb"
     sub_id: int = 4
     tissue_select: list[str] = field(default_factory=list)
+    tissue_ignore: list[str] = field(default_factory=list)
+    tissue_file: str | TissueFile = TissueFile.tissue_1T5
 
 
 @dataclass
@@ -102,6 +104,7 @@ for handler_name, cls in AbstractHandler.__registry__.items():
     cs.store(group="handlers", name=handler_name, node={handler_name: cls})
 
 for sampler, cls in BaseSampler.__registry__.items():
+    print(sampler, cls)
     cs.store(group="sampler", name=sampler, node={sampler: cls})
 
 for reconstructor, cls in BaseReconstructor.__registry__.items():
