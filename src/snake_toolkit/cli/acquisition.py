@@ -27,6 +27,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
             sub_id=cfg.phantom.sub_id,
             sim_conf=sim_conf,
             tissue_select=cfg.phantom.tissue_select,
+            tissue_ignore=cfg.phantom.tissue_ignore,
         )
     else:
         raise ValueError(f"Unknown phantom {cfg.phantom.name}")
