@@ -44,11 +44,14 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         limits = hdr.encoding[0].encodingLimits
         n_lines_epi = limits.kspace_encoding_step_1.maximum
         readout_length = limits.kspace_encoding_step_0.maximum
-        traj = np.zeros((len(chunk), n_lines_epi, readout_length, 3), dtype=np.int32)
-        for k, s in enumerate(chunk):
-            for i in range(n_lines_epi):
-                acq = dataset.read_acquisition(s * n_lines_epi + i)
-                traj[k, i] = acq.traj.astype(np.int32, copy=False).reshape(-1, 3)
+        # Read all the chunk data from file.
+        traj = (
+            dataset._dataset["data"][
+                chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
+            ]["traj"]
+            .astype(np.int32, copy=False)
+            .reshape(len(chunk), n_lines_epi, readout_length, 3)
+        )
 
         return traj
 
