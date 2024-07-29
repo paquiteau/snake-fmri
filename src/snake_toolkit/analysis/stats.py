@@ -27,9 +27,11 @@ def contrast_zscore(
     contrast_name: str,
 ) -> NDArray:
     """Compute the contrast Z-score."""
-    frame_times = np.arange(len(data)) * TR_vol
+    frame_times = (np.arange(len(data)) + 0.5) * TR_vol
     regs = _resample_regressor(
-        bold_signal, bold_sample_time, np.arange(len(data)) * TR_vol
+        bold_signal,
+        bold_sample_time,
+        frame_times,
     )
     design_matrix = make_first_level_design_matrix(
         frame_times=frame_times,
