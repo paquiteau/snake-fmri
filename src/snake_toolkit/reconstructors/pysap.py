@@ -54,6 +54,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     __reconstructor_name__ = "adjoint"
     n_jobs: int = 10
+    nufft_backend: str = "gpunufft"
 
     def setup(self, sim_conf: SimConfig) -> None:
         """Initialize Reconstructor."""
@@ -114,7 +115,30 @@ class ZeroFilledReconstructor(BaseReconstructor):
         self, data_loader: NonCartesianFrameDataLoader, sim_conf: SimConfig
     ) -> NDArray:
         """Reconstruct data with nufft method."""
-        raise NotImplementedError("Missing nufft code.")
+        from mrinufft import get_operator
+
+        smaps = data_loader.get_smaps()
+
+        traj, kspace_data = data_loader.get_kspace_frame(0)
+        nufft_operator = get_operator(
+            self.nufft_backend,
+            samples=traj,
+            density=True,
+            shape=data_loader.shape,
+            n_coils=data_loader.n_coils,
+            smaps=smaps,
+        )
+
+        final_images = np.empty(
+            (data_loader.n_frames, *data_loader.shape), dtype=np.float32
+        )
+
+        for i in tqdm(range(data_loader.n_frames)):
+            traj, data = data_loader.get_kspace_frame(i)
+
+            nufft_operator.samples = traj
+            final_images[i] = abs(nufft_operator.adj_op(data))
+        return final_images
 
 
 # EOF
