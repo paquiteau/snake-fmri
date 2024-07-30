@@ -196,7 +196,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     pbar.update(worker_chunk_size)
                 chunk_ksp = np.load(f_chunk)
                 # Add noise
-                if self.snr != np.inf:
+                if self.snr > 0:
                     noise = get_noise(chunk_ksp, coil_cov, sim_conf.rng)
                     chunk_ksp += noise
                 self._write_chunk_data(
