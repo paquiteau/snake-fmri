@@ -6,6 +6,7 @@ import base64
 import contextlib
 import logging
 import os
+from pathlib import Path
 from collections.abc import Generator
 from dataclasses import dataclass
 from enum import IntEnum
@@ -38,8 +39,8 @@ class PropTissueEnum(IntEnum):
 class TissueFile(str, NoCaseEnum):
     """Enum for the tissue properties file."""
 
-    tissue_1T5 = "tissues_properties_1T5.csv"
-    tissue_7T = "tissues_properties_1T7.csv"
+    tissue_1T5 = str(files("snake.phantom.data") / "tissues_properties_1T5.csv")
+    tissue_7T = str(files("snake.phantom.data") / "tissues_properties_7T.csv")
 
 
 @dataclass
@@ -78,13 +79,16 @@ class Phantom:
         tissues_mask = np.ascontiguousarray(tissues_mask.T)
         tissues_list = []
         try:
-            tissue_file = TissueFile(tissue_file)
+            if isinstance(tissue_file, TissueFile):
+                tissue_file = tissue_file.value
+            else:
+                tissue_file = TissueFile[tissue_file].value
         except ValueError as exc:
             if not os.path.exists(tissue_file):
                 raise FileNotFoundError(f"File {tissue_file} does not exist.") from exc
         finally:
-            tissue_file = str(files("snake.phantom.data") / tissue_file)
-
+            tissue_file = str(tissue_file)
+        log.info(f"Using tissue file:{tissue_file} ")
         with open(tissue_file) as f:
             lines = f.readlines()
             select = []
