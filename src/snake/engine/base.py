@@ -39,7 +39,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     """
 
     __engine_name__: ClassVar[str]
-    __registry__: ClassVar[dict[str, BaseAcquisitionEngine]]
+    __registry__: ClassVar[dict[str, type[BaseAcquisitionEngine]]]
     log: ClassVar[logging.Logger]
 
     mode: str = "simple"
@@ -142,7 +142,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def __call__(
         self,
-        filename: str,
+        filename: os.PathLike,
         worker_chunk_size: int,
         n_workers: int,
         **kwargs: Mapping[str, Any],
