@@ -20,7 +20,7 @@ from snake.mrd_utils.utils import ACQ
 class NonCartesianAcquisitionSampler(BaseSampler):
     """Base class for non-cartesian acquisition samplers."""
 
-    engine = "NUFFT"
+    __engine__ = "NUFFT"
 
     def add_all_acq_mrd(
         self,
@@ -89,7 +89,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         self.log.debug("chunk size for hdf5 %s, elem %s Bytes", chunk, acq_size)
 
         pbar = tqdm(total=n_ksp_frames * n_shots_frame)
-        acq = np.empty((n_shots_frame,), dtype=acq_dtype)
+        acq = np.empty((n_shots_frame * n_ksp_frames,), dtype=acq_dtype)
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
             for j in range(n_shots_frame):
@@ -108,7 +108,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                         scan_counter=counter,
                         sample_time_us=self.obs_time_ms * 1000 / n_samples,
                         center_sample=n_samples // 2 if self.in_out else 0,
-                        idx=mrd.EncodingCounter(
+                        idx=mrd.EncodingCounters(
                             repetition=i, kspace_encode_step_1=j, kspace_encode_step_2=1
                         ),
                         active_channels=sim_conf.hardware.n_coils,
@@ -128,7 +128,6 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             data=acq,
             chunks=(chunk,),
         )
-        dataset._dataset["data"] = acq
         pbar.close()
         return dataset
 

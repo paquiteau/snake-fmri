@@ -28,6 +28,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
             sim_conf=sim_conf,
             tissue_select=cfg.phantom.tissue_select,
             tissue_ignore=cfg.phantom.tissue_ignore,
+            tissue_file=cfg.phantom.tissue_file,
         )
     else:
         raise ValueError(f"Unknown phantom {cfg.phantom.name}")
@@ -56,12 +57,13 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     kwargs = {}
     if engine_klass.__engine_name__ == "NUFFT":
         kwargs["nufft_backend"] = cfg.engine.nufft_backend
-    engine = engine_klass(mode=cfg.engine.mode, snr=cfg.engine.snr, **kwargs)
+    engine = engine_klass(mode=cfg.engine.mode, snr=cfg.engine.snr)
 
     engine(
         cfg.filename,
         worker_chunk_size=cfg.engine.chunk_size,
         n_workers=cfg.engine.n_jobs,
+        **kwargs,
     )
 
     log.info("Acquisition done")
