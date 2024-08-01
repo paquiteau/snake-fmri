@@ -153,4 +153,160 @@ class ZeroFilledReconstructor(BaseReconstructor):
         return final_images
 
 
-# EOF
+class SequentialReconstructor(BaseReconstructor):
+    """Use a sequential Reconstruction.
+
+    Parameters
+    ----------
+    max_iter_frame
+        Number of iteration to allow per frame.
+    optimizer
+        Optimizer name, available are pogm and fista.
+    threshold
+        Threshold value for the wavelet regularisation.
+    """
+
+    __reconstructor_name__ = "sequential"
+
+    max_iter_per_frame: int = 15
+    optimizer: str = "pogm"
+    wavelet: str = "sym8"
+    threshold: float | str = "sure"
+    nufft_backend: str = "gpunufft"
+    density_compensation: str | bool = "pipe"
+    restart_strategy: str = "warm"
+    compute_backend: str = "cupy"
+
+    def setup(self, sim_conf: SimConfig) -> None:
+        """Set up the reconstructor."""
+        from fmri.operators.weighted import AutoWeightedSparseThreshold
+        from modopt.opt.linear import Identity
+        from modopt.opt.linear.wavelet import WaveletTransform
+        from modopt.opt.proximity import SparseThreshold
+        from modopt.base.backend import get_backend
+
+        self.space_linear_op = WaveletTransform(
+            self.wavelet,
+            shape=sim_conf.shape,
+            level=3,
+            mode="zero",
+            compute_backend=self.compute_backend,
+        )
+        xp, _ = get_backend(self.compute_backend)
+        _ = self.space_linear_op.op(xp.zeros(sim_conf.shape, dtype=np.complex64))
+
+        if self.threshold == "sure":
+            self.space_prox_op = AutoWeightedSparseThreshold(
+                self.space_linear_op.coeffs_shape,
+                linear=None,
+                threshold_estimation="hybrid-sure",
+                threshold_scaler=0.6,
+            )
+        else:
+            self.threshold = float(self.threshold)
+            self.space_prox_op = SparseThreshold(
+                linear=Identity(), weights=self.threshold
+            )
+
+    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> np.ndarray:
+        """Reconstruct with Sequential."""
+        self.setup(sim_conf)
+        from fmri.operators.gradient import (
+            GradAnalysis,
+            GradSynthesis,
+        )
+        from modopt.base.backend import get_backend
+        from mrinufft import get_operator
+
+        xp, _ = get_backend(self.compute_backend)
+
+        traj, data = data_loader.get_kspace_frame(0)
+
+        smaps = data_loader.get_smaps()
+
+        fourier_op = get_operator(
+            self.nufft_backend,
+            samples=traj,
+            shape=data_loader.shape,
+            n_coils=data_loader.n_coils,
+            smaps=xp.array(smaps) if smaps is not None else None,
+            density=self.density_compensation,
+        )
+
+        final_estimate = np.zeros(
+            (data_loader.n_frames, *data_loader.shape), dtype=np.float32
+        )
+        grad_kwargs = dict(
+            fourier_op=fourier_op,
+            input_data_writeable=True,
+            dtype=np.complex64,
+            compute_backend=self.compute_backend,
+            verbose=0,
+        )
+        if self.optimizer in ["fista"]:
+            grad_op = GradAnalysis(**grad_kwargs)
+        if self.optimizer in ["pogm"]:
+            grad_op = GradSynthesis(linear_op=self.space_linear_op, **grad_kwargs)
+
+        x_init = xp.zeros(sim_conf.shape, dtype=np.complex64)
+        pbar_frames = tqdm(total=data_loader.n_frames, position=0)
+        pbar_iter = tqdm(total=self.max_iter_per_frame, position=1)
+        for i, traj, data in data_loader.iter_frames():
+            grad_op.fourier_op.samples = traj
+            spec_rad = grad_op.fourier_op.get_lipschitz_cst()
+            grad_op._obs_data = xp.array(data)
+            grad_op.spec_rad = spec_rad
+            grad_op.inv_spec_rad = 1 / spec_rad
+            x_iter = self._reconstruct_frame(
+                grad_op,
+                x_init,
+                n_iter=self.max_iter_per_frame,
+                progbar=pbar_iter,
+            )
+            # Prepare for next iteration and save results
+            x_init = x_iter if self.restart_strategy == "warm" else x_init.copy()
+            if self.compute_backend == "cupy":
+                final_estimate[i, ...] = abs(x_iter).get()  # type: ignore
+            else:
+                final_estimate[i, ...] = abs(x_iter)
+
+            pbar_frames.update(1)
+
+        return final_estimate
+
+    def _reconstruct_frame(
+        self,
+        grad_op: Any,
+        x_init: NDArray,
+        n_iter: int = 15,
+        progbar: tqdm | None = None,
+    ) -> NDArray:
+        from fmri.reconstructors.utils import initialize_opt
+        from modopt.base.backend import get_backend
+
+        xp, _ = get_backend(self.compute_backend)
+        # only recreate gradient if the trajectory change.
+        # reset Smaps and optimizer if required.
+        opt = initialize_opt(
+            opt_name=self.optimizer,
+            grad_op=grad_op,
+            linear_op=copy.deepcopy(self.space_linear_op),
+            prox_op=copy.deepcopy(self.space_prox_op),
+            x_init=x_init,
+            synthesis_init=False,
+            metric_kwargs={},
+            compute_backend=self.compute_backend,
+            opt_kwargs=dict(
+                verbose=0,
+                cost=None,
+            ),
+        )
+        # if no reset, the internal state is kept.
+        if progbar is not None:
+            progbar.reset(total=n_iter)
+        opt.iterate(max_iter=n_iter, progbar=progbar)
+        if hasattr(grad_op, "linear_op"):
+            img = grad_op.linear_op.adj_op(opt.x_final)
+        else:
+            img = opt.x_final
+        return img
