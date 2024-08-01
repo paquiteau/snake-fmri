@@ -9,6 +9,7 @@ from numpy.typing import NDArray
 
 from snake.phantom import DynamicData, Phantom
 from snake.simulation import SimConfig
+from snake.mrd_utils import MRDLoader
 
 from .base import BaseAcquisitionEngine
 from .utils import fft, get_contrast_gre
@@ -21,18 +22,16 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     mode: str = "simple"
     snr: float = np.inf
 
-    def _get_chunk_list(
-        self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader
-    ) -> Sequence[int]:
-        limits = hdr.encoding[0].encodingLimits
+    def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
+        limits = data_loader.header.encoding[0].encodingLimits
         self.n_lines_epi = limits.kspace_encoding_step_1.maximum
 
-        n_epi = dataset.number_of_acquisitions() // self.n_lines_epi
+        n_epi = data_loader.n_acquisition // self.n_lines_epi
         return range(n_epi)
 
     def _job_trajectories(
         self,
-        dataset: mrd.Dataset,
+        data_loader: MRDLoader,
         hdr: mrd.xsd.ismrmrdHeader,
         sim_conf: SimConfig,
         chunk: Sequence[int],
@@ -46,7 +45,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         readout_length = limits.kspace_encoding_step_0.maximum
         # Read all the chunk data from file.
         traj = (
-            dataset._dataset["data"][
+            data_loader._dataset["data"][
                 chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
             ]["traj"]
             .astype(np.int32, copy=False)
@@ -177,7 +176,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         return final_ksp
 
     def _write_chunk_data(
-        self, dataset: mrd.Dataset, chunk: Sequence[int], chunk_data: NDArray
+        self, data_loader: MRDLoader, chunk: Sequence[int], chunk_data: NDArray
     ) -> None:
         shots = np.concatenate(
             [
@@ -193,32 +192,28 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         chunk_data = np.moveaxis(
             chunk_data.view(np.float32), 1, 2
         )  # put the coil axis after the readout axis
-        acq_chunk = dataset._dataset["data"][shots]
+        acq_chunk = data_loader._dataset["data"][shots]
         acq_chunk["data"] = chunk_data.reshape(*acq_chunk.shape, -1)
-        dataset._dataset["data"][shots] = acq_chunk
+        data_loader._dataset["data"][shots] = acq_chunk
 
 
 class EVIAcquisition(EPIAcquisitionEngine):
-    """EVI Acquisition engine. Same as EPI, but the shots are longer !"""
+    """EVI Acquisition engine. Same as EPI, but the shots are longer."""
 
     __engine_name__ = "EVI"
     mode: str = "simple"
     snr: float = np.inf
 
-    def _get_chunk_list(
-        self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader
-    ) -> Sequence[int]:
-        limits = hdr.encoding[0].encodingLimits
+    def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
+        limits = data_loader.header.encoding[0].encodingLimits
         self.n_lines_epi = limits.kspace_encoding_step_1.maximum
         self.n_slice_epi = limits.slice.maximum
-        n_evi = dataset.number_of_acquisitions() // (
-            self.n_lines_epi * self.n_slice_epi
-        )
+        n_evi = data_loader.n_acquisition // (self.n_lines_epi * self.n_slice_epi)
         return range(n_evi)
 
     def _job_trajectories(
         self,
-        dataset: mrd.Dataset,
+        data_loader: MRDLoader,
         hdr: mrd.xsd.ismrmrdHeader,
         sim_conf: SimConfig,
         chunk: Sequence[int],
@@ -233,7 +228,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
         slice = limits.slice.maximum
         # Read all the chunk data from file.
         traj = (
-            dataset._dataset["data"][
+            data_loader._dataset["data"][
                 chunk[0] * n_lines_epi * slice : (chunk[-1] + 1) * n_lines_epi * slice
             ]["traj"]
             .astype(np.int32, copy=False)
@@ -367,7 +362,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
         return final_ksp
 
     def _write_chunk_data(
-        self, dataset: mrd.Dataset, chunk: Sequence[int], chunk_data: NDArray
+        self, data_loader: MRDLoader, chunk: Sequence[int], chunk_data: NDArray
     ) -> None:
         shots = np.concatenate(
             [
@@ -383,6 +378,6 @@ class EVIAcquisition(EPIAcquisitionEngine):
         chunk_data = np.moveaxis(
             chunk_data.view(np.float32), 1, 2
         )  # put the coil axis after the readout axis
-        acq_chunk = dataset._dataset["data"][shots]
+        acq_chunk = data_loader._dataset["data"][shots]
         acq_chunk["data"] = chunk_data.reshape(*acq_chunk.shape, -1)
-        dataset._dataset["data"][shots] = acq_chunk
+        data_loader._dataset["data"][shots] = acq_chunk
