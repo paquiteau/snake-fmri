@@ -1,12 +1,14 @@
 """Engines are responsible for the acquisition of Kspace."""
 
 from __future__ import annotations
-
+import atexit
 import gc
 import logging
 import os
+from pathlib import Path
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing
 from multiprocessing.managers import SharedMemoryManager
 from typing import Any, ClassVar
 
@@ -15,11 +17,8 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from .._meta import MetaDCRegister, batched
-from ..mrd_utils import (
-    load_coil_cov,
-    MRDLoader,
-)
+from .._meta import MetaDCRegister, batched, EnvConfig
+from ..mrd_utils import MRDLoader
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
@@ -46,9 +45,10 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     snr: float = np.inf
 
     def _get_chunk_list(
-        self, dataset: mrd.Dataset, hdr: mrd.xsd.ismrmrdHeader
+        self,
+        data_loader: MRDLoader,
     ) -> Sequence[int]:
-        return range(dataset.number_of_acquisitions())
+        return range(data_loader.n_acquisition)
 
     def _job_trajectories(
         self,
@@ -100,7 +100,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def _acquire_ksp_job(
         self,
-        filename: os.PathLike | str,
+        filename: os.PathLike,
         chunk: Sequence[int],
         shared_phantom_props: (
             tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
@@ -115,28 +115,33 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         for getting the k-space.
 
         """
-        data_loader = MRDLoader(filename)
-        hdr = data_loader.header
-        # Get the Phantom, SimConfig, and all ...
-        sim_conf = data_loader.parse_sim_conf()
-        ddatas = data_loader.get_all_dynamic()
-        # sim_conf = SimConfig.from_mrd_dataset(dataset)
-        for d in ddatas:  # only keep the dynamic data that are in the chunk
-            d.data = d.data[:, chunk]
-        trajs = self._job_trajectories(data_loader.dataset, hdr, sim_conf, chunk)
+        # https://github.com/h5py/h5py/issues/712#issuecomment-562980532
+        # We know that we are going to read the dataset in read-only mode in
+        # this function and use the main process to write the data.
+        # This is an alternative to using swmr mode, that I could not get to work.
+        os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
+        with MRDLoader(filename) as data_loader:
+            hdr = data_loader.header
+            # Get the Phantom, SimConfig, and all ...
+            sim_conf = data_loader.get_sim_conf()
+            ddatas = data_loader.get_all_dynamic()
+            # sim_conf = SimConfig.from_mrd_dataset(dataset)
+            for d in ddatas:  # only keep the dynamic data that are in the chunk
+                d.data = d.data[:, chunk]
+            trajs = self._job_trajectories(data_loader, hdr, sim_conf, chunk)
 
-        _job_model = getattr(self, f"_job_model_{mode}")
-        smaps = None
-        if sim_conf.hardware.n_coils > 1:
-            smaps = data_loader.get_smaps()
-        if shared_phantom_props is None:
-            phantom = data_loader.get_phantom()
-            ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
-        else:
-            with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
+            _job_model = getattr(self, f"_job_model_{mode}")
+            smaps = None
+            if sim_conf.hardware.n_coils > 1:
+                smaps = data_loader.get_smaps()
+            if shared_phantom_props is None:
+                phantom = data_loader.get_phantom()
                 ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
+            else:
+                with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
+                    ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
 
-        chunk_file = os.path.join(sim_conf.tmp_dir, f"partial_{chunk[0]}.npy")
+        chunk_file = os.path.join(EnvConfig["SNAKE_TMP_DIR"], f"partial_{chunk[0]}.npy")
         np.save(chunk_file, ksp)
         return chunk_file
 
@@ -148,28 +153,42 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         **kwargs: Mapping[str, Any],
     ):
         """Perform the acquisition and fill the dataset."""
-        dataset = mrd.Dataset(filename, create_if_needed=True)  # writeable mode
-        data_loader = MRDLoader(dataset)
-        hdr = data_loader.header
-        sim_conf = data_loader.parse_sim_conf()
+        with MRDLoader(filename) as data_loader:
+            sim_conf = data_loader.get_sim_conf()
 
-        phantom = data_loader.get_phantom()
-        shot_idxs = self._get_chunk_list(dataset, hdr)
-        chunk_list = list(batched(shot_idxs, worker_chunk_size))
-        ideal_phantom = get_ideal_phantom(phantom, sim_conf)
-        energy = np.mean(ideal_phantom)
+            phantom = data_loader.get_phantom()
+            shot_idxs = self._get_chunk_list(data_loader)
 
-        coil_cov = load_coil_cov(dataset) or np.eye(sim_conf.hardware.n_coils)
+            chunk_list = list(batched(shot_idxs, worker_chunk_size))
+            ideal_phantom = get_ideal_phantom(phantom, sim_conf)
+            energy = np.mean(ideal_phantom)
 
-        coil_cov = coil_cov * energy / self.snr
+            coil_cov = data_loader.get_coil_cov() or np.eye(sim_conf.hardware.n_coils)
 
+            if self.snr > 0:
+                coil_cov = coil_cov * energy / self.snr
         del ideal_phantom
+
+        # https://github.com/h5py/h5py/issues/712#issuecomment-562980532
+        # We know that we are going to read the dataset in read-only mode
+        # and use the main process (here) to write the data.
+        # This is an alternative to using swmr mode, that I could not get to work.
+
+        os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
 
         with (
             SharedMemoryManager() as smm,
-            ProcessPoolExecutor(n_workers) as executor,
+            ProcessPoolExecutor(
+                n_workers,
+                mp_context=multiprocessing.get_context("spawn"),
+            ) as executor,
             tqdm(total=len(shot_idxs)) as pbar,
+            MRDLoader(filename, writeable=True) as data_loader,
         ):
+            # data_loader._file.swmr_mode = True
+
+            with open(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"), "w") as f:
+                f.write(",".join([str(c[0]) for c in chunk_list]))
             phantom_props, shms = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
             futures = {
@@ -189,8 +208,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     f_chunk = str(future.result())
                 except Exception as exc:
                     self.log.error(f"Error in chunk {min(chunk)}-{max(chunk)}")
-                    dataset.close()
-                    self.log.error("Closing the dataset, raising the error.")
                     raise exc
                 else:
                     pbar.update(worker_chunk_size)
@@ -199,11 +216,25 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 if self.snr > 0:
                     noise = get_noise(chunk_ksp, coil_cov, sim_conf.rng)
                     chunk_ksp += noise
+
                 self._write_chunk_data(
-                    dataset,
+                    data_loader,
                     chunk,
                     chunk_ksp,
                 )
                 os.remove(f_chunk)
                 gc.collect()
-        dataset.close()
+        os.remove(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"))
+
+
+def del_future_files():
+    """Delete the files created by the engine."""
+    SNAKE_TMP_DIR = Path(os.environ.get("SNAKE_TMP_DIR", "/tmp"))
+    with open(SNAKE_TMP_DIR / "chunks") as f:
+        chunks = f.read().split(",")
+    for chunk in chunks:
+        os.remove(SNAKE_TMP_DIR / f"partial_{chunk}.npy")
+    os.remove(SNAKE_TMP_DIR / "chunks")
+
+
+atexit.register(del_future_files)
