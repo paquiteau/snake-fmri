@@ -1,45 +1,45 @@
 """Reconstructors using PySAP-fMRI toolbox."""
 
+import copy
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from typing import Any
+
 import numpy as np
 from numpy.typing import NDArray
-from tqdm.auto import tqdm
-from concurrent.futures import ProcessPoolExecutor, as_completed
 
 # Local imports
-from snake.simulation import SimConfig
 from snake.mrd_utils import (
     CartesianFrameDataLoader,
     MRDLoader,
     NonCartesianFrameDataLoader,
 )
-from snake.parallel import array_from_shm, array_to_shm, SharedMemoryManager, ArrayProps
+from snake.parallel import ArrayProps, SharedMemoryManager, array_from_shm, array_to_shm
+from snake.simulation import SimConfig
+from tqdm.auto import tqdm
 
 from .base import BaseReconstructor
 from .fourier import ifft
 
-PYSAP_FMRI_AVAILABLE = True
-try:
-    import fmri
-except ImportError:
-    PYSAP_FMRI_AVAILABLE = False
-
 
 def _reconstruct_cartesian_frame(
-    filename: str,
+    filename: os.PathLike,
     idx: int,
-    smaps_props: ArrayProps,
+    smaps_props: ArrayProps | None,
     final_props: ArrayProps,
 ) -> int:
     """Reconstruct a single frame."""
-    data_loader = CartesianFrameDataLoader(filename)
-    mask, kspace = data_loader.get_kspace_frame(idx)
-    sim_conf = data_loader.get_sim_conf()
-    with array_from_shm(final_props) as final_images:
+    with (
+        array_from_shm(final_props) as final_images,
+        CartesianFrameDataLoader(filename) as data_loader,
+    ):
+        mask, kspace = data_loader.get_kspace_frame(idx)
+        sim_conf = data_loader.get_sim_conf()
         adj_data = ifft(kspace, axis=tuple(range(len(sim_conf.shape), 0, -1)))
         if smaps_props is not None and data_loader.n_coils > 1:
             with array_from_shm(smaps_props) as smaps:
                 adj_data_smaps_comb = np.sum(
-                    abs(adj_data * smaps.conj()), axis=0
+                    abs(adj_data * smaps[0].conj()), axis=0
                 ).astype(np.float32, copy=False)
         else:
             adj_data_smaps_comb = np.sum(abs(adj_data) ** 2, axis=0).astype(
@@ -55,6 +55,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
     __reconstructor_name__ = "adjoint"
     n_jobs: int = 10
     nufft_backend: str = "gpunufft"
+    density_compensation: str | bool = "pipe"
 
     def setup(self, sim_conf: SimConfig) -> None:
         """Initialize Reconstructor."""
@@ -62,12 +63,13 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
     def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> NDArray:
         """Reconstruct data with zero-filled method."""
-        if isinstance(data_loader, CartesianFrameDataLoader):
-            return self._reconstruct_cartesian(data_loader, sim_conf)
-        elif isinstance(data_loader, NonCartesianFrameDataLoader):
-            return self._reconstruct_nufft(data_loader, sim_conf)
-        else:
-            raise ValueError("Unknown dataloader")
+        with data_loader:
+            if isinstance(data_loader, CartesianFrameDataLoader):
+                return self._reconstruct_cartesian(data_loader, sim_conf)
+            elif isinstance(data_loader, NonCartesianFrameDataLoader):
+                return self._reconstruct_nufft(data_loader, sim_conf)
+            else:
+                raise ValueError("Unknown dataloader")
 
     def _reconstruct_cartesian(
         self, data_loader: CartesianFrameDataLoader, sim_conf: SimConfig
@@ -93,7 +95,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
             futures = {
                 executor.submit(
                     _reconstruct_cartesian_frame,
-                    data_loader.filename,
+                    data_loader._filename,
                     idx,
                     smaps_props,
                     final_props,
@@ -120,13 +122,23 @@ class ZeroFilledReconstructor(BaseReconstructor):
         smaps = data_loader.get_smaps()
 
         traj, kspace_data = data_loader.get_kspace_frame(0)
-        nufft_operator = get_operator(
-            self.nufft_backend,
-            samples=traj,
-            density=True,
+
+        kwargs = dict(
             shape=data_loader.shape,
             n_coils=data_loader.n_coils,
             smaps=smaps,
+        )
+        print(self.density_compensation, type(self.density_compensation))
+        if self.density_compensation is False:
+            kwargs["density"] = None
+        else:
+            kwargs["density"] = self.density_compensation
+        if "stacked" in self.nufft_backend:
+            kwargs["z_index"] = "auto"
+        nufft_operator = get_operator(
+            self.nufft_backend,
+            samples=traj,
+            **kwargs,
         )
 
         final_images = np.empty(
