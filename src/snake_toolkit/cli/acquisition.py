@@ -9,9 +9,7 @@ from snake.handlers import HandlerList
 from snake.mrd_utils import make_base_mrd
 from snake.phantom import Phantom
 from snake.smaps import get_smaps
-from .config import (
-    ConfigSNAKE,
-)
+from snake_toolkit.cli.config import ConfigSNAKE, cleanup_cuda
 
 log = logging.getLogger(__name__)
 
@@ -68,6 +66,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
 
     log.info("Acquisition done")
     log.info("Output file is at %s", cfg.filename)
+    cleanup_cuda()
 
 
 acquisition_cli = hydra.main(

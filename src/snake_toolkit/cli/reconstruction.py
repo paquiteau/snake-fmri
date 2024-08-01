@@ -1,9 +1,7 @@
 """CLI for SNAKE."""
 
 import json
-import os
 import gc
-import dataclasses
 from pathlib import Path
 import logging
 import numpy as np
@@ -17,7 +15,7 @@ from snake.mrd_utils import (
     parse_sim_conf,
 )
 
-from .config import conf_validator
+from snake_toolkit.cli.config import conf_validator, cleanup_cuda
 from snake_toolkit.analysis.stats import contrast_zscore, get_scores
 
 log = logging.getLogger(__name__)
@@ -50,33 +48,33 @@ def reconstruction(cfg: DictConfig) -> None:
 
     # Reconstructor.setup(sim_conf) # initialize operators
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
-    data_loader = DataLoader(cfg.filename)
-    for name, rec in cfg.reconstructors.items():
-        rec_str = name  # FIXME Also use parameters  of reconstructors
-        data_rec_file = Path(f"data_rec_{rec_str}.npy")
-        log.info(f"Using {name} reconstructor")
-        rec.setup(sim_conf)
-        rec_data = rec.reconstruct(data_loader, sim_conf)
-        log.info(f"Reconstruction done with {name}")
-        # Save the reconstruction
-        np.save(data_rec_file, rec_data)
-        log.info(f"Saved to {data_rec_file.resolve()}")
+    with DataLoader(cfg.filename) as data_loader:
+        for name, rec in cfg.reconstructors.items():
+            rec_str = name  # FIXME Also use parameters  of reconstructors
+            data_rec_file = Path(f"data_rec_{rec_str}.npy")
+            log.info(f"Using {name} reconstructor")
+            rec.setup(sim_conf)
+            rec_data = rec.reconstruct(data_loader, sim_conf)
+            log.info(f"Reconstruction done with {name}")
+            # Save the reconstruction
+            np.save(data_rec_file, rec_data)
+            log.info(f"Saved to {data_rec_file.resolve()}")
 
-    phantom = data_loader.get_phantom()
-    roi_mask = phantom.masks[phantom.labels == cfg.stats.roi_tissue_name]
-    dyn_datas = data_loader.get_all_dynamic()
-    waveform_name = f"activation-{cfg.stats.event_name}"
-    good_d = None
-    for d in dyn_datas:
-        if d.name == waveform_name:
-            good_d = d
-    if good_d is None:
-        raise ValueError("No dynamic data found matching waveform name")
+        phantom = data_loader.get_phantom()
+        roi_mask = phantom.masks[phantom.labels == cfg.stats.roi_tissue_name]
+        dyn_datas = data_loader.get_all_dynamic()
+        waveform_name = f"activation-{cfg.stats.event_name}"
+        good_d = None
+        for d in dyn_datas:
+            if d.name == waveform_name:
+                good_d = d
+        if good_d is None:
+            raise ValueError("No dynamic data found matching waveform name")
 
-    bold_signal = good_d.data[0]
-    bold_sample_time = np.arange(len(bold_signal)) * sim_conf.seq.TR / 1000
-    del phantom
-    del dyn_datas
+        bold_signal = good_d.data[0]
+        bold_sample_time = np.arange(len(bold_signal)) * sim_conf.seq.TR / 1000
+        del phantom
+        del dyn_datas
     gc.collect()
 
     results = []
@@ -109,6 +107,7 @@ def reconstruction(cfg: DictConfig) -> None:
 
     with open("results.json", "w") as f:
         json.dump(results, f, default=lambda o: str(o))
+    cleanup_cuda()
 
 
 reconstruction_cli = hydra.main(

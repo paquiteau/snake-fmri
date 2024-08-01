@@ -104,8 +104,17 @@ for handler_name, cls in AbstractHandler.__registry__.items():
     cs.store(group="handlers", name=handler_name, node={handler_name: cls})
 
 for sampler, cls in BaseSampler.__registry__.items():
-    print(sampler, cls)
     cs.store(group="sampler", name=sampler, node={sampler: cls})
 
 for reconstructor, cls in BaseReconstructor.__registry__.items():
     cs.store(group="reconstructors", name=reconstructor, node={reconstructor: cls})
+
+
+def cleanup_cuda():
+    """Cleanup CUDA."""
+    import cupy as cp
+
+    cp.get_default_memory_pool().free_all_blocks()
+    cp.get_default_pinned_memory_pool().free_all_blocks()
+    cp._default_memory_pool = cp.cuda.MemoryPool()
+    cp._default_pinned_memory_pool = cp.cuda.PinnedMemoryPool()
