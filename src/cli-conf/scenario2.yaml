@@ -1,0 +1,85 @@
+# This files contains the configuration to reproduce the scenario 1 of the Snkf paper.
+
+defaults:
+  - base_config
+  - handlers:
+    - activation-block
+  - sampler:
+    - stack-of-spiral
+  - reconstructors:
+      - adjoint
+      - sequential
+  - _self_
+
+cache_dir: ${oc.env:PWD}/cache
+result_dir: results
+filename:  ${oc.env:PWD}/scenario2_${engine.mode}.mrd
+
+sim_conf:
+  max_sim_time: 300
+  seq: {TR: 50, TE: 30, FA: 15}
+  hardware:
+    n_coils: 8
+    dwell_time_ms: 0.005
+  shape: [60, 72, 60]
+  fov_mm: [181.0, 217.0, 181.0]
+
+phantom:
+  name: brainweb
+  sub_id: 5
+  tissue_ignore: ["bck"]
+
+handlers:
+  activation-block:
+    event_name: block_on
+    block_on: 20 # seconds
+    block_off: 20 #seconds
+    duration: 300 # seconds
+    delta_r2s: 1000 # millisecond^-1
+
+sampler:
+  stack-of-spiral:
+    acsz: 0.1
+    accelz: 4
+    nb_revolutions: 10
+
+engine:
+  n_jobs: 10
+  chunk_size: 50
+  mode: "simple"
+  snr: 10e6
+  nufft_backend: "stacked-gpunufft"
+
+reconstructors:
+  adjoint:
+    nufft_backend: "stacked-gpunufft"
+    density_compensation: "voronoi"
+  sequential:
+    nufft_backend: "stacked-gpunufft"
+    density_compensation: "voronoi"
+    restart_strategy: "cold"
+
+
+
+
+hydra:
+  job:
+    chdir: true
+
+  run:
+    dir: ${result_dir}/outputs/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+  sweep:
+    dir: ${result_dir}/multirun/${hydra.job.name}/${now:%Y-%m-%d_%H-%M-%S}
+    subdir: ${hydra.job.num}
+
+  callbacks:
+    # gather_files:
+    #   _target_: hydra_callbacks.MultiRunGatherer
+    #   aggregator:
+    #     _partial_: true
+    #     _target_: snkf.cli.utils.aggregate_results
+
+    latest_run:
+      _target_: hydra_callbacks.LatestRunLink
+      run_base_dir:  ${result_dir}/outputs
+      multirun_base_dir:  ${result_dir}/multirun
