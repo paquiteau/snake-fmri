@@ -205,6 +205,7 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     spiral_name: str = "archimedes"
     pdfz: VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
+    in_out: bool = True
     rotate_angle: AngleRotation = AngleRotation.ZERO
     obs_time_ms: int = 30
     n_shot_slices: int = 1
@@ -212,7 +213,8 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
         n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
-        trajectory = stack_spiral_factory(
+
+        self._traj0 = stack_spiral_factory(
             shape=sim_conf.shape,
             accelz=self.accelz,
             acsz=self.acsz,
@@ -226,9 +228,26 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
             n_shot_slices=self.n_shot_slices,
             rng=sim_conf.rng,
         )
-        self._n_shot_frames = trajectory.shape[0]
-        self._n_samples_shot = trajectory.shape[1]
-        return trajectory
+        self._n_shot_frames = self._traj0.shape[0]
+        self._n_samples_shot = self._traj0.shape[1]
+
+        if self.constant:
+            return self._traj0
+        else:
+            return stack_spiral_factory(
+                shape=sim_conf.shape,
+                accelz=self.accelz,
+                acsz=self.acsz,
+                n_samples=n_samples,
+                nb_revolutions=self.nb_revolutions,
+                pdfz=self.pdfz,
+                orderz=self.orderz,
+                spiral=self.spiral_name,
+                rotate_angle=self.rotate_angle,
+                in_out=self.in_out,
+                n_shot_slices=self.n_shot_slices,
+                rng=sim_conf.rng,
+            )
 
 
 class EPI3dAcquisitionSampler(BaseSampler):
