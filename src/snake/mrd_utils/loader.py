@@ -1,19 +1,20 @@
 """Loader of MRD data."""
 
-import atexit
 import logging
 import os
 
 from functools import cached_property
 import ismrmrd as mrd
+import h5py
 import numpy as np
 from numpy.typing import NDArray
-
+from typing import Any
+from collections.abc import Generator
 from snake._meta import LogMixin
 from snake.phantom import Phantom, DynamicData
 from snake.simulation import GreConfig, HardwareConfig, SimConfig
 
-from .utils import b64encode2obj, ACQ
+from .utils import b64encode2obj, unserialize_array
 
 log = logging.getLogger(__name__)
 
@@ -34,24 +35,134 @@ def read_mrd_header(filename: os.PathLike | mrd.Dataset) -> mrd.xsd.ismrmrdHeade
 
 
 class MRDLoader(LogMixin):
-    """Base class for MRD data loader."""
+    """Base class for MRD data loader.
 
-    def __init__(self, filename: os.PathLike | mrd.Dataset):
-        if isinstance(filename, mrd.Dataset):
-            self.dataset = filename
-            self.filename = filename._file.filename
+    This is to be used as a context manager.
+
+    It reimplements most of the methods of the mrd.Dataset class, and adds some
+    useful wrappers. With this dataloader, you can open the dataset in readonly mode,
+    which is not possible with mrd.
+    """
+
+    def __init__(
+        self,
+        filename: os.PathLike,
+        dataset_name: str = "dataset",
+        writeable: bool = False,
+        swmr: bool = False,
+    ):
+        self._filename = filename
+        self._dataset_name = dataset_name
+        self._writeable = writeable
+        self._swmr = swmr
+        self._level = 0
+        self._file: h5py.File | None = None
+
+    def __enter__(self):
+        # Track the number of times the dataloader is used as a context manager
+        # to close the file only when the last context manager is closed.
+        if self._file is None:
+            self._file = h5py.File(
+                self._filename,
+                "r+" if self._writeable else "r",
+                libver="latest",
+                swmr=self._swmr,
+            )
+            matrixSize = self.header.encoding[0].encodedSpace.matrixSize
+            self.shape = matrixSize.x, matrixSize.y, matrixSize.z
+        self._level += 1
+        return self
+
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any):
+        self._level -= 1
+        if self._level == 0 and self._file is not None:
+            self._file.close()
+            self._file = None
+
+    def iter_frames(
+        self, start: int | None = None, stop: int | None = None, step: int | None = None
+    ) -> Generator[tuple[int, NDArray, NDArray], None, None]:
+        """Iterate over kspace frames of the dataset."""
+        if start is None:
+            start = 0
+        if stop is None:
+            stop = self.n_frames
+        if step is None:
+            step = 1
+        with self:
+            for i in np.arange(start, stop, step):
+                yield i, *self.get_kspace_frame(i)
+
+    def get_kspace_frame(self, idx: int) -> tuple[NDArray, NDArray]:
+        """Get k-space frame trajectory/mask and data."""
+        raise NotImplementedError()
+
+    ###########################
+    # MRD interfaces methods  #
+    ###########################
+
+    def _read_xml_header(self) -> mrd.xsd.ismrmrdHeader:
+        """Read the header of the MRD file."""
+        if "xml" not in self._dataset:
+            raise LookupError("XML header not found in the dataset.")
+        return self._dataset["xml"][0]
+
+    def _read_waveform(self, wavnum: int) -> mrd.Waveform:
+        if "waveforms" not in self._dataset:
+            raise LookupError("Acquisition data not found in the dataset.")
+
+        # create a Waveform
+        # and fill with the header for this waveform
+        # We start with an array of zeros to avoid garbage in the padding bytes.
+        header_array = np.zeros((1,), dtype=mrd.file.waveform_header_dtype)
+        header_array[0] = self._dataset["waveforms"][wavnum]["head"]
+
+        wav = mrd.Waveform(header_array)
+
+        # copy the data as uint32
+        wav.data[:] = (
+            self._dataset["waveforms"][wavnum]["data"]
+            .view(np.uint32)
+            .reshape((wav.channels, wav.number_of_samples))[:]
+        )
+
+        return wav
+
+    def _read_image(self, impath: str, imnum: int = 0) -> mrd.Image:
+        # create an image
+        # and fill with the header and attribute string for this image
+        im = mrd.Image(
+            self._dataset[impath]["header"][imnum],
+            self._dataset[impath]["attributes"][imnum],
+        )
+
+        # copy the data
+        # ismrmrd complex data is stored as pairs named real and imag
+        # TODO do we need to store and reset or the config local to the module?
+        cplxcfg = h5py.get_config().complex_names
+        h5py.get_config().complex_names = ("real", "imag")
+        im.data[:] = self._dataset[impath]["data"][imnum]
+        h5py.get_config().complex_names = cplxcfg
+
+        return im
+
+    ######################
+    # dataset properties #
+    ######################
+    @cached_property
+    def header(self) -> mrd.xsd.ismrmrdHeader:
+        """Get the header from the mrd file."""
+        return mrd.xsd.CreateFromDocument(self._read_xml_header())
+
+    @property
+    def _dataset(self) -> h5py.Dataset:
+        """Get MRD dataset."""
+        if self._file is not None:
+            return self._file[self._dataset_name]
         else:
-            self.filename = filename
-            self.dataset = mrd.Dataset(filename, create_if_needed=False)
-
-        self.header = mrd.xsd.CreateFromDocument(self.dataset.read_xml_header())
-        matrixSize = self.header.encoding[0].encodedSpace.matrixSize
-        self.shape = matrixSize.x, matrixSize.y, matrixSize.z
-        atexit.register(self._cleanup)
-
-    def get_sim_conf(self) -> SimConfig:
-        """Parse the header to populate SimConfig."""
-        return parse_sim_conf(self.header)
+            raise FileNotFoundError(
+                "Dataset not opened. use the dataloader as a context manager."
+            )
 
     @property
     def n_frames(self) -> int:
@@ -62,6 +173,11 @@ class MRDLoader(LogMixin):
     def n_coils(self) -> int:
         """Number of coils."""
         return self.header.acquisitionSystemInformation.receiverChannels
+
+    @property
+    def n_acquisition(self) -> int:
+        """Number of acquisition in the dataset."""
+        return self._dataset["data"].size
 
     def __len__(self):
         return self.n_frames
@@ -81,25 +197,32 @@ class MRDLoader(LogMixin):
         """
         return self.header.encoding[0].limits.kspace_encoding_step_1.maximum
 
-    def get_smaps(self) -> NDArray | None:
-        """Load the sensitivity maps from the dataset."""
-        return load_smaps(self.dataset)
-
-    def get_coil_cov(self) -> NDArray | None:
-        """Load the coil covariances from the dataset."""
-        return load_coil_cov(self.dataset)
-
-    def get_phantom(self) -> Phantom:
+    #############
+    # Get data  #
+    #############
+    def get_phantom(self, imnum: int = 0) -> Phantom:
         """Load the phantom from the dataset."""
-        return Phantom.from_mrd_dataset(self.dataset)
+        image = self._read_image("phantom", imnum)
+        name = image.meta.pop("name")
+        labels = np.array(image.meta["labels"].split(","))
+        props = unserialize_array(image.meta["props"])
+
+        return Phantom(
+            masks=image.data,
+            labels=labels,
+            props=props,
+            name=name,
+        )
+
+        return Phantom.from_mrd_dataset(self)
 
     @cached_property
     def _all_waveform_infos(self) -> dict[int, dict]:
-        return parse_waveform_information(self.dataset)
+        return parse_waveform_information(self.header)
 
     def get_dynamic(self, waveform_num: int) -> DynamicData:
         """Get dynamic data."""
-        waveform = self.dataset.read_waveform(waveform_num)
+        waveform = self._dataset.read_waveform(waveform_num)
         wave_info = self._all_waveform_infos[waveform.waveform_id]
         return DynamicData._from_waveform(waveform, wave_info)
 
@@ -107,30 +230,36 @@ class MRDLoader(LogMixin):
         """Get all dynamic data."""
         all_dyn_data = []
         try:
-            n_waves = self.dataset.number_of_waveforms()
+            n_waves = self._dataset["waveforms"].size
         except Exception as e:
             log.error(e)
             return []
 
         for i in range(n_waves):
-            waveform = self.dataset.read_waveform(i)
+            waveform = self._read_waveform(i)
             wave_info = self._all_waveform_infos[waveform.waveform_id]
             all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
         return all_dyn_data
 
-    def parse_sim_conf(self) -> SimConfig:
+    def get_sim_conf(self) -> SimConfig:
         """Parse the sim config."""
         return parse_sim_conf(self.header)
 
-    def _cleanup(self) -> None:
+    def _get_image_data(self, name: str, idx: int = 0) -> NDArray | None:
         try:
-            self.dataset.close()
-        except Exception as e:
-            self.log.error(e)
-            pass
+            image = self._read_image(name, idx).data
+        except LookupError:
+            log.warning(f"No {name} found in the dataset.")
+            return None
+        return image
 
-    def __iter__(self):
-        raise NotImplementedError
+    def get_smaps(self) -> NDArray | None:
+        """Load the sensitivity maps from the dataset."""
+        return self._get_image_data("smaps")
+
+    def get_coil_cov(self, default: NDArray | None = None) -> NDArray | None:
+        """Load the coil covariance from the dataset."""
+        return self._get_image_data("coil_cov")
 
 
 class CartesianFrameDataLoader(MRDLoader):
@@ -151,11 +280,11 @@ class CartesianFrameDataLoader(MRDLoader):
         kspace = np.zeros((self.n_coils, *self.shape), dtype=np.complex64)
         mask = np.zeros(self.shape, dtype=bool)
 
-        n_acq_per_frame = self.dataset.number_of_acquisitions() // self.n_frames
+        n_acq_per_frame = self.n_acquisition // self.n_frames
         start = idx * n_acq_per_frame
         end = (idx + 1) * n_acq_per_frame
         # Do a single read of the dataset much faster !
-        acq = self.dataset._dataset["data"][start:end]
+        acq = self._dataset["data"][start:end]
         traj = acq["traj"].reshape(-1, 3)
         data = acq["data"].reshape(self.n_coils, -1).view(np.complex64)
         traj_locs: tuple = tuple(np.int32(traj.T))  # type: ignore
@@ -163,37 +292,6 @@ class CartesianFrameDataLoader(MRDLoader):
             kspace[c][traj_locs] = data[c]
         mask[traj_locs] = True
         return mask, kspace
-
-    def __iter__(self):  # This is slow !
-        counter = 0
-        yielded = False
-        kspace = np.zeros((self.n_coils, *self.shape), dtype=np.complex64)
-        mask = np.zeros(self.shape, dtype=bool)
-        acq = self.dataset.read_acquisition(counter)
-        n_acq = self.dataset.number_of_acquisitions()
-        while counter < n_acq:
-            traj_locs = tuple(np.int32(acq.traj.T))
-            for c in range(self.n_coils):  # FIXME what is the good way of doing this ?
-                kspace[c][traj_locs] = acq.data[c]
-
-            mask[traj_locs] = True
-            if (
-                acq.flags & ACQ.LAST_IN_REPETITION
-                or acq.flags & ACQ.LAST_IN_MEASUREMENT
-            ):
-                yield mask, kspace
-                kspace[:] = 0
-                mask[:] = False
-                yielded = True
-            counter += 1
-            if counter < self.dataset.number_of_acquisitions():
-                acq = self.dataset.read_acquisition(counter)
-                if yielded:
-                    yielded = False
-                    if not (acq.flags & ACQ.FIRST_IN_REPETITION):
-                        raise ValueError(
-                            f"Flags error at {counter} {ACQ(acq.flags).__repr__()}"
-                        )
 
 
 class NonCartesianFrameDataLoader(MRDLoader):
@@ -213,58 +311,18 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
     def get_kspace_frame(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
         """Get the k-space frame."""
-
-        n_acq_per_frame = self.dataset.number_of_acquisitions() // self.n_frames
+        n_acq_per_frame = self.n_acquisition // self.n_frames
         start = idx * n_acq_per_frame
         end = (idx + 1) * n_acq_per_frame
         # Do a single read of the dataset much faster !
-        acq = self.dataset._dataset["data"][start:end]
+        acq = self._dataset["data"][start:end]
         traj = acq["traj"].reshape(-1, 3)
         data = acq["data"].reshape(self.n_coils, -1).view(np.complex64)
         return traj, data
 
-    def __iter__(self):
-        counter = 0
-        shot_counter = 0
-        yielded = False
-        kspace = np.zeros(
-            (self.n_coils, self.n_shots, self.n_sample), dtype=np.complex64
-        )
-        acq = self.dataset.read_acquisition(counter)
-        n_acq = self.dataset.number_of_acquisitions()
-        samples_locs = np.zeros(
-            (self.n_shots, self.n_sample, len(self.shape)), dtype=bool
-        )
-        while counter < n_acq:
-            for c in range(self.n_coils):  # FIXME what is the good way of doing this ?
-                kspace[c, shot_counter] = acq.data[c]
-                samples_locs[shot_counter] = acq.traj.reshape(-1, len(self.shape))
-            if (
-                acq.flags & ACQ.LAST_IN_REPETITION
-                or acq.flags & ACQ.LAST_IN_MEASUREMENT
-            ):
-                yield samples_locs, kspace
-                kspace[:] = 0
-                samples_locs[:] = 0
-                shot_counter = 0
-                yielded = True
-            counter += 1
-            shot_counter += 1
-            if counter < self.dataset.number_of_acquisitions():
-                acq = self.dataset.read_acquisition(counter)
-                if yielded:
-                    yielded = False
-                    if not (acq.flags & ACQ.FIRST_IN_REPETITION):
-                        raise ValueError(
-                            f"Flags error at {counter} {ACQ(acq.flags).__repr__()}"
-                        )
 
-
-def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
-    """Parse the header to populate SimConfig."""
-    if isinstance(header, mrd.Dataset):
-        header = mrd.xsd.CreateFromDocument(header.read_xml_header())
-
+def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
+    """Parse the header to populate SimConfig from an MRD Header."""
     n_coils = header.acquisitionSystemInformation.receiverChannels
     field = header.acquisitionSystemInformation.systemFieldStrength_T
 
@@ -314,7 +372,7 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader | mrd.Dataset) -> SimConfig:
     )
 
 
-def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
+def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
     """Parse the waveform information from the MRD file.
 
     Returns a dictionary with id as key and waveform information
@@ -322,7 +380,6 @@ def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
 
     Base64 encoded parameters are decoded.
     """
-    hdr = mrd.xsd.CreateFromDocument(dataset.read_xml_header())
     waveform_info = dict()
     for wi in hdr.waveformInformation:
         infos = {"name": wi.waveformName}
@@ -342,24 +399,3 @@ def parse_waveform_information(dataset: mrd.Dataset) -> dict[int, dict]:
         waveform_info[int(wi.waveformType)] = infos
 
     return waveform_info
-
-
-def _load_image(dataset: mrd.Dataset, name: str, idx: int = 0) -> NDArray | None:
-    try:
-        image = dataset.read_image(name, idx).data
-    except LookupError:
-        log.warning(f"No {name} found in the dataset.")
-        return None
-    return image
-
-
-def load_smaps(dataset: mrd.Dataset) -> NDArray | None:
-    """Load the sensitivity maps from the dataset."""
-    return _load_image(dataset, "smaps")
-
-
-def load_coil_cov(
-    dataset: mrd.Dataset, default: NDArray | None = None
-) -> NDArray | None:
-    """Load the coil covariance from the dataset."""
-    return _load_image(dataset, "coil_cov")
