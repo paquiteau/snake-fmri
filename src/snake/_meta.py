@@ -1,11 +1,12 @@
 """Meta Class Voodoo magic."""
 
 from __future__ import annotations
-
+import os
 import dataclasses
 import itertools
 import logging
 import sys
+from pathlib import Path
 from collections import defaultdict
 from collections.abc import Callable, Iterator, Iterable
 from enum import Enum, EnumMeta
@@ -135,3 +136,30 @@ if sys.version_info <= (3, 12):
 
 else:
     batched = itertools.batched
+
+
+class Singleton(type):
+    _instances: dict[type, object] = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class ENVCONFIG(metaclass=Singleton):
+    """Environment Configuration."""
+
+    SNAKE_TMP_DIR = "/tmp"
+    SNAKE_HDF5_CHUNK_SIZE = 1024**2
+    SNAKE_HDF5_CHUNK_WRITE_SIZE = 4 * 1024**3
+
+    @classmethod
+    def __getitem__(cls, key: str) -> Any:
+
+        if key in os.environ:
+            return os.environ[key]
+        return getattr(cls, key)
+
+
+EnvConfig = ENVCONFIG()
