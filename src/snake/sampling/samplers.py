@@ -1,5 +1,6 @@
 """Samplers generate kspace trajectories."""
 
+import os
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
@@ -15,12 +16,15 @@ from .factories import (
     evi_factory,
 )
 from snake.mrd_utils.utils import ACQ
+from snake._meta import batched, EnvConfig
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):
     """Base class for non-cartesian acquisition samplers."""
 
     __engine__ = "NUFFT"
+    in_out: bool = True
+    obs_time_ms: int = 30
 
     def add_all_acq_mrd(
         self,
@@ -41,6 +45,9 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         self.log.info("Tobs %.3f ms", n_samples * sim_conf.hardware.dwell_time_ms)
         self.log.info("volume TR: %.3f ms", TR_vol_ms)
 
+        if self.constant:
+            self.log.info("Constant Trajectory")
+
         if n_ksp_frames == 0:
             raise ValueError(
                 "No frame can be generated with the current configuration"
@@ -54,7 +61,6 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             self.log.warning("Updating the max_sim_time to match.")
             sim_conf.max_sim_time = TR_vol_ms * n_ksp_frames / 1000
         self.log.info("Start Sampling pattern generation")
-        counter = 0
         kspace_data_vol = np.zeros(
             (n_shots_frame, sim_conf.hardware.n_coils, n_samples),
             dtype=np.complex64,
@@ -85,11 +91,33 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             ]
         )
         acq_size = np.empty((1,), dtype=acq_dtype).nbytes
-        chunk = int(np.ceil((n_shots_frame * acq_size) / (1024**2)))
+        chunk = int(
+            np.ceil((n_shots_frame * acq_size) / EnvConfig["SNAKE_HDF5_CHUNK_SIZE"])
+        )
+        chunk_write_sizes = [
+            len(c)
+            for c in batched(
+                range(n_shots_frame * n_ksp_frames),
+                int(
+                    np.ceil(
+                        EnvConfig["SNAKE_HDF5_CHUNK_SIZE"]
+                        / (acq_size * n_shots_frame * n_ksp_frames)
+                    )
+                ),
+            )
+        ]
+
         self.log.debug("chunk size for hdf5 %s, elem %s Bytes", chunk, acq_size)
 
         pbar = tqdm(total=n_ksp_frames * n_shots_frame)
-        acq = np.empty((n_shots_frame * n_ksp_frames,), dtype=acq_dtype)
+        dataset._dataset.create_dataset(
+            "data",
+            shape=(n_ksp_frames * n_shots_frame,),
+            dtype=acq_dtype,
+            chunks=(chunk,),
+        )
+        write_start = 0
+        counter = 0
         for i in range(n_ksp_frames):
             kspace_traj_vol = self._single_frame(sim_conf)
             for j in range(n_shots_frame):
@@ -101,7 +129,11 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                     flags |= ACQ.LAST_IN_ENCODE_STEP1
                     flags |= ACQ.LAST_IN_REPETITION
 
-                acq[counter]["head"] = np.frombuffer(
+                if counter == 0:
+                    current_chunk_size = chunk_write_sizes.pop()
+                    acq_chunk = np.empty((current_chunk_size,), dtype=acq_dtype)
+
+                acq_chunk[counter]["head"] = np.frombuffer(
                     mrd.AcquisitionHeader(
                         version=1,
                         flags=flags,
@@ -109,7 +141,9 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                         sample_time_us=self.obs_time_ms * 1000 / n_samples,
                         center_sample=n_samples // 2 if self.in_out else 0,
                         idx=mrd.EncodingCounters(
-                            repetition=i, kspace_encode_step_1=j, kspace_encode_step_2=1
+                            repetition=i,
+                            kspace_encode_step_1=j,
+                            kspace_encode_step_2=1,
                         ),
                         active_channels=sim_conf.hardware.n_coils,
                         available_channels=sim_conf.hardware.n_coils,
@@ -118,16 +152,22 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                     ),
                     dtype=mrd.hdf5.acquisition_header_dtype,
                 )
-                acq[counter]["data"] = kspace_data_vol[j, :, :].view(np.float32).ravel()
-                acq[counter]["traj"] = kspace_traj_vol[j, :].view(np.float32).ravel()
-                # write to hdf5 mrd
+                acq_chunk[counter]["data"] = (
+                    kspace_data_vol[j, :, :].view(np.float32).ravel()
+                )
+                acq_chunk[counter]["traj"] = (
+                    kspace_traj_vol[j, :].view(np.float32).ravel()
+                )
                 counter += 1
+                if counter == current_chunk_size:
+                    counter = 0
+                    # write to hdf5 mrd
+                    dataset._dataset["data"][
+                        write_start : write_start + current_chunk_size
+                    ] = acq_chunk
+                    write_start += current_chunk_size
                 pbar.update(1)
-        dataset._dataset.create_dataset(
-            "data",
-            data=acq,
-            chunks=(chunk,),
-        )
+
         pbar.close()
         return dataset
 

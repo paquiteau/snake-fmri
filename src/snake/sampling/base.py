@@ -31,7 +31,7 @@ class BaseSampler(metaclass=MetaSampler):
     __sampler_name__: ClassVar[str]
     __engine__: ClassVar[str]
     __registry__: ClassVar[dict[str, type[BaseSampler]]]
-    in_out: bool = True
+    constant: bool = True
 
     @property
     def log(self) -> logging.Logger:
