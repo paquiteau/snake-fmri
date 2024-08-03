@@ -175,6 +175,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         # This is an alternative to using swmr mode, that I could not get to work.
 
         os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
+        atexit.register(del_future_files)
 
         with (
             SharedMemoryManager() as smm,
@@ -235,6 +236,3 @@ def del_future_files():
     for chunk in chunks:
         os.remove(SNAKE_TMP_DIR / f"partial_{chunk}.npy")
     os.remove(SNAKE_TMP_DIR / "chunks")
-
-
-atexit.register(del_future_files)
