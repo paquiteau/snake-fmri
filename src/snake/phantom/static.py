@@ -229,6 +229,19 @@ class Phantom:
         """Get the number of tissues."""
         return len(self.masks)
 
+    def __repr__(self):
+        ret = f"Phantom[{self.name}]: {self.props.shape}\n"
+        ret += f"{'tissue name':14s}" + "".join(f"{prop:4s}" for prop in PropTissueEnum)
+        ret += "\n"
+        for i, tissue_name in self.labels:
+            props = self.props[i]
+            ret += (
+                f"{tissue_name:14s}"
+                + "".join(f"{props[p.values]:4s}" for p in PropTissueEnum)
+                + "\n"
+            )
+        return ret
+
 
 T = TypeVar("T")
 
