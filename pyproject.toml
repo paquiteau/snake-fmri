@@ -128,7 +128,11 @@ convention = "numpy"
 [tool.ruff.lint.per-file-ignores]
 # relax code quality for tests and examples.
 "examples/conftest.py" = ["ANN"]
-"examples/*.py" = ["D", "ANN"]
+"examples/*.py" = ["D",
+"ANN", # no annotation in examples
+"E402", # import in the middle of the file
+"B018", # allow for useless expression (prints)
+]
 "tests/test_*.py" = ["D", "ANN"]
 
 
@@ -140,4 +144,5 @@ strict = true
 
 [tool.mypy]
 ignore_missing_imports=true
+exclude = ["examples/"]
 #overrides = ["--ignore-missing-imports"]

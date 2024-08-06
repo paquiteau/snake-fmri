@@ -21,3 +21,6 @@ docs_build
 _version.py
 
 *.mrd
+results/
+multirun/
+outputs/
