@@ -41,10 +41,10 @@ def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
 
     # Encoding
     # FOV computation
-    input_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm)))
+    input_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
     input_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
-    output_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm)))
+    output_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
     output_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
     # FIXME: update the encoding in acquisition writer.
