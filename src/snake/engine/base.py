@@ -41,7 +41,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     __registry__: ClassVar[dict[str, type[BaseAcquisitionEngine]]]
     log: ClassVar[logging.Logger]
 
-    mode: str = "simple"
+    model: str = "simple"
     snr: float = np.inf
 
     def _get_chunk_list(
@@ -105,7 +105,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         shared_phantom_props: (
             tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
         ) = None,
-        mode: str = "T2s",
+        model: str = "T2s",
         **kwargs: Mapping[str, Any],
     ) -> str:
         """Entry point for worker.
@@ -130,7 +130,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 d.data = d.data[:, chunk]
             trajs = self._job_trajectories(data_loader, hdr, sim_conf, chunk)
 
-            _job_model = getattr(self, f"_job_model_{mode}")
+            _job_model = getattr(self, f"_job_model_{model}")
             smaps = None
             if sim_conf.hardware.n_coils > 1:
                 smaps = data_loader.get_smaps()
@@ -198,7 +198,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     filename,
                     chunk,
                     shared_phantom_props=phantom_props,
-                    mode=self.mode,
+                    model=self.model,
                     **kwargs,
                 ): chunk
                 for chunk in chunk_list

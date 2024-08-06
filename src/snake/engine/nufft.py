@@ -19,7 +19,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine using nufft."""
 
     __engine_name__ = "NUFFT"
-    mode: str = "simple"
+    model: str = "simple"
     snr: float = np.inf
 
     def _job_trajectories(

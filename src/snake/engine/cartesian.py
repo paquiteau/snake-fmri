@@ -19,7 +19,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine for EPI base trajectories."""
 
     __engine_name__ = "EPI"
-    mode: str = "simple"
+    model: str = "simple"
     snr: float = np.inf
 
     def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
@@ -201,7 +201,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
     """EVI Acquisition engine. Same as EPI, but the shots are longer."""
 
     __engine_name__ = "EVI"
-    mode: str = "simple"
+    model: str = "simple"
     snr: float = np.inf
 
     def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
