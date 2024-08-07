@@ -185,7 +185,7 @@ class MRDLoader(LogMixin):
     @property
     def n_sample(self) -> int:
         """Number of samples in a single acquisition."""
-        return self.header.encoding[0].limits.kspace_encoding_step_0.maximum
+        return self.header.encoding[0].encodingLimits.kspace_encoding_step_0.maximum
 
     @property
     def n_shots(self) -> int:
@@ -195,7 +195,7 @@ class MRDLoader(LogMixin):
         -----
         for EPI this is the number of phase encoding lines in the EPI zigzag.
         """
-        return self.header.encoding[0].limits.kspace_encoding_step_1.maximum
+        return self.header.encoding[0].encodingLimits.kspace_encoding_step_1.maximum
 
     #############
     # Get data  #
@@ -286,7 +286,10 @@ class CartesianFrameDataLoader(MRDLoader):
         # Do a single read of the dataset much faster !
         acq = self._dataset["data"][start:end]
         traj = acq["traj"].reshape(-1, 3)
-        data = acq["data"].reshape(self.n_coils, -1).view(np.complex64)
+        data = acq["data"].view(np.complex64)
+        data = data.reshape(-1, self.n_shots, self.n_coils, self.n_sample)
+        data = np.moveaxis(data, 2, 0)  # putting the coil dimension first.
+        data = data.reshape(self.n_coils, -1)
         traj_locs: tuple = tuple(np.int32(traj.T))  # type: ignore
         for c in range(self.n_coils):
             kspace[c][traj_locs] = data[c]

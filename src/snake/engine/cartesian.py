@@ -189,11 +189,12 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             ]
         )
 
+        chunk_data = chunk_data.view(np.float32)
         chunk_data = np.moveaxis(
-            chunk_data.view(np.float32), 1, 2
+            chunk_data, 1, 2
         )  # put the coil axis after the readout axis
         acq_chunk = data_loader._dataset["data"][shots]
-        acq_chunk["data"] = chunk_data.reshape(*acq_chunk.shape, -1)
+        acq_chunk["data"] = chunk_data.reshape(acq_chunk["data"].shape)
         data_loader._dataset["data"][shots] = acq_chunk
 
 
