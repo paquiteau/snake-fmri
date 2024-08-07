@@ -9,7 +9,7 @@ from skimage.measure import find_contours
 from matplotlib.cm import ScalarMappable
 
 
-def get_coolgraywarm(thresh: float = 3, max: float = 7) -> matplotlib.cm.Colorbar:
+def get_coolgraywarm(thresh: float = 3, max: float = 7) -> matplotlib.colorbar.Colorbar:
     """Get a cool-warm colorbar, with gray inside the threshold."""
     coolwarm = matplotlib.colormaps["coolwarm"].resampled(256)
     newcolors = coolwarm(np.linspace(0, 1, 256))
@@ -79,13 +79,13 @@ def get_mask_cuts_mask(mask: NDArray) -> tuple[int, ...]:
 def plot_frames_activ(
     background: NDArray,
     z_score: NDArray,
-    roi: NDArray,
-    ax: plt.Axis,
+    roi: NDArray | None,
+    ax: plt.Axes,
     slices: tuple[slice, slice, slice],
     bbox: tuple[tuple],
     z_thresh: float = 3,
     z_max: float = 11,
-) -> tuple[plt.Axis, plt.AxesImage]:
+) -> tuple[plt.Axes, matplotlib.image.AxesImage]:
     """Plot activation maps and background.
 
     Parameters
@@ -93,7 +93,7 @@ def plot_frames_activ(
     background: 3D array
     z_score: 3D array
     roi: 3D array
-    ax: plt.Axis
+    ax: plt.Axes
 
     """
     bg = background[slices][bbox].squeeze()
@@ -121,36 +121,41 @@ def plot_frames_activ(
 
 def axis3dcut(
     fig: plt.Figure,
-    ax: plt.Axis,
+    ax: plt.Axes,
     background: NDArray,
     z_score: NDArray,
     gt_roi: NDArray | None = None,
     width_inches: float = 7,
     cbar: bool = True,
     cuts: tuple[int, ...] | None = None,
-) -> tuple[plt.Figure, plt.Axis]:
+) -> tuple[plt.Figure, plt.Axes]:
     """Display a 3D image with zscore and ground truth ROI."""
     ax.axis("off")
     if cuts is None and gt_roi is not None:
-        cuts = get_mask_cuts_mask(gt_roi)
-    else:
+        cuts_ = get_mask_cuts_mask(gt_roi)
+        gt_roi_ = gt_roi
+    elif cuts is not None and gt_roi is None:
+        cuts_ = cuts
+        gt_roi_ = None
+    elif cuts is None and gt_roi is None:
         raise ValueError("Missing gt_roi to compute ideal cuts.")
+
     hdiv, vdiv, bbox, slices = get_axis_properties(
-        background, cuts, width_inches, cbar=cbar
+        background, cuts_, width_inches, cbar=cbar
     )
     # ax.set_aspect(np.sum(vdiv)/np.sum(hdiv))
     divider = make_axes_locatable(ax)
     divider.set_horizontal([Size.Fixed(s) for s in hdiv])
     divider.set_vertical([Size.Fixed(s) for s in vdiv])
-    axG: list[plt.Axis] = [None, None, None]
+    axG: list[plt.Axes] = [None, None, None]
     for i, (nx, ny, ny1) in enumerate([(0, 0, 2), (1, 0, 1), (1, 1, 2)]):
-        axG[i] = plt.Axis(fig, ax.get_position(original=True))
+        axG[i] = plt.Axes(fig, ax.get_position(original=True))
         axG[i].set_axes_locator(divider.new_locator(nx=nx, ny=ny, ny1=ny1))
         fig.add_axes(axG[i])
 
-    plot_frames_activ(background, z_score, gt_roi, axG[0], slices[0], bbox[0])
-    plot_frames_activ(background, z_score, gt_roi, axG[1], slices[1], bbox[1])
-    plot_frames_activ(background, z_score, gt_roi, axG[2], slices[2], bbox[2])
+    plot_frames_activ(background, z_score, gt_roi_, axG[0], slices[0], bbox[0])
+    plot_frames_activ(background, z_score, gt_roi_, axG[1], slices[1], bbox[1])
+    plot_frames_activ(background, z_score, gt_roi_, axG[2], slices[2], bbox[2])
 
     if cbar:
         cax = type(ax)(fig, ax.get_position(original=True))
