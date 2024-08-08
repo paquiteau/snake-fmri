@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing
+import multiprocessing as mp
 from multiprocessing.managers import SharedMemoryManager
 from typing import Any, ClassVar
 
@@ -23,6 +23,14 @@ from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
+
+#
+# Test code to make linux spawn like Windows and generate error. This code
+# # is not needed on windows.
+if __name__ == "__main__":
+
+    mp.freeze_support()
+    mp.set_start_method("spawn")
 
 
 class MetaEngine(MetaDCRegister):
@@ -179,10 +187,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         with (
             SharedMemoryManager() as smm,
-            ProcessPoolExecutor(
-                n_workers,
-                mp_context=multiprocessing.get_context("spawn"),
-            ) as executor,
+            ProcessPoolExecutor(n_workers) as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,
         ):
@@ -231,6 +236,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 def del_future_files():
     """Delete the files created by the engine."""
     SNAKE_TMP_DIR = Path(os.environ.get("SNAKE_TMP_DIR", "/tmp"))
+    if not os.path.exists(SNAKE_TMP_DIR / "chunks"):
+        return
     with open(SNAKE_TMP_DIR / "chunks") as f:
         chunks = f.read().split(",")
     for chunk in chunks:

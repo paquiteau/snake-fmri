@@ -320,7 +320,9 @@ class NonCartesianFrameDataLoader(MRDLoader):
         # Do a single read of the dataset much faster !
         acq = self._dataset["data"][start:end]
         traj = acq["traj"].reshape(-1, 3)
-        data = acq["data"].reshape(self.n_coils, -1).view(np.complex64)
+        data = acq["data"].view(np.complex64)
+        data = data.reshape(-1, self.n_coils, self.n_sample)
+        data = np.moveaxis(data, 1, 0)
         return traj, data
 
 

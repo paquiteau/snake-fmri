@@ -160,5 +160,6 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
     ) -> None:
         shot_idx = np.asarray(chunk)
         acq_chunk = dataset._dataset["data"][shot_idx]
-        acq_chunk["data"] = chunk_data.view(np.float32).reshape(*acq_chunk.shape, -1)
+        chunk_data = chunk_data.view(np.float32)
+        acq_chunk["data"] = chunk_data.reshape(acq_chunk["data"].shape)
         dataset._dataset["data"][shot_idx] = acq_chunk
