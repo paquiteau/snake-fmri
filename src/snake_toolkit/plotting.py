@@ -160,13 +160,19 @@ def axis3dcut(
     if cbar:
         cax = type(ax)(fig, ax.get_position(original=True))
         cax.set_axes_locator(divider.new_locator(nx=3, ny=0, ny1=-1))
-        im = ScalarMappable(norm="linear", cmap=get_coolgraywarm())
-        im.set_clim(-11, 11)
-        matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
-        cax.set_ylabel("z-scores", labelpad=-20)
-        cax.set_yticks(np.concatenate([-np.arange(3, 12, 2), np.arange(3, 12, 2)]))
-
+        if z_score is not None:
+            im = ScalarMappable(norm="linear", cmap=get_coolgraywarm())
+            im.set_clim(-11, 11)
+            matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
+            cax.set_ylabel("z-scores", labelpad=-20)
+            cax.set_yticks(np.concatenate([-np.arange(3, 12, 2), np.arange(3, 12, 2)]))
+        else:
+            # use the background image
+            im = ScalarMappable(norm="linear", cmap="gray")
+            im.set_clim(vmin=np.min(background), vmax=np.max(background))
+            matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
         fig.add_axes(cax)
+
     ax.set_axes_locator(divider.new_locator(nx=0, ny=0, ny1=-1, nx1=-1))
     ax.set_zorder(10)
 
