@@ -20,8 +20,8 @@ class EngineConfig:
 
     n_jobs: int = 1
     chunk_size: int = 1
-    mode: str = "simple"
-    snr: float = float("inf")
+    model: str = "simple"
+    snr: float = 0
     nufft_backend: str = "finufft"
 
 

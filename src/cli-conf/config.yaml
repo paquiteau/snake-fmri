@@ -40,7 +40,7 @@ sampler:
 engine:
   n_jobs: 10
   chunk_size: 60
-  mode: "simple"
+  model: "simple"
   snr: 10e6
 
 

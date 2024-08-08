@@ -13,7 +13,7 @@ defaults:
 
 cache_dir: ${oc.env:PWD}/cache
 result_dir: results
-filename:  ${oc.env:PWD}/scenario2_${engine.mode}.mrd
+filename:  ${oc.env:PWD}/scenario2_${engine.model}.mrd
 
 sim_conf:
   max_sim_time: 300
@@ -44,9 +44,9 @@ sampler:
     nb_revolutions: 10
 
 engine:
-  n_jobs: 10
-  chunk_size: 50
-  mode: "simple"
+  n_jobs: 5
+  chunk_size: 180
+  model: "simple"
   snr: 10e6
   nufft_backend: "stacked-gpunufft"
 
