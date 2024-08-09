@@ -11,6 +11,7 @@ from .samplers import (
 __all__ = [
     "BaseSampler",
     "EPI3dAcquisitionSampler",
+    "EVI3dAcquisitionSampler",
     "StackOfSpiralSampler",
     "NonCartesianAcquisitionSampler",
 ]
