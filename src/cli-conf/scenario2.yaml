@@ -42,6 +42,7 @@ sampler:
     acsz: 0.1
     accelz: 4
     nb_revolutions: 10
+    constant: true
 
 engine:
   n_jobs: 5
@@ -53,10 +54,10 @@ engine:
 reconstructors:
   adjoint:
     nufft_backend: "stacked-gpunufft"
-    density_compensation: "voronoi"
+    density_compensation: "pipe"
   sequential:
     nufft_backend: "stacked-gpunufft"
-    density_compensation: "voronoi"
+    density_compensation: "pipe"
     restart_strategy: "cold"
 
 
