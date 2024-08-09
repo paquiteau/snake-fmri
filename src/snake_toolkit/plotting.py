@@ -42,7 +42,6 @@ def get_axis_properties(
         #     cmax = min(cmax + arr_pad,mask.shape[1])
         bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
     sizes = np.array([(bb.stop - bb.start) for b in bbox for bb in b])
-    print("sizes", sizes)
 
     # Compute the ratios for the sagitall/coronal split
     maxscx = max(sizes[3], sizes[5])
@@ -55,10 +54,8 @@ def get_axis_properties(
         hdiv = np.array([sizes[1], maxscx * ratio])
 
     hdivs = np.sum(hdiv)
-    print("hdiv", hdiv, hdivs)
     vdiv = np.array(vsplits)
     vdivs = np.sum(vdiv)
-    print("vdiv", vdiv, vdivs)
 
     aspect = vdivs / hdivs
 
