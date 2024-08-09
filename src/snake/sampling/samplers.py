@@ -94,6 +94,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         chunk = int(
             np.ceil((n_shots_frame * acq_size) / EnvConfig["SNAKE_HDF5_CHUNK_SIZE"])
         )
+        chunk = min(chunk, n_shots_frame)
         chunk_write_sizes = [
             len(c)
             for c in batched(
@@ -400,7 +401,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
         dataset._dataset.create_dataset(
             "data",
             data=acq,
-            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+            chunks=min(sim_conf.shape[1] * sim_conf.shape[0], len(acq)),
         )
         return dataset
 
@@ -548,7 +549,7 @@ class EVI3dAcquisitionSampler(BaseSampler):
         dataset._dataset.create_dataset(
             "data",
             data=acq,
-            chunks=(sim_conf.shape[1] * sim_conf.shape[0],),
+            chunks=min(sim_conf.shape[1] * sim_conf.shape[0], len(acq)),
         )
         return dataset
 
