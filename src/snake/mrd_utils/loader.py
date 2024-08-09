@@ -323,6 +323,7 @@ class NonCartesianFrameDataLoader(MRDLoader):
         data = acq["data"].view(np.complex64)
         data = data.reshape(-1, self.n_coils, self.n_sample)
         data = np.moveaxis(data, 1, 0)
+        data = data.reshape(self.n_coils, -1)
         return traj, data
 
 

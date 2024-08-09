@@ -122,7 +122,6 @@ class ZeroFilledReconstructor(BaseReconstructor):
         smaps = data_loader.get_smaps()
 
         traj, kspace_data = data_loader.get_kspace_frame(0)
-
         kwargs = dict(
             shape=data_loader.shape,
             n_coils=data_loader.n_coils,
@@ -147,7 +146,6 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
         for i in tqdm(range(data_loader.n_frames)):
             traj, data = data_loader.get_kspace_frame(i)
-
             nufft_operator.samples = traj
             final_images[i] = abs(nufft_operator.adj_op(data))
         return final_images
