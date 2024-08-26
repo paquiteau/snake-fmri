@@ -6,10 +6,10 @@ from dataclasses import dataclass, field
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, DictConfig
 
-from snake.simulation import SimConfig
-from snake.phantom.static import TissueFile
-from snake.handlers import AbstractHandler
-from snake.sampling import BaseSampler
+from snake.core.simulation import SimConfig
+from snake.core.phantom.static import TissueFile
+from snake.core.handlers import AbstractHandler
+from snake.core.sampling import BaseSampler
 
 from snake_toolkit.reconstructors import BaseReconstructor
 
@@ -79,7 +79,7 @@ def conf_validator(cfg: DictConfig) -> ConfigSNAKE:
 
 def snake_handler_resolver(name: str) -> str:
     """Get Custom resolver for OmegaConf to get handler name."""
-    from snake.handlers import H
+    from snake.core.handlers import H
 
     cls = H[name]
     return cls.__module__ + "." + cls.__name__
@@ -87,7 +87,7 @@ def snake_handler_resolver(name: str) -> str:
 
 def snake_sampler_resolver(name: str) -> str:
     """Get Custom resolver for OmegaConf to get handler name."""
-    from snake.sampling import BaseSampler
+    from snake.core.sampling import BaseSampler
 
     cls = BaseSampler.__registry__[name]
     return cls.__module__ + "." + cls.__name__
@@ -110,7 +110,7 @@ for reconstructor, cls in BaseReconstructor.__registry__.items():
     cs.store(group="reconstructors", name=reconstructor, node={reconstructor: cls})
 
 
-def cleanup_cuda():
+def cleanup_cuda() -> None:
     """Cleanup CUDA."""
     import cupy as cp
 

@@ -14,9 +14,9 @@ from snake._version import __version__ as version
 from .utils import get_waveform_id, obj2b64encode
 
 if TYPE_CHECKING:
-    from snake.phantom import DynamicData, Phantom
-    from snake.sampling import BaseSampler
-    from snake.simulation import SimConfig
+    from snake.core.phantom import DynamicData, Phantom
+    from snake.core.sampling import BaseSampler
+    from snake.core.simulation import SimConfig
 
 log = logging.getLogger(__name__)
 

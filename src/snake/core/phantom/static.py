@@ -6,7 +6,6 @@ import base64
 import contextlib
 import logging
 import os
-from pathlib import Path
 from collections.abc import Generator
 from dataclasses import dataclass
 from enum import IntEnum

@@ -13,10 +13,10 @@ alternative is to use the CLI ``snake-main``
 
 # Imports
 import numpy as np
-from snake.simulation import SimConfig, default_hardware, GreConfig
-from snake.phantom import Phantom
-from snake.smaps import get_smaps
-from snake.sampling import EPI3dAcquisitionSampler
+from snake.core.simulation import SimConfig, default_hardware, GreConfig
+from snake.core.phantom import Phantom
+from snake.core.smaps import get_smaps
+from snake.core.sampling import EPI3dAcquisitionSampler
 from snake.mrd_utils import make_base_mrd
 
 # %%
@@ -75,7 +75,7 @@ if sim_conf.hardware.n_coils > 1:
 # Here, we have a single frame to acquire with 60 frames (one EPI per slice), so
 # a single worker will do.
 
-from snake.engine import EPIAcquisitionEngine
+from snake.core.engine import EPIAcquisitionEngine
 
 engine = EPIAcquisitionEngine(model="simple")
 

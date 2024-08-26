@@ -1,1 +1,1 @@
-"""SNAKE-fMRI core package."""
+"""SNAKE Package"""

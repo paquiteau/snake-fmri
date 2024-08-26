@@ -233,7 +233,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         os.remove(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"))
 
 
-def del_future_files():
+def del_future_files() -> None:
     """Delete the files created by the engine."""
     SNAKE_TMP_DIR = Path(os.environ.get("SNAKE_TMP_DIR", "/tmp"))
     if not os.path.exists(SNAKE_TMP_DIR / "chunks"):

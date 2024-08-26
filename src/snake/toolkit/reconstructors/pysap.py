@@ -14,8 +14,13 @@ from snake.mrd_utils import (
     MRDLoader,
     NonCartesianFrameDataLoader,
 )
-from snake.parallel import ArrayProps, SharedMemoryManager, array_from_shm, array_to_shm
-from snake.simulation import SimConfig
+from snake.core.parallel import (
+    ArrayProps,
+    SharedMemoryManager,
+    array_from_shm,
+    array_to_shm,
+)
+from snake.core.simulation import SimConfig
 from tqdm.auto import tqdm
 
 from .base import BaseReconstructor

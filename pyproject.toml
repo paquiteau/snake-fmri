@@ -39,22 +39,17 @@ classifiers = [  # Optional
 ]
 
 dependencies = [ # Optional
-  "pydantic",
   "numpy",
   "scipy",
   "nilearn",
   "pandas",
   "scikit-image",
   "matplotlib",
-  "seaborn",
   "hydra-core",
   "hydra-callbacks",
   "hydra-colorlog",
   "brainweb-dl",
   "mri-nufft",
-  "pysap-fmri",
-  "modopt",
-  "dask",
 ]
 
 [project.optional-dependencies] # Optional
@@ -81,8 +76,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["snake", "snake_toolkit"]
-namespaces = false
 
 [tool.setuptools_scm]
 write_to = "src/snake/_version.py"

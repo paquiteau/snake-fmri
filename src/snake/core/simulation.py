@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 import numpy as np
 
@@ -28,28 +28,46 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
         '<caption style="border:1px solid lightgray;">'
         f"<strong>{class_name}</strong></caption>"
     ]
-    if vertical:
-        for field_name, field_value in obj.__dict__.items():
+    from typing import get_type_hints
+    from dataclasses import fields
+
+    resolved_hints = get_type_hints(obj)
+
+    field_names = [f.name for f in fields(obj)]
+    field_values = {name: getattr(obj, name) for name in field_names}
+    resolved_field_types = {name: resolved_hints[name] for name in field_names}
+
+    if vertical:  # switch between vertical and horizontal mode
+        for field_name in field_names:
             # Recursively call _repr_html_ for nested dataclasses
+            field_value = field_values[field_name]
+            field_type = resolved_field_types[field_name].__name__
             try:
                 field_value_str = field_value._repr_html_(vertical=not vertical)
             except AttributeError:
                 field_value_str = repr(field_value)
 
             table_rows.append(
-                f"<tr><td>{field_name}</td><td>{field_value_str}</td></tr>"
+                f"<tr><td>{field_name} (<i>{field_type}</i>)</td><td>{field_value_str}</td></tr>"
             )
     else:
         table_rows.append(
             "<tr>"
-            + "".join([f"<td>{field_name}</td>" for field_name in obj.__dict__.keys()])
+            + "".join(
+                [
+                    f"<td>{field_name} (<i>{field_type}</i>)</td>"
+                    for field_name, field_type in resolved_field_types.items()
+                ]
+            )
             + "</tr>"
         )
         values = []
-        for field_value in obj.__dict__.values():
+        for field_value in field_values.values():
             # Recursively call _repr_html_ for nested dataclasses
             try:
-                field_value_str = field_value._repr_html_(vertical=not vertical)
+                field_value_str = field_value._repr_html_(
+                    vertical=not vertical
+                )  # alternates orientation
             except AttributeError:
                 field_value_str = repr(field_value)
             values.append(f"<td>{field_value_str}</td>")

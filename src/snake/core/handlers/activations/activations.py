@@ -4,8 +4,8 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 
-from snake._meta import LogMixin
-from ...phantom import Phantom, DynamicData, PropTissueEnum
+from snake.core._meta import LogMixin
+from ...phantom import Phantom, DynamicData
 from ...simulation import SimConfig
 from ..base import AbstractHandler
 from ..utils import apply_weights
@@ -119,7 +119,6 @@ class ActivationMixin(LogMixin):
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic time series for adding Activations."""
-
         bold_strength = sim_conf.seq.TE / self.delta_r2s
 
         self.log.info("Computed BOLD Strenght: %s", bold_strength)

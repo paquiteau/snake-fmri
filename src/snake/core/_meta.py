@@ -6,7 +6,6 @@ import dataclasses
 import itertools
 import logging
 import sys
-from pathlib import Path
 from collections import defaultdict
 from collections.abc import Callable, Iterator, Iterable
 from enum import Enum, EnumMeta
@@ -143,7 +142,7 @@ class Singleton(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super().__call__(*args, **kwargs)
         return cls._instances[cls]
 
 

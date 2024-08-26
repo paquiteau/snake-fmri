@@ -4,7 +4,6 @@ import logging
 from typing import Literal
 from numpy.typing import NDArray
 from sklearn.metrics import roc_curve
-import pandas as pd
 import numpy as np
 
 from nilearn.glm.first_level import make_first_level_design_matrix, run_glm

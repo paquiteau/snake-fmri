@@ -8,8 +8,8 @@ import numpy as np
 from mrinufft.operators import FourierOperatorBase, get_operator
 from numpy.typing import NDArray
 
-from snake.phantom import DynamicData, Phantom
-from snake.simulation import SimConfig
+from snake.core.phantom import DynamicData, Phantom
+from snake.core.simulation import SimConfig
 
 from .base import BaseAcquisitionEngine
 from .utils import get_contrast_gre

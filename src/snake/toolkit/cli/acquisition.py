@@ -4,11 +4,11 @@ import logging
 import hydra
 
 from omegaconf import OmegaConf
-from snake.engine import BaseAcquisitionEngine
-from snake.handlers import HandlerList
+from snake.core.engine import BaseAcquisitionEngine
+from snake.core.handlers import HandlerList
 from snake.mrd_utils import make_base_mrd
-from snake.phantom import Phantom
-from snake.smaps import get_smaps
+from snake.core.phantom import Phantom
+from snake.core.smaps import get_smaps
 from snake_toolkit.cli.config import ConfigSNAKE, cleanup_cuda
 
 log = logging.getLogger(__name__)

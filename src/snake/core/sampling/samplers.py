@@ -1,6 +1,5 @@
 """Samplers generate kspace trajectories."""
 
-import os
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
@@ -16,7 +15,7 @@ from .factories import (
     evi_factory,
 )
 from snake.mrd_utils.utils import ACQ
-from snake._meta import batched, EnvConfig
+from snake.core._meta import batched, EnvConfig
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):

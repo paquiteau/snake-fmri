@@ -13,10 +13,10 @@ alternative is to use the CLI ``snake-main``
 
 # Imports
 import numpy as np
-from snake.simulation import SimConfig, default_hardware, GreConfig
-from snake.phantom import Phantom
-from snake.smaps import get_smaps
-from snake.sampling import StackOfSpiralSampler
+from snake.core.simulation import SimConfig, default_hardware, GreConfig
+from snake.core.phantom import Phantom
+from snake.core.smaps import get_smaps
+from snake.core.sampling import StackOfSpiralSampler
 from snake.mrd_utils import make_base_mrd
 
 # %%
@@ -77,7 +77,7 @@ if sim_conf.hardware.n_coils > 1:
 # Here, we have a single frame to acquire with 60 frames (one EPI per slice), so
 # a single worker will do.
 
-from snake.engine import NufftAcquisitionEngine
+from snake.core.engine import NufftAcquisitionEngine
 
 engine = NufftAcquisitionEngine(model="simple", snr=1000)
 
@@ -114,7 +114,7 @@ engine_t2s(
 # showcasing the API, we will do things manually here, and use only core SNAKE.
 
 from snake.mrd_utils import NonCartesianFrameDataLoader
-from snake_toolkit.reconstructors import (
+from snake.toolkit.reconstructors import (
     SequentialReconstructor,
     ZeroFilledReconstructor,
 )

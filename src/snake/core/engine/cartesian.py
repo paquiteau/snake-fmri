@@ -7,8 +7,8 @@ import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
 
-from snake.phantom import DynamicData, Phantom
-from snake.simulation import SimConfig
+from snake.core.phantom import DynamicData, Phantom
+from snake.core.simulation import SimConfig
 from snake.mrd_utils import MRDLoader
 
 from .base import BaseAcquisitionEngine

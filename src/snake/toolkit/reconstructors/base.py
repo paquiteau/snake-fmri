@@ -5,9 +5,9 @@ from numpy.typing import NDArray
 import logging
 from dataclasses import field
 from typing import Any, ClassVar
-from snake._meta import MetaDCRegister
+from snake.core._meta import MetaDCRegister
 from snake.mrd_utils import MRDLoader
-from snake.simulation import SimConfig
+from snake.core.simulation import SimConfig
 
 
 class MetaReconstructor(MetaDCRegister):

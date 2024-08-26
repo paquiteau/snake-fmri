@@ -10,9 +10,9 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Any
 from collections.abc import Generator
-from snake._meta import LogMixin
-from snake.phantom import Phantom, DynamicData
-from snake.simulation import GreConfig, HardwareConfig, SimConfig
+from snake.core._meta import LogMixin
+from snake.core.phantom import Phantom, DynamicData
+from snake.core.simulation import GreConfig, HardwareConfig, SimConfig
 
 from .utils import b64encode2obj, unserialize_array
 
