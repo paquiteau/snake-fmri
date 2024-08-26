@@ -38,8 +38,8 @@ class PropTissueEnum(IntEnum):
 class TissueFile(str, NoCaseEnum):
     """Enum for the tissue properties file."""
 
-    tissue_1T5 = str(files("snake.phantom.data") / "tissues_properties_1T5.csv")
-    tissue_7T = str(files("snake.phantom.data") / "tissues_properties_7T.csv")
+    tissue_1T5 = str(files("snake.core.phantom.data") / "tissues_properties_1T5.csv")
+    tissue_7T = str(files("snake.core.phantom.data") / "tissues_properties_7T.csv")
 
 
 @dataclass

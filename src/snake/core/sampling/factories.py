@@ -356,9 +356,9 @@ def stack_spiral_factory(
     return kspace_locs3d.astype(np.float32)
 
 
-#####################################
+#########################################
 # Generators                            #
-#####################################
+#########################################
 
 
 class AngleRotation(float, NoCaseEnum):
