@@ -15,8 +15,8 @@ from snake.mrd_utils import (
     parse_sim_conf,
 )
 
-from snake_toolkit.cli.config import conf_validator, cleanup_cuda
-from snake_toolkit.analysis.stats import contrast_zscore, get_scores
+from snake.toolkit.cli.config import conf_validator, cleanup_cuda
+from snake.toolkit.analysis.stats import contrast_zscore, get_scores
 
 log = logging.getLogger(__name__)
 

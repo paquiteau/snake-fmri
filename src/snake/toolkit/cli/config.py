@@ -11,7 +11,7 @@ from snake.core.phantom.static import TissueFile
 from snake.core.handlers import AbstractHandler
 from snake.core.sampling import BaseSampler
 
-from snake_toolkit.reconstructors import BaseReconstructor
+from snake.toolkit.reconstructors import BaseReconstructor
 
 
 @dataclass

@@ -1,9 +1,9 @@
 import hydra
 
 
-from snake_toolkit.cli.acquisition import acquisition
-from snake_toolkit.cli.config import ConfigSNAKE
-from snake_toolkit.cli.reconstruction import reconstruction
+from snake.toolkit.cli.acquisition import acquisition
+from snake.toolkit.cli.config import ConfigSNAKE
+from snake.toolkit.cli.reconstruction import reconstruction
 
 
 def main(cfg: ConfigSNAKE) -> None:

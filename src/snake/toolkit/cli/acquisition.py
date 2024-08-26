@@ -9,7 +9,7 @@ from snake.core.handlers import HandlerList
 from snake.mrd_utils import make_base_mrd
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
-from snake_toolkit.cli.config import ConfigSNAKE, cleanup_cuda
+from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda
 
 log = logging.getLogger(__name__)
 

@@ -64,9 +64,9 @@ doc = ["myst-parser", "sphinx-copybytton","sphinx-gallery","sphinx-book-theme"]
 "Source" = "https://github.com/paquiteau/simfmri"
 
 [project.scripts]
-snake-acq = "snake_toolkit.cli.acquisition:acquisition_cli"
-snake-rec = "snake_toolkit.cli.reconstruction:reconstruction_cli"
-snake-main = "snake_toolkit.cli.main:main_cli"
+snake-acq = "snake.toolkit.cli.acquisition:acquisition_cli"
+snake-rec = "snake.toolkit.cli.reconstruction:reconstruction_cli"
+snake-main = "snake.toolkit.cli.main:main_cli"
 
 [build-system]
 # These are the assumed default build requirements from pip:
