@@ -111,7 +111,7 @@ engine("example_EPI.mrd", worker_chunk_size=20, n_workers=2)
 # Getting k-space data is nice, but
 # SNAKE also provides rudimentary reconstruction tools to get images (and check
 # that we didn't mess up the acquisition process).
-# This is available in the companion package ``snake_toolkit``.
+# This is available in the companion package ``snake.toolkit``.
 #
 # Loading the ``.mrd`` file to retrieve all information can be done using the
 # ``ismrmd`` python package, but SNAKE provides convient dataloaders, which are
@@ -140,7 +140,7 @@ image_data = np.sqrt(np.sum(np.abs(image_data) ** 2, axis=0))
 # %% plotting the result
 
 import matplotlib.pyplot as plt
-from snake_toolkit.plotting import axis3dcut
+from snake.toolkit.plotting import axis3dcut
 
 fig, ax = plt.subplots()
 

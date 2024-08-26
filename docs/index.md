@@ -22,6 +22,14 @@ mrd-simulation.md
 
 ```{toctree}
 :hidden:
+:caption: Examples 
+generated/autoexamples/index
+
+
+```
+
+```{toctree}
+:hidden:
 :caption: References
 
 api.rst

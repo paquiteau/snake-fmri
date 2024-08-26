@@ -1,3 +1,4 @@
+# %%
 """
 Compare Fourier Model and T2* Model for Stack of Spirals trajectory
 ===========================================
@@ -22,15 +23,15 @@ from snake.mrd_utils import make_base_mrd
 # %%
 
 sim_conf = SimConfig(
-    max_sim_time=6,
-    seq=GreConfig(TR=100, TE=30, FA=3),
+    max_sim_time=2,
+    seq=GreConfig(TR=50, TE=30, FA=12),
     hardware=default_hardware,
     fov_mm=(181, 217, 181),
     shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 8
 sim_conf.hardware.field_strength = 7
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5")
 
 
 # %%
@@ -106,7 +107,7 @@ engine_t2s(
 # Getting k-space data is nice, but
 # SNAKE also provides rudimentary reconstruction tools to get images (and check
 # that we didn't mess up the acquisition process).
-# This is available in the companion package ``snake_toolkit``.
+# This is available in the companion package ``snake.toolkit``.
 #
 # Loading the ``.mrd`` file to retrieve all information can be done using the
 # ``ismrmd`` python package, but SNAKE provides convient dataloaders, which are
@@ -140,7 +141,7 @@ with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
 # -------------------
 
 import matplotlib.pyplot as plt
-from snake_toolkit.plotting import axis3dcut
+from snake.toolkit.plotting import axis3dcut
 
 fig, axs = plt.subplots(2, 3, figsize=(30, 10))
 
@@ -163,3 +164,5 @@ for ax, img, title in zip(
 
 
 plt.show()
+
+# %%

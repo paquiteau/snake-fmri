@@ -94,7 +94,7 @@ engine_t2s("example_EPI_t2s.mrd", worker_chunk_size=60, n_workers=1)
 # Getting k-space data is nice, but
 # SNAKE also provides rudimentary reconstruction tools to get images (and check
 # that we didn't mess up the acquisition process).
-# This is available in the companion package ``snake_toolkit``.
+# This is available in the companion package ``snake.toolkit``.
 #
 # Loading the ``.mrd`` file to retrieve all information can be done using the
 # ``ismrmd`` python package, but SNAKE provides convient dataloaders, which are
@@ -128,7 +128,7 @@ image_T2s = reconstruct_frame("example_EPI_t2s.mrd")
 # -------------------
 
 import matplotlib.pyplot as plt
-from snake_toolkit.plotting import axis3dcut
+from snake.toolkit.plotting import axis3dcut
 
 fig, axs = plt.subplots(1, 3, figsize=(30, 10))
 

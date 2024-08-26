@@ -41,7 +41,7 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.napoleon",
-    # "sphinx_gallery.gen_gallery",
+    "sphinx_gallery.gen_gallery",
     "myst_parser",
 ]
 
@@ -72,11 +72,12 @@ highlight_language = "python"
 # -- Options for Sphinx Gallery ----------------------------------------------
 
 sphinx_gallery_conf = {
-    "doc_module": ["snake", "snake_toolkit"],
+    "doc_module": "snake",
     "backreferences_dir": "generated/gallery_backreferences",
-    "reference_url": {"snake": None, "snake_toolkit": None},
+    "reference_url": {"snake": None},
     "examples_dirs": ["../examples/"],
     "gallery_dirs": ["generated/autoexamples"],
+    "prefer_full_module": {r"module\.submodule"},
     "filename_pattern": "/example_",
     "ignore_pattern": r"/(__init__|conftest|utils)\.py",
     "nested_sections": True,
