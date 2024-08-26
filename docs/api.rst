@@ -2,10 +2,10 @@
    :toctree: generated/_autosummary
    :recursive:
 
-   snake.simulation
-   snake.phantom
-   snake.sampling
-   snake.handlers
-   snake.engine
+   snake.core.simulation
+   snake.core.phantom
+   snake.core.sampling
+   snake.core.handlers
+   snake.core.engine
    snake.mrd_utils
-   snake.parallel
+   snake.core.parallel
