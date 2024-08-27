@@ -79,7 +79,7 @@ sphinx_gallery_conf = {
     "gallery_dirs": ["generated/autoexamples"],
     "prefer_full_module": {r"module\.submodule"},
     "filename_pattern": "/example_",
-    "ignore_pattern": r"/(__init__|conftest|utils)\.py",
+    "ignore_pattern": r"/(__init__|conftest|utils|example_gpu_(.*?))\.py",
     "nested_sections": True,
 }
 

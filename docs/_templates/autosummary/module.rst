@@ -1,4 +1,4 @@
-{{ "``{}.{}``".format(module.split(".")[-1], objname) | underline}}
+{{ "``{}``".format(fullname) | underline }}
 
 .. automodule:: {{ fullname }}
 
