@@ -1,3 +1,4 @@
+# %%
 """
 Compare Fourier Model and T2* Model for EPI
 ===========================================
@@ -141,3 +142,5 @@ for ax, img, title in zip(
     ax.set_title(title)
 
 plt.show()
+
+# %%

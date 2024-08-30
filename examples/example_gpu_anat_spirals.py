@@ -31,7 +31,7 @@ sim_conf = SimConfig(
 )
 sim_conf.hardware.n_coils = 8
 sim_conf.hardware.field_strength = 7
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5")
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
 
 
 # %%
@@ -80,7 +80,7 @@ if sim_conf.hardware.n_coils > 1:
 
 from snake.core.engine import NufftAcquisitionEngine
 
-engine = NufftAcquisitionEngine(model="simple", snr=1000)
+engine = NufftAcquisitionEngine(model="simple", snr=10000)
 
 make_base_mrd("example_spiral.mrd", sampler, phantom, sim_conf, smaps=smaps)
 make_base_mrd("example_spiral_t2s.mrd", sampler, phantom, sim_conf, smaps=smaps)
@@ -91,7 +91,7 @@ engine(
     n_workers=1,
     nufft_backend="stacked-gpunufft",
 )
-engine_t2s = NufftAcquisitionEngine(model="T2s", snr=1000)
+engine_t2s = NufftAcquisitionEngine(model="T2s", snr=10000)
 
 engine_t2s(
     "example_spiral_t2s.mrd",
@@ -127,6 +127,7 @@ seq_rec = SequentialReconstructor(
     nufft_backend="stacked-gpunufft",
     density_compensation="pipe",
     max_iter_per_frame=50,
+    threshold=0.00001
 )
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
     adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
@@ -164,5 +165,7 @@ for ax, img, title in zip(
 
 
 plt.show()
+
+# %%
 
 # %%

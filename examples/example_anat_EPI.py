@@ -1,3 +1,4 @@
+# %%
 """
 Single anatomical EPI with SNAKE-fMRI
 =====================================
