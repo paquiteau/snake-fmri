@@ -230,13 +230,15 @@ class Phantom:
 
     def __repr__(self):
         ret = f"Phantom[{self.name}]: {self.props.shape}\n"
-        ret += f"{'tissue name':14s}" + "".join(f"{prop:4s}" for prop in PropTissueEnum)
+        ret += f"{'tissue name':14s}" + "".join(
+            f"{str(prop):4s}" for prop in PropTissueEnum
+        )
         ret += "\n"
-        for i, tissue_name in self.labels:
+        for i, tissue_name in enumerate(self.labels):
             props = self.props[i]
             ret += (
                 f"{tissue_name:14s}"
-                + "".join(f"{props[p.values]:4s}" for p in PropTissueEnum)
+                + "".join(f"{props[p]:4}" for p in PropTissueEnum.__members__.values())
                 + "\n"
             )
         return ret
