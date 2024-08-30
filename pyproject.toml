@@ -50,6 +50,7 @@ dependencies = [ # Optional
   "hydra-colorlog",
   "brainweb-dl",
   "mri-nufft",
+  "ismrmrd",
 ]
 
 [project.optional-dependencies] # Optional
