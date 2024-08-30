@@ -94,7 +94,13 @@ def plot_frames_activ(
 
     """
     bg = background[slices][bbox].squeeze()
-    im = ax.imshow(bg, cmap="gray", origin="lower")
+    im = ax.imshow(
+        bg,
+        vmin=np.min(background),
+        vmax=np.max(background),
+        cmap="gray",
+        origin="lower",
+    )
     if z_score is not None:
         masked_z = z_score[slices][bbox].squeeze()
         masked_z[abs(masked_z) < z_thresh] = np.NaN
