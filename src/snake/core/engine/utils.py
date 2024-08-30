@@ -1,10 +1,11 @@
 """Utilities for the MRD format."""
 
+from copy import deepcopy
 import scipy as sp
 import numpy as np
 from numpy.typing import NDArray
 
-from ..phantom import Phantom, PropTissueEnum
+from ..phantom import Phantom, PropTissueEnum, DynamicData
 from ..simulation import SimConfig
 
 
@@ -30,6 +31,26 @@ def get_ideal_phantom(phantom: Phantom, sim_conf: SimConfig) -> NDArray:
     phantom_state = np.sum(
         phantom.masks * contrast[(..., *([None] * len(phantom.anat_shape)))],
         axis=0,
+    )
+    return phantom_state
+
+
+def get_phantom_state(
+    phantom: Phantom, dyn_datas: list[DynamicData], i: int, sim_conf: SimConfig
+) -> NDArray:
+    """Get phantom state after applying temporal variation."""
+    frame_phantom = deepcopy(phantom)
+    for dyn_data in dyn_datas:
+        frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
+
+    contrast = get_contrast_gre(
+        frame_phantom,
+        sim_conf.seq.FA,
+        sim_conf.seq.TE,
+        sim_conf.seq.TR,
+    )
+    phantom_state = (
+        contrast[(..., *([None] * len(frame_phantom.anat_shape)))] * frame_phantom.masks
     )
     return phantom_state
 

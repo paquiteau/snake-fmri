@@ -158,7 +158,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         filename: os.PathLike,
         worker_chunk_size: int,
         n_workers: int,
-        **kwargs: Mapping[str, Any],
+        **kwargs: Any,
     ):
         """Perform the acquisition and fill the dataset."""
         with MRDLoader(filename) as data_loader:

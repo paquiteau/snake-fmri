@@ -12,7 +12,7 @@ from snake.core.simulation import SimConfig
 from snake.mrd_utils import MRDLoader
 
 from .base import BaseAcquisitionEngine
-from .utils import fft, get_contrast_gre
+from .utils import fft, get_contrast_gre, get_phantom_state
 
 
 class EPIAcquisitionEngine(BaseAcquisitionEngine):
@@ -96,20 +96,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         )
 
         for i, epi_2d in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = (
-                contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
-                * frame_phantom.masks
-            )
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
 
             if smaps is None:
                 ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
@@ -145,22 +132,8 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             dtype=np.complex64,
         )
         for i, epi_2d in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-
-            # Reduce the array, we dont have batch tissues !
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = np.sum(
-                contrast[(..., *([None] * len(phantom.anat_shape)))]
-                * frame_phantom.masks,
-                axis=0,
-            )
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
+            phantom_state = np.sum(phantom_state, axis=0)
             if smaps is None:
                 ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
             else:

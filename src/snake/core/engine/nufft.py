@@ -12,7 +12,7 @@ from snake.core.phantom import DynamicData, Phantom
 from snake.core.simulation import SimConfig
 
 from .base import BaseAcquisitionEngine
-from .utils import get_contrast_gre
+from .utils import get_phantom_state
 
 
 class NufftAcquisitionEngine(BaseAcquisitionEngine):
@@ -94,20 +94,8 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
             sim_conf.hardware.dwell_time_ms, echo_idx, n_samples, phantom
         )
         for i, traj in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-            # Apply the contrast tissue-wise
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = (
-                contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
-                * frame_phantom.masks
-            )
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
+            phantom_state = phantom_state[:, None, ...]
             nufft.samples = traj
             nufft.n_batchs = len(phantom_state)
             ksp = nufft.op(phantom_state)
@@ -136,21 +124,9 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         )
         # (n_tissues_true, n_samples) Filter the tissues that have NaN Values
         for i, traj in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-            # reduced the array, we dont have batch tissues !
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = np.sum(
-                contrast[(..., *([None] * len(phantom.anat_shape)))]
-                * frame_phantom.masks,
-                axis=0,
-            )
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
+            phantom_state = np.sum(phantom_state, axis=0)
+            phantom_state = phantom_state[:, None, ...]
             nufft.samples = traj
             final_ksp[i] = nufft.op(phantom_state)
         return final_ksp
