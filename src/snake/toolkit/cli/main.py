@@ -1,8 +1,10 @@
-import hydra
+"""Main entry point for the SNAKE CLI.
 
+Performs Acquisition and Reconstruction sequentially.
+"""
 
 from snake.toolkit.cli.acquisition import acquisition
-from snake.toolkit.cli.config import ConfigSNAKE
+from snake.toolkit.cli.config import ConfigSNAKE, make_hydra_cli
 from snake.toolkit.cli.reconstruction import reconstruction
 
 
@@ -12,9 +14,7 @@ def main(cfg: ConfigSNAKE) -> None:
     reconstruction(cfg)
 
 
-main_cli = hydra.main(
-    version_base=None, config_path="../../cli-conf/", config_name="config"
-)(main)
+main_cli = make_hydra_cli(main)
 
 if __name__ == "__main__":
     main_cli()

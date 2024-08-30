@@ -1,7 +1,6 @@
 """CLI for SNAKE."""
 
 import logging
-import hydra
 
 from omegaconf import OmegaConf
 from snake.core.engine import BaseAcquisitionEngine
@@ -9,14 +8,14 @@ from snake.core.handlers import HandlerList
 from snake.mrd_utils import make_base_mrd
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
-from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda
+from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda, make_hydra_cli
 
 log = logging.getLogger(__name__)
 
 
 def acquisition(cfg: ConfigSNAKE) -> None:
     """Simulate acquisition."""
-    cfg: ConfigSNAKE = OmegaConf.to_object(cfg)
+    cfg = OmegaConf.to_object(cfg)
     # FIXME: Hydra should be able to do that on its own.
     print(cfg)
     sim_conf = cfg.sim_conf
@@ -69,9 +68,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     cleanup_cuda()
 
 
-acquisition_cli = hydra.main(
-    version_base=None, config_path="../../cli-conf", config_name="config"
-)(acquisition)
+acquisition_cli = make_hydra_cli(acquisition)
 
 if __name__ == "__main__":
     acquisition_cli()

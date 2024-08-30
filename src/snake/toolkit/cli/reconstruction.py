@@ -5,7 +5,6 @@ import gc
 from pathlib import Path
 import logging
 import numpy as np
-import hydra
 from omegaconf import DictConfig, OmegaConf
 from snake.mrd_utils import (
     read_mrd_header,
@@ -15,7 +14,7 @@ from snake.mrd_utils import (
     parse_sim_conf,
 )
 
-from snake.toolkit.cli.config import conf_validator, cleanup_cuda
+from snake.toolkit.cli.config import conf_validator, cleanup_cuda, make_hydra_cli
 from snake.toolkit.analysis.stats import contrast_zscore, get_scores
 
 log = logging.getLogger(__name__)
@@ -110,9 +109,7 @@ def reconstruction(cfg: DictConfig) -> None:
     cleanup_cuda()
 
 
-reconstruction_cli = hydra.main(
-    version_base=None, config_path="../../cli-conf", config_name="config"
-)(reconstruction)
+reconstruction_cli = make_hydra_cli(reconstruction)
 
 if __name__ == "__main__":
     reconstruction_cli()

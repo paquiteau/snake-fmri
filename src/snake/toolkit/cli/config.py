@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Any
 from dataclasses import dataclass, field
+import hydra
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, DictConfig
 
@@ -100,14 +101,14 @@ OmegaConf.register_new_resolver("snake.sampler", snake_sampler_resolver)
 cs = ConfigStore.instance()
 cs.store(name="base_config", node=ConfigSNAKE)
 
-for handler_name, cls in AbstractHandler.__registry__.items():
-    cs.store(group="handlers", name=handler_name, node={handler_name: cls})
+for handler_name, h_cls in AbstractHandler.__registry__.items():
+    cs.store(group="handlers", name=handler_name, node={handler_name: h_cls})
 
-for sampler, cls in BaseSampler.__registry__.items():
-    cs.store(group="sampler", name=sampler, node={sampler: cls})
+for sampler, s_cls in BaseSampler.__registry__.items():
+    cs.store(group="sampler", name=sampler, node={sampler: s_cls})
 
-for reconstructor, cls in BaseReconstructor.__registry__.items():
-    cs.store(group="reconstructors", name=reconstructor, node={reconstructor: cls})
+for reconstructor, r_cls in BaseReconstructor.__registry__.items():
+    cs.store(group="reconstructors", name=reconstructor, node={reconstructor: r_cls})
 
 
 def cleanup_cuda() -> None:
@@ -118,3 +119,9 @@ def cleanup_cuda() -> None:
     cp.get_default_pinned_memory_pool().free_all_blocks()
     cp._default_memory_pool = cp.cuda.MemoryPool()
     cp._default_pinned_memory_pool = cp.cuda.PinnedMemoryPool()
+
+
+def make_hydra_cli(fun):
+    return hydra.main(
+        version_base=None, config_path="../../../cli-conf", config_name="config"
+    )(fun)
