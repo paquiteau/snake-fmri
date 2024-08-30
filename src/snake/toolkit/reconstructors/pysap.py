@@ -173,7 +173,7 @@ class SequentialReconstructor(BaseReconstructor):
 
     max_iter_per_frame: int = 15
     optimizer: str = "pogm"
-    wavelet: str = "sym8"
+    wavelet: str = "db4"
     threshold: float | str = "sure"
     nufft_backend: str = "gpunufft"
     density_compensation: str | bool = "pipe"
@@ -252,6 +252,8 @@ class SequentialReconstructor(BaseReconstructor):
             grad_op = GradSynthesis(linear_op=self.space_linear_op, **grad_kwargs)
 
         x_init = xp.zeros(sim_conf.shape, dtype=np.complex64)
+        x_init = fourier_op.adj_op(xp.array(data, copy=False))
+
         pbar_frames = tqdm(total=data_loader.n_frames, position=0)
         pbar_iter = tqdm(total=self.max_iter_per_frame, position=1)
         for i, traj, data in data_loader.iter_frames():
