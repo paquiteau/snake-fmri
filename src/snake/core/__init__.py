@@ -1,8 +1,8 @@
 """SNAKE-fMRI core package."""
 
-from .simulation import SimConfig, default_hardware, GreConfig
+from .simulation import SimConfig, default_hardware, GreConfig, HardwareConfig
 
-from .phantom import Phantom
+from .phantom import Phantom, DynamicData
 from .smaps import get_smaps
 from .sampling import (
     EPI3dAcquisitionSampler,
@@ -14,11 +14,13 @@ from .sampling import (
 from .engine import BaseAcquisitionEngine, EPIAcquisitionEngine, NufftAcquisitionEngine
 
 __all__ = [
-    "BaseSampler",
     "BaseAcquisitionEngine",
+    "BaseSampler",
+    "DynamicData",
     "EPI3dAcquisitionSampler",
     "EPIAcquisitionEngine",
     "GreConfig",
+    "HardwareConfig",
     "NonCartesianAcquisitionSampler",
     "NufftAcquisitionEngine",
     "Phantom",

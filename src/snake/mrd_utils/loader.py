@@ -10,9 +10,11 @@ import numpy as np
 from numpy.typing import NDArray
 from typing import Any
 from collections.abc import Generator
-from snake.core._meta import LogMixin
-from snake.core.phantom import Phantom, DynamicData
-from snake.core.simulation import GreConfig, HardwareConfig, SimConfig
+from ..core._meta import LogMixin
+
+if TYPE_CHECKING:
+    from ..core import Phantom, DynamicData
+    from ..core import GreConfig, HardwareConfig, SimConfig
 
 from .utils import b64encode2obj, unserialize_array
 
@@ -206,6 +208,7 @@ class MRDLoader(LogMixin):
         name = image.meta.pop("name")
         labels = np.array(image.meta["labels"].split(","))
         props = unserialize_array(image.meta["props"])
+        from ..core import Phantom
 
         return Phantom(
             masks=image.data,
@@ -224,10 +227,14 @@ class MRDLoader(LogMixin):
         """Get dynamic data."""
         waveform = self._dataset.read_waveform(waveform_num)
         wave_info = self._all_waveform_infos[waveform.waveform_id]
+        from ..core import DynamicData
+
         return DynamicData._from_waveform(waveform, wave_info)
 
     def get_all_dynamic(self) -> list[DynamicData]:
         """Get all dynamic data."""
+        from ..core import DynamicData
+
         all_dyn_data = []
         try:
             n_waves = self._dataset["waveforms"].size
@@ -329,6 +336,9 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
 def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
     """Parse the header to populate SimConfig from an MRD Header."""
+
+    from ..core import GreConfig, HardwareConfig, SimConfig
+
     n_coils = header.acquisitionSystemInformation.receiverChannels
     field = header.acquisitionSystemInformation.systemFieldStrength_T
 
