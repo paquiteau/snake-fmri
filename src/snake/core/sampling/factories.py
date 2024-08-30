@@ -19,7 +19,7 @@ from mrinufft.trajectories.utils import (
 )
 from scipy.stats import norm  # type: ignore
 
-from .._meta import NoCaseEnum
+from ..._meta import NoCaseEnum
 
 logger = logging.getLogger(__name__)
 

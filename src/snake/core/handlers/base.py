@@ -5,7 +5,7 @@ import yaml
 import dataclasses
 from collections import UserList
 
-from .._meta import MetaDCRegister
+from ..._meta import MetaDCRegister
 from typing import ClassVar, TypeVar, Any
 
 from ..simulation import SimConfig
