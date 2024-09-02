@@ -149,6 +149,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
                     ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
 
+        os.makedirs(EnvConfig["SNAKE_TMP_DIR"], exist_ok=True)
         chunk_file = os.path.join(EnvConfig["SNAKE_TMP_DIR"], f"partial_{chunk[0]}.npy")
         np.save(chunk_file, ksp)
         return chunk_file
@@ -235,7 +236,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
 def del_future_files() -> None:
     """Delete the files created by the engine."""
-    SNAKE_TMP_DIR = Path(os.environ.get("SNAKE_TMP_DIR", "/tmp"))
+    SNAKE_TMP_DIR = Path(EnvConfig["SNAKE_TMP_DIR"])
     if not os.path.exists(SNAKE_TMP_DIR / "chunks"):
         return
     with open(SNAKE_TMP_DIR / "chunks") as f:
