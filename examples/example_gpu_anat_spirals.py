@@ -127,7 +127,7 @@ seq_rec = SequentialReconstructor(
     nufft_backend="stacked-gpunufft",
     density_compensation="pipe",
     max_iter_per_frame=50,
-    threshold=0.00001
+    threshold=0.00001,
 )
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
     adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])

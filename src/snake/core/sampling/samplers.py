@@ -155,9 +155,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                 acq_chunk[counter]["data"] = (
                     kspace_data_vol[j, :, :].view(np.float32).ravel()
                 )
-                acq_chunk[counter]["traj"] = (
-                    kspace_traj_vol[j, :].view(np.float32).ravel()
-                )
+                acq_chunk[counter]["traj"] = np.float32(kspace_traj_vol[j, :]).ravel()
                 counter += 1
                 if counter == current_chunk_size:
                     counter = 0
@@ -214,26 +212,28 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
         """Generate the sampling pattern."""
         n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
 
-        self._traj0 = stack_spiral_factory(
-            shape=sim_conf.shape,
-            accelz=self.accelz,
-            acsz=self.acsz,
-            n_samples=n_samples,
-            nb_revolutions=self.nb_revolutions,
-            pdfz=self.pdfz,
-            orderz=self.orderz,
-            spiral=self.spiral_name,
-            rotate_angle=self.rotate_angle,
-            in_out=self.in_out,
-            n_shot_slices=self.n_shot_slices,
-            rng=sim_conf.rng,
-        )
-        self._n_shot_frames = self._traj0.shape[0]
-        self._n_samples_shot = self._traj0.shape[1]
+        if not hasattr(self, "_traj0"):
+            self._traj0 = stack_spiral_factory(
+                shape=sim_conf.shape,
+                accelz=self.accelz,
+                acsz=self.acsz,
+                n_samples=n_samples,
+                nb_revolutions=self.nb_revolutions,
+                pdfz=self.pdfz,
+                orderz=self.orderz,
+                spiral=self.spiral_name,
+                rotate_angle=self.rotate_angle,
+                in_out=self.in_out,
+                n_shot_slices=self.n_shot_slices,
+                rng=sim_conf.rng,
+            )
+            self._n_shot_frames = self._traj0.shape[0]
+            self._n_samples_shot = self._traj0.shape[1]
 
         if self.constant:
-            return self._traj0
+            return self._traj0.copy()
         else:
+            print("Generating new trajectory")
             return stack_spiral_factory(
                 shape=sim_conf.shape,
                 accelz=self.accelz,

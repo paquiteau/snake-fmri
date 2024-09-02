@@ -47,6 +47,11 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     if sim_conf.hardware.n_coils > 1:
         smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
 
+    log.info("Initialization")
+    log.info("Phantom: %s", phantom)
+    log.info("Simulator configuration: %s", sim_conf)
+    log.info("Sampler: %s", sampler)
+    log.info("is sampler constant %s", sampler.constant)
     make_base_mrd(cfg.filename, sampler, phantom, sim_conf, dynamic_data, smaps)
     log.info("Initialization done")
 
