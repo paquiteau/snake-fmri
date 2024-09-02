@@ -83,6 +83,8 @@ hydra:
     #     _partial_: true
     #     _target_: snkf.cli.utils.aggregate_results
 
+    log_job:
+      _target_: hydra.experimental.callbacks.LogJobReturnCallback
     latest_run:
       _target_: hydra_callbacks.LatestRunLink
       run_base_dir:  ${result_dir}/outputs
