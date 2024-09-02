@@ -25,7 +25,7 @@ def reconstruction(cfg: DictConfig) -> None:
     cfg = conf_validator(cfg)
     log.info("Starting Reconstruction")
     hdr = read_mrd_header(cfg.filename)
-    _, version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
+    *version, engine = hdr.acquisitionSystemInformation.systemModel.split("-")
     log.info(f"Data from {version}, using engine {engine}")
 
     # Extract sim_confg

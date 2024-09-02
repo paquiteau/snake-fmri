@@ -33,7 +33,7 @@ def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
     H.acquisitionSystemInformation = mrd.xsd.acquisitionSystemInformationType(
         deviceID="SNAKE",
         systemVendor="SNAKE",
-        systemModel=f"SNAKE-v{version}-{engine}",
+        systemModel=f"{version}-{engine}",
         deviceSerialNumber=42,
         systemFieldStrength_T=sim_conf.hardware.field,
         receiverChannels=sim_conf.hardware.n_coils,
