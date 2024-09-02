@@ -15,7 +15,7 @@ from .factories import (
     evi_factory,
 )
 from snake.mrd_utils.utils import ACQ
-from snake.core._meta import batched, EnvConfig
+from snake._meta import batched, EnvConfig
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):

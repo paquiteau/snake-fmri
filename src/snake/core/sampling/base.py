@@ -5,7 +5,7 @@ import logging
 from typing import ClassVar
 from numpy.typing import NDArray
 
-from .._meta import MetaDCRegister
+from snake._meta import MetaDCRegister
 from ..simulation import SimConfig
 
 import ismrmrd as mrd

@@ -1,5 +1,7 @@
 """Loader of MRD data."""
 
+from __future__ import annotations
+
 import logging
 import os
 
@@ -8,13 +10,13 @@ import ismrmrd as mrd
 import h5py
 import numpy as np
 from numpy.typing import NDArray
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from collections.abc import Generator
-from ..core._meta import LogMixin
+from .._meta import LogMixin
 
 if TYPE_CHECKING:
     from ..core import Phantom, DynamicData
-    from ..core import GreConfig, HardwareConfig, SimConfig
+    from ..core import SimConfig
 
 from .utils import b64encode2obj, unserialize_array
 
@@ -204,11 +206,12 @@ class MRDLoader(LogMixin):
     #############
     def get_phantom(self, imnum: int = 0) -> Phantom:
         """Load the phantom from the dataset."""
+        from ..core import Phantom
+
         image = self._read_image("phantom", imnum)
         name = image.meta.pop("name")
         labels = np.array(image.meta["labels"].split(","))
         props = unserialize_array(image.meta["props"])
-        from ..core import Phantom
 
         return Phantom(
             masks=image.data,
@@ -336,7 +339,6 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
 def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
     """Parse the header to populate SimConfig from an MRD Header."""
-
     from ..core import GreConfig, HardwareConfig, SimConfig
 
     n_coils = header.acquisitionSystemInformation.receiverChannels

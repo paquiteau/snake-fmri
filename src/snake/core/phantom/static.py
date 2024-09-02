@@ -19,7 +19,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from ..parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
-from .._meta import NoCaseEnum
+from snake._meta import NoCaseEnum
 from ..simulation import SimConfig
 
 log = logging.getLogger(__name__)

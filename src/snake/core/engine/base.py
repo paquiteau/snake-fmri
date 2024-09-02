@@ -17,7 +17,7 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from .._meta import MetaDCRegister, batched, EnvConfig
+from snake._meta import MetaDCRegister, batched, EnvConfig
 from ...mrd_utils import MRDLoader
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
