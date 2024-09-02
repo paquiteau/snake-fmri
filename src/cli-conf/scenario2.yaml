@@ -13,7 +13,7 @@ defaults:
 
 cache_dir: ${oc.env:PWD}/cache
 result_dir: results
-filename:  ${oc.env:PWD}/scenario2_${engine.model}.mrd
+filename:  ${cache_dir}/scenario2_${engine.model}_${engine.snr}.mrd
 
 sim_conf:
   max_sim_time: 300
@@ -40,7 +40,7 @@ handlers:
 sampler:
   stack-of-spiral:
     acsz: 0.1
-    accelz: 4
+    accelz: 8
     nb_revolutions: 10
     constant: true
 
@@ -60,7 +60,7 @@ reconstructors:
     density_compensation: "pipe"
     restart_strategy: "cold"
     max_iter_per_frame: 50
-    wavelet: "db4"
+    wavelet: "db2"
 
 
 
