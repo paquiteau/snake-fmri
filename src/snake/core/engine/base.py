@@ -232,4 +232,3 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 )
                 os.remove(f_chunk)
                 gc.collect()
-        os.remove(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"))
