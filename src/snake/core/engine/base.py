@@ -1,15 +1,16 @@
 """Engines are responsible for the acquisition of Kspace."""
 
 from __future__ import annotations
-import atexit
+
 import gc
 import logging
+import multiprocessing as mp
 import os
-from pathlib import Path
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, as_completed
-import multiprocessing as mp
 from multiprocessing.managers import SharedMemoryManager
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Any, ClassVar
 
 import ismrmrd as mrd
@@ -17,14 +18,14 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
-from snake._meta import MetaDCRegister, batched, EnvConfig
+from snake._meta import EnvConfig, MetaDCRegister, batched
+
 from ...mrd_utils import MRDLoader
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
 
-#
 # Test code to make linux spawn like Windows and generate error. This code
 # # is not needed on windows.
 if __name__ == "__main__":
@@ -110,6 +111,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         self,
         filename: os.PathLike,
         chunk: Sequence[int],
+        tmp_dir: str,
         shared_phantom_props: (
             tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
         ) = None,
@@ -149,8 +151,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
                     ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
 
-        os.makedirs(EnvConfig["SNAKE_TMP_DIR"], exist_ok=True)
-        chunk_file = os.path.join(EnvConfig["SNAKE_TMP_DIR"], f"partial_{chunk[0]}.npy")
+        chunk_file = os.path.join(tmp_dir, f"partial_{chunk[0]}-{chunk[-1]}.npy")
         np.save(chunk_file, ksp)
         return chunk_file
 
@@ -184,30 +185,30 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         # This is an alternative to using swmr mode, that I could not get to work.
 
         os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-        atexit.register(del_future_files)
 
         with (
             SharedMemoryManager() as smm,
             ProcessPoolExecutor(n_workers) as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,
+            TemporaryDirectory(
+                dir=EnvConfig["SNAKE_TMP_DIR"], prefix="snake-"
+            ) as tmp_chunk_dir,
         ):
             # data_loader._file.swmr_mode = True
-
-            with open(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"), "w") as f:
-                f.write(",".join([str(c[0]) for c in chunk_list]))
             phantom_props, shms = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
             futures = {
                 executor.submit(
                     self._acquire_ksp_job,
                     filename,
-                    chunk,
+                    chunk_id,
+                    tmp_dir=tmp_chunk_dir,
                     shared_phantom_props=phantom_props,
                     model=self.model,
                     **kwargs,
-                ): chunk
-                for chunk in chunk_list
+                ): chunk_id
+                for chunk_id in chunk_list
             }
             for future in as_completed(futures):
                 chunk = futures[future]
@@ -232,15 +233,3 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 os.remove(f_chunk)
                 gc.collect()
         os.remove(os.path.join(EnvConfig["SNAKE_TMP_DIR"], "chunks"))
-
-
-def del_future_files() -> None:
-    """Delete the files created by the engine."""
-    SNAKE_TMP_DIR = Path(EnvConfig["SNAKE_TMP_DIR"])
-    if not os.path.exists(SNAKE_TMP_DIR / "chunks"):
-        return
-    with open(SNAKE_TMP_DIR / "chunks") as f:
-        chunks = f.read().split(",")
-    for chunk in chunks:
-        os.remove(SNAKE_TMP_DIR / f"partial_{chunk}.npy")
-    os.remove(SNAKE_TMP_DIR / "chunks")
