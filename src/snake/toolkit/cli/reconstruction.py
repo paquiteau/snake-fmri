@@ -1,27 +1,31 @@
 """CLI for SNAKE."""
 
-import json
 import gc
-from pathlib import Path
+import json
 import logging
+import os
+from pathlib import Path
+
 import numpy as np
 from omegaconf import DictConfig, OmegaConf
+
 from snake.mrd_utils import (
-    read_mrd_header,
-    MRDLoader,
     CartesianFrameDataLoader,
+    MRDLoader,
     NonCartesianFrameDataLoader,
     parse_sim_conf,
+    read_mrd_header,
 )
-
-from snake.toolkit.cli.config import conf_validator, cleanup_cuda, make_hydra_cli
 from snake.toolkit.analysis.stats import contrast_zscore, get_scores
+from snake.toolkit.cli.config import cleanup_cuda, conf_validator, make_hydra_cli
 
 log = logging.getLogger(__name__)
 
 
 def reconstruction(cfg: DictConfig) -> None:
     """Reconstruction function."""
+    # Disable HDF5 file locking
+    os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
     cfg = conf_validator(cfg)
     log.info("Starting Reconstruction")
     hdr = read_mrd_header(cfg.filename)
