@@ -7,7 +7,6 @@ defaults:
   - sampler:
     - stack-of-spiral
   - reconstructors:
-      - adjoint
       - sequential
   - _self_
 
@@ -52,17 +51,12 @@ engine:
   nufft_backend: "stacked-gpunufft"
 
 reconstructors:
-  adjoint:
-    nufft_backend: "stacked-gpunufft"
-    density_compensation: "pipe"
   sequential:
-    nufft_backend: "stacked-gpunufft"
-    density_compensation: "pipe"
-    restart_strategy: "cold"
-    max_iter_per_frame: 50
-    wavelet: "db2"
-
-
+      nufft_backend: "stacked-gpunufft"
+      density_compensation: "pipe"
+      restart_strategy: "cold"
+      max_iter_per_frame: 15
+      wavelet: "sym4"
 
 
 
