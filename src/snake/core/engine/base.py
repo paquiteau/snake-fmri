@@ -188,7 +188,9 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         with (
             SharedMemoryManager() as smm,
-            ProcessPoolExecutor(n_workers) as executor,
+            ProcessPoolExecutor(
+                n_workers, mp_context=mp.get_context("spawn")
+            ) as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,
             TemporaryDirectory(
