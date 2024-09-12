@@ -24,3 +24,4 @@ _version.py
 results/
 multirun/
 outputs/
+debug/
