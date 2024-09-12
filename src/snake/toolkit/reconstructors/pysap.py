@@ -42,14 +42,19 @@ def _reconstruct_cartesian_frame(
         sim_conf = data_loader.get_sim_conf()
         adj_data = ifft(kspace, axis=tuple(range(len(sim_conf.shape), 0, -1)))
         if smaps_props is not None and data_loader.n_coils > 1:
-            with array_from_shm(smaps_props) as smaps:
-                adj_data_smaps_comb = np.sum(
-                    abs(adj_data * smaps[0].conj()), axis=0
+            with array_from_shm(smaps_props) as smaps_info:
+                smaps = smaps_info[0]
+                adj_data_smaps_comb = abs(
+                    np.sum(adj_data * smaps.conj(), axis=0)
+                    / np.sum(smaps * smaps.conj(), axis=0)
                 ).astype(np.float32, copy=False)
-        else:
-            adj_data_smaps_comb = np.sum(abs(adj_data) ** 2, axis=0).astype(
+        elif data_loader.n_coils > 1:
+            adj_data_smaps_comb = np.sqrt(np.sum(abs(adj_data) ** 2, axis=0)).astype(
                 np.float32, copy=False
             )
+        else:
+            adj_data_smaps_comb = abs(adj_data).astype(np.float32, copy=False)
+
         final_images[0][idx] = adj_data_smaps_comb
     return idx
 
