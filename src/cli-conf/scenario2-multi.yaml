@@ -57,7 +57,7 @@ reconstructors:
       restart_strategy: "cold"
       max_iter_per_frame: 15
       wavelet: "sym4"
-
+      threshold: 2e-6
 
 
 hydra:

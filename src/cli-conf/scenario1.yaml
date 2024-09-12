@@ -11,7 +11,7 @@ defaults:
 
 cache_dir: ${oc.env:PWD}/cache
 result_dir: results
-filename:  ${oc.env:PWD}/scenario1.mrd
+filename:  ${oc.env:PWD}/scenario1_${engine.model}_${engine.snr}.mrd
 
 sim_conf:
   max_sim_time: 300
