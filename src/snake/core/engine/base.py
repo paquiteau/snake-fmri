@@ -171,12 +171,12 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
             chunk_list = list(batched(shot_idxs, worker_chunk_size))
             ideal_phantom = get_ideal_phantom(phantom, sim_conf)
-            energy = np.mean(ideal_phantom)
 
             coil_cov = data_loader.get_coil_cov() or np.eye(sim_conf.hardware.n_coils)
-
             if self.snr > 0:
+                energy = np.mean(ideal_phantom**2)
                 coil_cov = coil_cov * energy / self.snr
+
         del ideal_phantom
 
         # https://github.com/h5py/h5py/issues/712#issuecomment-562980532
