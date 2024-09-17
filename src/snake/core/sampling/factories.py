@@ -51,6 +51,7 @@ class VDSpdf(NoCaseEnum):
 
     GAUSSIAN = "gaussian"
     UNIFORM = "uniform"
+    EQUISPACED = "equispaced"
 
 
 def get_kspace_slice_loc(
@@ -81,6 +82,7 @@ def get_kspace_slice_loc(
     np.ndarray: array of size dim_size/accel.
     """
     order = VDSorder(order)
+    pdf = VDSpdf(pdf)
     if accel == 0:
         return np.arange(dim_size)  # type: ignore
 
@@ -102,18 +104,22 @@ def get_kspace_slice_loc(
         )
     rng = validate_rng(rng)
 
+    def _get_samples(p):
+        p /= np.sum(p)
+        return list(rng.choice(borders, size=n_samples_borders, replace=False, p=p))
+
     if pdf is VDSpdf.GAUSSIAN:
         p = norm.pdf(np.linspace(norm.ppf(0.001), norm.ppf(0.999), len(borders)))
+        sampled_in_border = _get_samples(p)
     elif pdf is VDSpdf.UNIFORM:
         p = np.ones(len(borders))
+        sampled_in_border = _get_samples(p)
+    elif pdf is VDSpdf.EQUISPACED:
+        sampled_in_border = list(borders[::accel])
+        pass
     else:
         raise ValueError("Unsupported value for pdf.")
         # TODO: allow custom pdf as argument (vector or function.)
-
-    p /= np.sum(p)
-    sampled_in_border = list(
-        rng.choice(borders, size=n_samples_borders, replace=False, p=p)
-    )
 
     line_locs = np.array(sorted(center_indexes + sampled_in_border))
     # apply order of lines
@@ -445,6 +451,7 @@ def stacked_epi_factory(
     )
 
     epi3d_stacked = epi_3d_coord.reshape(len(z_index), shape[1] * shape[2], 3)
+
     return epi3d_stacked
 
 
