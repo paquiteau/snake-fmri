@@ -237,18 +237,19 @@ class EPI3dAcquisitionSampler(BaseSampler):
     acsz: float | int
     accelz: int
     orderz: VDSorder = VDSorder.CENTER_OUT
+    pdfz: VDSpdf = VDSpdf.GAUSSIAN
 
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
-        epi_coords = stacked_epi_factory(
+
+        return stacked_epi_factory(
             shape=sim_conf.shape,
             accelz=self.accelz,
             acsz=self.acsz,
             orderz=self.orderz,
+            pdfz=self.pdfz,
             rng=sim_conf.rng,
         )
-
-        return epi_coords
 
     def add_all_acq_mrd(
         self,
@@ -258,8 +259,9 @@ class EPI3dAcquisitionSampler(BaseSampler):
         """Create the acquisitions associated with this sampler."""
         single_frame = self._single_frame(sim_conf)
         n_shots_frame = single_frame.shape[0]
-        n_samples = single_frame.shape[1]
+        n_lines = sim_conf.shape[1]
 
+        n_samples = single_frame.shape[1]
         TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
         n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
         n_ksp_frames = int(n_ksp_frames_true)
@@ -318,18 +320,42 @@ class EPI3dAcquisitionSampler(BaseSampler):
             ]
         )
 
-        # Write the acquisition.
-        # We create the dataset manualy with custom dtype.
-        # Compared to using mrd.Dataset.append_acquisition
-        # - this is faster !
-        # - uses fixed sized array (All shot have the same size !)
-        # - allow for smart chunking (usefull for reading/writing efficiently)
-        acq = np.empty(
-            (n_ksp_frames * sim_conf.shape[1] * sim_conf.shape[0],), dtype=acq_dtype
+        acq_size = np.empty((1,), dtype=acq_dtype).nbytes
+        chunk = int(
+            np.ceil(
+                (n_shots_frame * acq_size * n_samples)
+                / EnvConfig["SNAKE_HDF5_CHUNK_SIZE"]
+            )
         )
+        chunk = min(
+            chunk, n_shots_frame * n_samples
+        )  # write at least a chunk per frmae.
+        chunk_write_sizes = [
+            len(c)
+            for c in batched(
+                range(n_lines * n_shots_frame * n_ksp_frames),
+                int(
+                    np.ceil(
+                        EnvConfig["SNAKE_HDF5_CHUNK_SIZE"]
+                        / (acq_size * n_lines * n_shots_frame * n_ksp_frames)
+                    )
+                ),
+            )
+        ]
+
+        self.log.debug("chunk size for hdf5 %s, elem %s Bytes", chunk, acq_size)
+        pbar = tqdm(total=n_ksp_frames * n_shots_frame)
+        dataset._dataset.create_dataset(
+            "data",
+            shape=(n_ksp_frames * sim_conf.shape[0] * sim_conf.shape[1],),
+            dtype=acq_dtype,
+            chunks=(chunk,),
+        )
+        write_start = 0
+        counter = 0
 
         for i in range(n_ksp_frames):
-            stack_epi3d = self._single_frame(sim_conf)  # of shape N_stack, N, 3
+            stack_epi3d = self.get_next_frame(sim_conf)  # of shape N_stack, N, 3
             for j, epi2d in enumerate(stack_epi3d):
                 epi2d_r = epi2d.reshape(
                     sim_conf.shape[1], sim_conf.shape[2], 3
@@ -348,7 +374,11 @@ class EPI3dAcquisitionSampler(BaseSampler):
                             flags |= ACQ.LAST_IN_REPETITION
                             if i == n_ksp_frames - 1:
                                 flags |= ACQ.LAST_IN_MEASUREMENT
-                    acq[counter]["head"] = np.frombuffer(
+                    if counter == 0:
+                        current_chunk_size = chunk_write_sizes.pop()
+                        acq_chunk = np.empty((current_chunk_size,), dtype=acq_dtype)
+
+                    acq_chunk[counter]["head"] = np.frombuffer(
                         mrd.AcquisitionHeader(
                             version=1,
                             flags=flags,
@@ -370,15 +400,23 @@ class EPI3dAcquisitionSampler(BaseSampler):
                         ),
                         dtype=mrd.hdf5.acquisition_header_dtype,
                     ).copy()
-                    acq[counter]["data"] = zero_data.view(np.float32).ravel()
-                    acq[counter]["traj"] = np.float32(readout).view(np.float32).ravel()
+                    acq_chunk[counter]["data"] = zero_data.view(np.float32).ravel()
+                    acq_chunk[counter]["traj"] = readout.astype(
+                        np.uint32, copy=False
+                    ).ravel()
                     counter += 1
+                    if counter == current_chunk_size:
+                        counter = 0
+                        # write to hdf5 mrd
+                        dataset._dataset["data"][
+                            write_start : write_start + current_chunk_size
+                        ] = acq_chunk
+                        write_start += current_chunk_size
+                pbar.update(1)
 
-        dataset._dataset.create_dataset(
-            "data",
-            data=acq,
-            chunks=min(sim_conf.shape[1] * sim_conf.shape[0], len(acq)),
-        )
+        pbar.close()
+
+        dataset._file.flush()  # Empty all buffers to disk
         return dataset
 
 
