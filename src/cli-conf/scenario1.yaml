@@ -10,7 +10,7 @@ defaults:
   - _self_
 
 cache_dir: ${oc.env:PWD}/cache
-result_dir: results
+result_dir: results/scenario1/
 filename:  ${oc.env:PWD}/scenario1_${engine.model}_${engine.snr}.mrd
 
 sim_conf:
