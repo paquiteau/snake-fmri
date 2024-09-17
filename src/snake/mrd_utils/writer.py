@@ -225,8 +225,8 @@ def make_base_mrd(
         The coil covariance matrix, by default None
     """
     try:
-        os.remove(filename)
         log.warning("Existing %s it will be overwritten", filename)
+        os.remove(filename)
     except Exception as e:
         log.error(e)
         pass
@@ -252,5 +252,6 @@ def make_base_mrd(
         if sim_conf.hardware.n_coils > 1 and coil_cov is not None:
             add_coil_cov_mrd(dataset, sim_conf, coil_cov)
 
+    dataset._file.flush()
     dataset.close()
     return dataset
