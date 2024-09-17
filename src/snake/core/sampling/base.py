@@ -42,6 +42,15 @@ class BaseSampler(metaclass=MetaSampler):
         """Generate a single frame."""
         raise NotImplementedError
 
+    def get_next_frame(self, sim_conf: SimConfig) -> NDArray:
+        """Generate the next frame."""
+        if self.constant:
+            if not hasattr(self, "_frame"):
+                self._frame = self._single_frame(sim_conf)
+            return self._frame
+
+        return self._single_shot(sim_conf)
+
     def _single_shot(self, sim_conf: SimConfig) -> NDArray:
         """Generate a single shot."""
         raise NotImplementedError

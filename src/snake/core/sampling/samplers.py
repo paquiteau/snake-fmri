@@ -31,7 +31,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         sim_conf: SimConfig,
     ) -> mrd.Dataset:
         """Generate all mrd_acquisitions."""
-        single_frame = self._single_frame(sim_conf)
+        single_frame = self.get_next_frame(sim_conf)
         n_shots_frame = single_frame.shape[0]
         n_samples = single_frame.shape[1]
         TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
@@ -119,7 +119,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         write_start = 0
         counter = 0
         for i in range(n_ksp_frames):
-            kspace_traj_vol = self._single_frame(sim_conf)
+            kspace_traj_vol = self.get_next_frame(sim_conf)
             for j in range(n_shots_frame):
                 flags = 0
                 if j == 0:
@@ -211,43 +211,20 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
         n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
-
-        if not hasattr(self, "_traj0"):
-            self._traj0 = stack_spiral_factory(
-                shape=sim_conf.shape,
-                accelz=self.accelz,
-                acsz=self.acsz,
-                n_samples=n_samples,
-                nb_revolutions=self.nb_revolutions,
-                pdfz=self.pdfz,
-                orderz=self.orderz,
-                spiral=self.spiral_name,
-                rotate_angle=self.rotate_angle,
-                in_out=self.in_out,
-                n_shot_slices=self.n_shot_slices,
-                rng=sim_conf.rng,
-            )
-            self._n_shot_frames = self._traj0.shape[0]
-            self._n_samples_shot = self._traj0.shape[1]
-
-        if self.constant:
-            return self._traj0.copy()
-        else:
-            print("Generating new trajectory")
-            return stack_spiral_factory(
-                shape=sim_conf.shape,
-                accelz=self.accelz,
-                acsz=self.acsz,
-                n_samples=n_samples,
-                nb_revolutions=self.nb_revolutions,
-                pdfz=self.pdfz,
-                orderz=self.orderz,
-                spiral=self.spiral_name,
-                rotate_angle=self.rotate_angle,
-                in_out=self.in_out,
-                n_shot_slices=self.n_shot_slices,
-                rng=sim_conf.rng,
-            )
+        return stack_spiral_factory(
+            shape=sim_conf.shape,
+            accelz=self.accelz,
+            acsz=self.acsz,
+            n_samples=n_samples,
+            nb_revolutions=self.nb_revolutions,
+            pdfz=self.pdfz,
+            orderz=self.orderz,
+            spiral=self.spiral_name,
+            rotate_angle=self.rotate_angle,
+            in_out=self.in_out,
+            n_shot_slices=self.n_shot_slices,
+            rng=sim_conf.rng,
+        )
 
 
 class EPI3dAcquisitionSampler(BaseSampler):
