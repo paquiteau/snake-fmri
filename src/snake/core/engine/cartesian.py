@@ -19,6 +19,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine for EPI base trajectories."""
 
     __engine_name__ = "EPI"
+    __mp_mode__ = "forkserver"
     model: str = "simple"
     snr: float = np.inf
 
@@ -44,12 +45,12 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         n_lines_epi = limits.kspace_encoding_step_1.maximum
         readout_length = limits.kspace_encoding_step_0.maximum
         # Read all the chunk data from file.
-        traj = (
-            data_loader._dataset["data"][
-                chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
-            ]["traj"]
-            .astype(np.int32, copy=False)
-            .reshape(len(chunk), n_lines_epi, readout_length, 3)
+        raw_traj = data_loader._dataset["data"][
+            chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
+        ]["traj"].copy()
+
+        traj = raw_traj.view(np.uint32).reshape(
+            len(chunk), n_lines_epi, readout_length, 3
         )
 
         return traj
@@ -65,16 +66,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         """Acquire k-space data. With T2s decay."""
         readout_length = trajectories.shape[-2]
         n_lines_epi = trajectories.shape[-3]
-
-        final_ksp = np.zeros(
-            (
-                len(trajectories),
-                sim_conf.hardware.n_coils,
-                n_lines_epi,
-                readout_length,
-            ),
-            dtype=np.complex64,
-        )
 
         n_samples = int(readout_length * n_lines_epi)
         shape = sim_conf.shape
@@ -93,6 +84,16 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
 
         t2s_decay = BaseAcquisitionEngine._job_get_T2s_decay(
             sim_conf.hardware.dwell_time_ms, echo_idx, n_samples, phantom
+        )
+
+        final_ksp = np.zeros(
+            (
+                len(trajectories),
+                sim_conf.hardware.n_coils,
+                n_lines_epi,
+                readout_length,
+            ),
+            dtype=np.complex64,
         )
 
         for i, epi_2d in enumerate(trajectories):
@@ -175,6 +176,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
     """EVI Acquisition engine. Same as EPI, but the shots are longer."""
 
     __engine_name__ = "EVI"
+    __mp_mode__ = "forkserver"
     model: str = "simple"
     snr: float = np.inf
 
@@ -205,7 +207,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
             data_loader._dataset["data"][
                 chunk[0] * n_lines_epi * slice : (chunk[-1] + 1) * n_lines_epi * slice
             ]["traj"]
-            .astype(np.int32, copy=False)
+            .view(np.uint32)
             .reshape(len(chunk), slice, n_lines_epi, readout_length, 3)
         )
 

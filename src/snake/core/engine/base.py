@@ -26,13 +26,6 @@ from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
 
-# Test code to make linux spawn like Windows and generate error. This code
-# # is not needed on windows.
-if __name__ == "__main__":
-
-    mp.freeze_support()
-    mp.set_start_method("spawn")
-
 
 class MetaEngine(MetaDCRegister):
     """MetaClass for engines."""
@@ -130,7 +123,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         # this function and use the main process to write the data.
         # This is an alternative to using swmr mode, that I could not get to work.
         os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-        with MRDLoader(filename) as data_loader:
+        with MRDLoader(filename, swmr=True) as data_loader:
             hdr = data_loader.header
             # Get the Phantom, SimConfig, and all ...
             sim_conf = data_loader.get_sim_conf()
@@ -189,7 +182,9 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         with (
             SharedMemoryManager() as smm,
             ProcessPoolExecutor(
-                n_workers, mp_context=mp.get_context("spawn")
+                # FIXME: use fork for cartesian sampling, spawn for nufft with cuda.
+                n_workers,
+                mp_context=mp.get_context(self.__mp_mode__),
             ) as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,

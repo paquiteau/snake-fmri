@@ -19,6 +19,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
     """Acquisition engine using nufft."""
 
     __engine_name__ = "NUFFT"
+    __mp_mode__ = "spawn"
     model: str = "simple"
     snr: float = np.inf
 
