@@ -31,7 +31,7 @@ sim_conf = SimConfig(
 )
 sim_conf.hardware.n_coils = 8
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf)
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
 
 
 # %%
@@ -142,5 +142,7 @@ for ax, img, title in zip(
     ax.set_title(title)
 
 plt.show()
+
+# %%
 
 # %%
