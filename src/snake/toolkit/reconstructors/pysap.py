@@ -2,6 +2,7 @@
 
 import copy
 import os
+
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Any
 
@@ -20,6 +21,7 @@ from snake.core.parallel import (
     array_from_shm,
     array_to_shm,
 )
+from snake._meta import NoCaseEnum
 from snake.core.simulation import SimConfig
 from tqdm.auto import tqdm
 
@@ -161,6 +163,14 @@ class ZeroFilledReconstructor(BaseReconstructor):
         return final_images
 
 
+class RestartStrategy(NoCaseEnum):
+    """Restart strategies for the reconstruction."""
+
+    WARM = "warm"
+    COLD = "cold"
+    REFINE = "refine"
+
+
 class SequentialReconstructor(BaseReconstructor):
     """Use a sequential Reconstruction.
 
@@ -182,8 +192,12 @@ class SequentialReconstructor(BaseReconstructor):
     threshold: float | str = "sure"
     nufft_backend: str = "gpunufft"
     density_compensation: str | bool = "pipe"
-    restart_strategy: str = "warm"
+    restart_strategy: RestartStrategy = RestartStrategy.WARM
     compute_backend: str = "cupy"
+
+    def __str__(self) -> str:
+        """Return a string representation of the reconstructor."""
+        return f"{self.__reconstructor_name__}-{self.restart_strategy}"
 
     def setup(self, sim_conf: SimConfig) -> None:
         """Set up the reconstructor."""
@@ -225,6 +239,7 @@ class SequentialReconstructor(BaseReconstructor):
         )
         from modopt.base.backend import get_backend
         from mrinufft import get_operator
+        from mrinufft.density import pipe
 
         xp, _ = get_backend(self.compute_backend)
 
@@ -232,13 +247,20 @@ class SequentialReconstructor(BaseReconstructor):
 
         smaps = data_loader.get_smaps()
 
+        density_compensation = self.density_compensation
+        if (
+            isinstance(self.density_compensation, str)
+            and "first" in self.density_compensation
+        ):
+            density_compensation = False
+
         fourier_op = get_operator(
             self.nufft_backend,
             samples=traj,
             shape=data_loader.shape,
             n_coils=data_loader.n_coils,
             smaps=xp.array(smaps) if smaps is not None else None,
-            density=self.density_compensation,
+            density=density_compensation,
         )
 
         final_estimate = np.zeros(
@@ -249,6 +271,7 @@ class SequentialReconstructor(BaseReconstructor):
             input_data_writeable=True,
             dtype=np.complex64,
             compute_backend=self.compute_backend,
+            num_check_lips=0,
             verbose=0,
         )
         if self.optimizer in ["fista"]:
@@ -257,7 +280,14 @@ class SequentialReconstructor(BaseReconstructor):
             grad_op = GradSynthesis(linear_op=self.space_linear_op, **grad_kwargs)
 
         x_init = xp.zeros(sim_conf.shape, dtype=np.complex64)
-        x_init = fourier_op.adj_op(xp.array(data, copy=False))
+        if (
+            isinstance(self.density_compensation, str)
+            and "first" in self.density_compensation
+        ):
+            density_comp_vector = pipe(traj, sim_conf.shape, self.nufft_backend)
+            x_init = fourier_op.adj_op(xp.array(data * density_comp_vector, copy=False))
+        else:
+            x_init = fourier_op.adj_op(xp.array(data, copy=False))
 
         pbar_frames = tqdm(total=data_loader.n_frames, position=0)
         pbar_iter = tqdm(total=self.max_iter_per_frame, position=1)
@@ -274,14 +304,40 @@ class SequentialReconstructor(BaseReconstructor):
                 progbar=pbar_iter,
             )
             # Prepare for next iteration and save results
-            x_init = x_iter if self.restart_strategy == "warm" else x_init.copy()
+            x_init = (
+                x_iter.copy()
+                if self.restart_strategy != RestartStrategy.COLD
+                else x_init.copy()
+            )
             if self.compute_backend == "cupy":
                 final_estimate[i, ...] = abs(x_iter).get()  # type: ignore
             else:
                 final_estimate[i, ...] = abs(x_iter)
 
             pbar_frames.update(1)
-
+        if self.restart_strategy != RestartStrategy.REFINE:
+            return final_estimate
+        # else, we do a second pass on the data using the last iteration as a slotion.
+        pbar_frames.reset()
+        pbar_iter.reset()
+        x_init = x_iter.copy()  # last iteration results.
+        for i, traj, data in data_loader.iter_frames():
+            grad_op.fourier_op.samples = traj
+            spec_rad = grad_op.fourier_op.get_lipschitz_cst()
+            grad_op._obs_data = xp.array(data)
+            grad_op.spec_rad = spec_rad
+            grad_op.inv_spec_rad = 1 / spec_rad
+            x_iter = self._reconstruct_frame(
+                grad_op,
+                x_init,
+                n_iter=self.max_iter_per_frame,
+                progbar=pbar_iter,
+            )
+            if self.compute_backend == "cupy":
+                final_estimate[i, ...] = abs(x_iter).get()  # type: ignore
+            else:
+                final_estimate[i, ...] = abs(x_iter)
+            pbar_frames.update(1)
         return final_estimate
 
     def _reconstruct_frame(
@@ -308,7 +364,7 @@ class SequentialReconstructor(BaseReconstructor):
             compute_backend=self.compute_backend,
             opt_kwargs=dict(
                 verbose=0,
-                cost=None,
+                cost="auto",
             ),
         )
         # if no reset, the internal state is kept.
