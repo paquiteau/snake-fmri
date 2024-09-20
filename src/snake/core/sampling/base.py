@@ -49,11 +49,7 @@ class BaseSampler(metaclass=MetaSampler):
                 self._frame = self._single_frame(sim_conf)
             return self._frame
 
-        return self._single_shot(sim_conf)
-
-    def _single_shot(self, sim_conf: SimConfig) -> NDArray:
-        """Generate a single shot."""
-        raise NotImplementedError
+        return self._single_frame(sim_conf)
 
     def add_all_acq_mrd(self, dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
         """Export the Sampling pattern to file."""
