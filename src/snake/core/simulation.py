@@ -91,16 +91,17 @@ class GreConfig:
 class HardwareConfig:
     """Scanner Hardware parameters."""
 
-    gmax: float
-    smax: float
-    dwell_time_ms: float
-    n_coils: int
+    gmax: float = 40
+    smax: float = 200
+    n_coils: int = 8
+    dwell_time_ms: float = 1e-3
+    raster_time_ms: float = 5e-3
     field: float = 3.0
 
     _repr_html_ = _repr_html_
 
 
-default_hardware = HardwareConfig(gmax=40, smax=200, dwell_time_ms=1e-3, n_coils=8)
+default_hardware = HardwareConfig()
 
 default_gre = GreConfig(TR=50, TE=30, FA=15)
 
