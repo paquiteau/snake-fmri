@@ -53,7 +53,7 @@ def reconstruction(cfg: DictConfig) -> None:
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
     with DataLoader(cfg.filename) as data_loader:
         for name, rec in cfg.reconstructors.items():
-            rec_str = name  # FIXME Also use parameters  of reconstructors
+            rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
             data_rec_file = Path(f"data_rec_{rec_str}.npy")
             log.info(f"Using {name} reconstructor")
             rec.setup(sim_conf)
@@ -81,8 +81,8 @@ def reconstruction(cfg: DictConfig) -> None:
     gc.collect()
 
     results = []
-    for name in cfg.reconstructors:
-        rec_str = name  # FIXME Also use parameters  of reconstructors
+    for name, rec in cfg.reconstructors.items():
+        rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
         data_rec_file = Path(f"data_rec_{rec_str}.npy").resolve()
         data_zscore_file = Path(f"data_zscore_{rec_str}.npy").resolve()
         rec_data = np.load(data_rec_file)
