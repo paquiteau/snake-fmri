@@ -23,8 +23,8 @@ from snake.mrd_utils import make_base_mrd
 # %%
 
 sim_conf = SimConfig(
-    max_sim_time=2,
-    seq=GreConfig(TR=50, TE=30, FA=12),
+    max_sim_time=1,
+    seq=GreConfig(TR=50, TE=22, FA=12),
     hardware=default_hardware,
     fov_mm=(181, 217, 181),
     shape=(60, 72, 60),
@@ -43,13 +43,21 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space, with an acceleration factor AF=4 on the z-axis.
 
 sampler = StackOfSpiralSampler(
-    accelz=4, acsz=0.1, orderz="top-down", nb_revolutions=12, obs_time_ms=30
+    accelz=4, acsz=0.1, orderz="top-down", nb_revolutions=12, obs_time_ms=30, constant=True
 )
 
 smaps = None
 if sim_conf.hardware.n_coils > 1:
     smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
 
+
+# %%
+# The acquisition trajectory looks like this
+traj = sampler.get_next_frame(sim_conf)
+print(traj.shape)
+from mrinufft.trajectories.display import display_3D_trajectory
+
+display_3D_trajectory(traj)
 
 # %%
 # Acquisition with Cartesian Engine
@@ -80,7 +88,7 @@ if sim_conf.hardware.n_coils > 1:
 
 from snake.core.engine import NufftAcquisitionEngine
 
-engine = NufftAcquisitionEngine(model="simple", snr=10000)
+engine = NufftAcquisitionEngine(model="simple", snr=30000)
 
 make_base_mrd("example_spiral.mrd", sampler, phantom, sim_conf, smaps=smaps)
 make_base_mrd("example_spiral_t2s.mrd", sampler, phantom, sim_conf, smaps=smaps)
@@ -91,7 +99,7 @@ engine(
     n_workers=1,
     nufft_backend="stacked-gpunufft",
 )
-engine_t2s = NufftAcquisitionEngine(model="T2s", snr=10000)
+engine_t2s = NufftAcquisitionEngine(model="T2s", snr=30000)
 
 engine_t2s(
     "example_spiral_t2s.mrd",
@@ -126,8 +134,9 @@ zer_rec = ZeroFilledReconstructor(
 seq_rec = SequentialReconstructor(
     nufft_backend="stacked-gpunufft",
     density_compensation="pipe",
-    max_iter_per_frame=50,
-    threshold=0.00001,
+    max_iter_per_frame=15,
+    threshold=2e-6,
+    optimizer="pogm",
 )
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
     adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
@@ -143,8 +152,11 @@ with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
 
 import matplotlib.pyplot as plt
 from snake.toolkit.plotting import axis3dcut
+fig, axs = plt.subplots(2, 3, figsize=(19, 10),
+        gridspec_kw=dict(wspace=0, hspace=0),
+    )
 
-fig, axs = plt.subplots(2, 3, figsize=(30, 10))
+                       
 
 for ax, img, title in zip(
     axs[0],
