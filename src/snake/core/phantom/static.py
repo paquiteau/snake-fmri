@@ -51,6 +51,19 @@ class Phantom:
     labels: NDArray[np.string_]
     props: NDArray[np.float32]
 
+    def add_tissue(
+        self,
+        tissue_name: str,
+        mask: NDArray[np.float32],
+        props: NDArray[np.float32],
+        phantom_name=None,
+    ) -> Phantom:
+        """Add a tissue to the phantom. Creates a new Phantom object."""
+        masks = np.concatenate((self.masks, mask[None, ...]), axis=0)
+        labels = np.concatenate((self.labels, np.array([tissue_name])))
+        props = np.concatenate((self.props, props), axis=0)
+        return Phantom(phantom_name or self.name, masks, labels, props)
+
     @classmethod
     def from_brainweb(
         cls,

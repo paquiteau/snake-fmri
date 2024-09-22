@@ -115,6 +115,13 @@ class ActivationMixin(LogMixin):
                 axis=0,
             ),
         )
+        new_phantom = phantom.add_tissue(
+            self.roi_tissue_name,
+            roi,
+            phantom.props[tissue_index, :],
+            phantom.name + "-roi",
+        )
+
         return new_phantom
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
