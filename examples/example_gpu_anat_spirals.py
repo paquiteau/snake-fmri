@@ -60,6 +60,16 @@ from mrinufft.trajectories.display import display_3D_trajectory
 display_3D_trajectory(traj)
 
 # %%
+# Adding noise in Image 
+# ----------------------
+
+from snake.core.handlers.noise import NoiseHandler
+
+noise_handler = NoiseHandler(snr=100)
+
+phantom = noise_handler.get_static(phantom, sim_conf)
+
+# %%
 # Acquisition with Cartesian Engine
 # ---------------------------------
 #
