@@ -115,7 +115,7 @@ class SimConfig:
     hardware: HardwareConfig = default_hardware
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
     shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
-    rng_seed: int | None = 19290506
+    rng_seed: int = 19290506
 
     _repr_html_ = _repr_html_
 
