@@ -37,12 +37,6 @@ def acquisition(cfg: ConfigSNAKE) -> None:
             "Multiple sampler configuration detected. Only the first one is used."
         )
     sampler = list(cfg.sampler.values())[0]
-
-    for h in handlers:
-        phantom = h.get_static(phantom, sim_conf)
-
-    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
-
     smaps = None
     if sim_conf.hardware.n_coils > 1:
         smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
@@ -52,7 +46,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     log.info("Simulator configuration: %s", sim_conf)
     log.info("Sampler: %s", sampler)
     log.info("is sampler constant %s", sampler.constant)
-    make_base_mrd(cfg.filename, sampler, phantom, sim_conf, dynamic_data, smaps)
+    make_base_mrd(cfg.filename, sampler, phantom, sim_conf, handlers, smaps)
     log.info("Initialization done")
 
     engine_klass = BaseAcquisitionEngine.__registry__[sampler.__engine__]

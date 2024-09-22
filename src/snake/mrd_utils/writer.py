@@ -15,6 +15,7 @@ from .utils import get_waveform_id, obj2b64encode
 
 if TYPE_CHECKING:
     from snake.core.phantom import DynamicData, Phantom
+    from snake.core.handlers import AbstractHandler, HandlerList
     from snake.core.sampling import BaseSampler
     from snake.core.simulation import SimConfig
 
@@ -200,7 +201,7 @@ def make_base_mrd(
     sampler: BaseSampler,
     phantom: Phantom,
     sim_conf: SimConfig,
-    dynamic_data: list[DynamicData] | None = None,
+    handlers: list[AbstractHandler] | HandlerList,
     smaps: NDArray | None = None,
     coil_cov: NDArray | None = None,
 ) -> mrd.Dataset:
@@ -236,6 +237,14 @@ def make_base_mrd(
     )
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)
+
+    # Apply the handlers and get the dynamic data
+
+    for h in handlers:
+        phantom = h.get_static(phantom, sim_conf)
+
+    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
+
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
 
