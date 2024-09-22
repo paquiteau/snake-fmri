@@ -46,17 +46,22 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     log.info("Simulator configuration: %s", sim_conf)
     log.info("Sampler: %s", sampler)
     log.info("is sampler constant %s", sampler.constant)
-    make_base_mrd(cfg.filename, sampler, phantom, sim_conf, handlers, smaps)
     log.info("Initialization done")
 
     engine_klass = BaseAcquisitionEngine.__registry__[sampler.__engine__]
     kwargs = {}
     if engine_klass.__engine_name__ == "NUFFT":
         kwargs["nufft_backend"] = cfg.engine.nufft_backend
-    engine = engine_klass(model=cfg.engine.model, snr=cfg.engine.snr)
+    engine = engine_klass(model=cfg.engine.model, snr=cfg.engine.snr)  # type: ignore
 
     engine(
         cfg.filename,
+        sampler=sampler,
+        phantom=phantom,
+        sim_conf=sim_conf,
+        handlers=handlers,
+        smaps=smaps,
+        coil_cov=None,  # FIXME: Add coil covariance in scenarios
         worker_chunk_size=cfg.engine.chunk_size,
         n_workers=cfg.engine.n_jobs,
         **kwargs,

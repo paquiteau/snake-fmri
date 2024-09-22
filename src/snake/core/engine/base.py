@@ -20,10 +20,12 @@ from tqdm.auto import tqdm
 
 from snake._meta import EnvConfig, MetaDCRegister, batched
 
-from ...mrd_utils import MRDLoader
+from ...mrd_utils import MRDLoader, make_base_mrd
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..simulation import SimConfig
+from ..sampling import BaseSampler
+from ..handlers import AbstractHandler, HandlerList
 from .utils import get_ideal_phantom, get_noise
 
 
@@ -151,11 +153,27 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     def __call__(
         self,
         filename: os.PathLike,
-        worker_chunk_size: int,
-        n_workers: int,
+        sampler: BaseSampler,
+        phantom: Phantom,
+        sim_conf: SimConfig,
+        handlers: list[AbstractHandler] | HandlerList | None = None,
+        smaps: NDArray | None = None,
+        coil_cov: NDArray | None = None,
+        worker_chunk_size: int = 0,
+        n_workers: int = 0,
         **kwargs: Any,
     ):
         """Perform the acquisition and fill the dataset."""
+
+        # Create the base dataset
+        make_base_mrd(filename, sampler, phantom, sim_conf, handlers, smaps, coil_cov)
+
+        # Guesstimate the workload
+        if worker_chunk_size <= 0:
+            worker_chunk_size = sampler.n_shot_frame
+        if n_workers <= 0:
+            n_workers = mp.cpu_count() // 2
+
         with MRDLoader(filename) as data_loader:
             sim_conf = data_loader.get_sim_conf()
 

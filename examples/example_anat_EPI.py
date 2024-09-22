@@ -103,7 +103,15 @@ from snake.core.engine import EPIAcquisitionEngine
 
 engine = EPIAcquisitionEngine(model="simple")
 
-engine("example_EPI.mrd", worker_chunk_size=20, n_workers=2)
+engine(
+    "example_EPI.mrd",
+    sampler=sampler,
+    phantom=phantom,
+    sim_conf=sim_conf,
+    smaps=smaps,
+    worker_chunk_size=20,
+    n_workers=2,
+)
 
 # %%
 # Simple reconstruction

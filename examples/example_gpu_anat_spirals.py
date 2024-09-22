@@ -18,7 +18,6 @@ from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
 from snake.core.sampling import StackOfSpiralSampler
-from snake.mrd_utils import make_base_mrd
 
 # %%
 
@@ -43,7 +42,12 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space, with an acceleration factor AF=4 on the z-axis.
 
 sampler = StackOfSpiralSampler(
-    accelz=4, acsz=0.1, orderz="top-down", nb_revolutions=12, obs_time_ms=30, constant=True
+    accelz=4,
+    acsz=0.1,
+    orderz="top-down",
+    nb_revolutions=12,
+    obs_time_ms=30,
+    constant=True,
 )
 
 smaps = None
@@ -60,7 +64,7 @@ from mrinufft.trajectories.display import display_3D_trajectory
 display_3D_trajectory(traj)
 
 # %%
-# Adding noise in Image 
+# Adding noise in Image
 # ----------------------
 
 from snake.core.handlers.noise import NoiseHandler
@@ -100,11 +104,13 @@ from snake.core.engine import NufftAcquisitionEngine
 
 engine = NufftAcquisitionEngine(model="simple", snr=30000)
 
-make_base_mrd("example_spiral.mrd", sampler, phantom, sim_conf, smaps=smaps)
-make_base_mrd("example_spiral_t2s.mrd", sampler, phantom, sim_conf, smaps=smaps)
-
 engine(
     "example_spiral.mrd",
+    sampler,
+    phantom,
+    sim_conf,
+    handlers=[noise_handler],
+    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
     nufft_backend="stacked-gpunufft",
@@ -113,6 +119,10 @@ engine_t2s = NufftAcquisitionEngine(model="T2s", snr=30000)
 
 engine_t2s(
     "example_spiral_t2s.mrd",
+    sampler,
+    phantom,
+    sim_conf,
+    handlers=[noise_handler],
     worker_chunk_size=60,
     n_workers=1,
     nufft_backend="stacked-gpunufft",
@@ -162,11 +172,14 @@ with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
 
 import matplotlib.pyplot as plt
 from snake.toolkit.plotting import axis3dcut
-fig, axs = plt.subplots(2, 3, figsize=(19, 10),
-        gridspec_kw=dict(wspace=0, hspace=0),
-    )
 
-                       
+fig, axs = plt.subplots(
+    2,
+    3,
+    figsize=(19, 10),
+    gridspec_kw=dict(wspace=0, hspace=0),
+)
+
 
 for ax, img, title in zip(
     axs[0],

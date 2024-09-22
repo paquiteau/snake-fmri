@@ -201,7 +201,7 @@ def make_base_mrd(
     sampler: BaseSampler,
     phantom: Phantom,
     sim_conf: SimConfig,
-    handlers: list[AbstractHandler] | HandlerList,
+    handlers: list[AbstractHandler] | HandlerList | None = None,
     smaps: NDArray | None = None,
     coil_cov: NDArray | None = None,
 ) -> mrd.Dataset:
@@ -239,7 +239,8 @@ def make_base_mrd(
         sampler.add_all_acq_mrd(dataset, sim_conf)
 
     # Apply the handlers and get the dynamic data
-
+    if handlers is None:
+        handlers = HandlerList()
     for h in handlers:
         phantom = h.get_static(phantom, sim_conf)
 
