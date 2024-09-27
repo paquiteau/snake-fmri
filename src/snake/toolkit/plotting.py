@@ -23,46 +23,70 @@ def get_coolgraywarm(thresh: float = 3, max: float = 7) -> matplotlib.colorbar.C
 
 # %%
 def get_axis_properties(
-    array_bg: NDArray, cuts: tuple[int, ...], width_inches: float, cbar: bool = True
+    array_bg: NDArray,
+    cuts: tuple[int, ...],
+    width_inches: float,
+    cbar: bool = True,
+    arr_pad: int = 4,
 ) -> tuple[NDArray, NDArray, list, tuple]:
     """Generate mplt toolkit axes dividers."""
     slices = (np.s_[cuts[0], :, :], np.s_[:, cuts[1], :], np.s_[:, :, cuts[2]])
     bbox: list[tuple] = [(None, None), (None, None), (None, None)]
     for i in range(3):
         cut = array_bg[slices[i]]
-        mask = cut > np.percentile(cut, 5)
+        if cut.dtype != "bool":
+            mask = abs(cut) > 0.5 * np.percentile(abs(cut), 95)
+        else:
+            mask = cut
         rows = np.any(mask, axis=1)
         cols = np.any(mask, axis=0)
         rmin, rmax = np.where(rows)[0][[0, -1]]
         cmin, cmax = np.where(cols)[0][[0, -1]]
-        # if i==1:
-        #     rmin = max(0,rmin-arr_pad)
-        #     rmax = min(rmax+arr_pad, mask.shape[0])
-        #     cmin = max(0, cmin-arr_pad)
-        #     cmax = min(cmax + arr_pad,mask.shape[1])
+
+        rmin = max(0, rmin - arr_pad)
+        rmax = min(rmax + arr_pad, mask.shape[0])
+        cmin = max(0, cmin - arr_pad)
+        cmax = min(cmax + arr_pad, mask.shape[1])
         bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
-    sizes = np.array([(bb.stop - bb.start) for b in bbox for bb in b])
-
-    # Compute the ratios for the sagitall/coronal split
-    maxscx = max(sizes[3], sizes[5])
-    ratio = sizes[0] / (sizes[3] + sizes[5])
-    vsplits = [ratio * sizes[5], ratio * sizes[3]]
-
-    if cbar:
-        hdiv = np.array([sizes[1], maxscx * ratio, 0.02 * sizes[1], 0.02 * sizes[1]])
-    else:
-        hdiv = np.array([sizes[1], maxscx * ratio])
-
-    hdivs = np.sum(hdiv)
-    vdiv = np.array(vsplits)
-    vdivs = np.sum(vdiv)
-
-    aspect = vdivs / hdivs
-
-    hdiv = hdiv * width_inches / hdivs
-    vdiv = (vdiv / vdivs) * width_inches * aspect
+    hdiv, vdiv = get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=cbar)
 
     return hdiv, vdiv, bbox, slices
+
+
+def get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=False):
+    sizes = np.array([(bb.stop - bb.start) for b in bbox for bb in b])
+
+    sizes = tuple(array_bg[s][b].shape for s, b in zip(slices, bbox))
+    alpha1 = sizes[1][1] / sizes[2][1]
+    update_sizes = [[0, 0], [0, 0], [0, 0]]
+    update_sizes[2][0] = sizes[2][0]
+    update_sizes[2][1] = sizes[2][1]
+    alpha1 = sizes[2][1] / sizes[1][1]
+    update_sizes[1][0] = sizes[1][0] * alpha1
+    update_sizes[1][1] = sizes[1][1] * alpha1
+    alpha2 = (update_sizes[2][0] + update_sizes[1][0]) / sizes[0][0]
+    update_sizes[0][0] = sizes[0][0] * alpha2
+    update_sizes[0][1] = sizes[0][1] * alpha2
+
+    aspect = update_sizes[0][0] / (update_sizes[0][1] + update_sizes[1][1])
+    split_lr = update_sizes[0][1] / (update_sizes[1][1] + update_sizes[0][1])
+    split_tb = update_sizes[1][0] / (update_sizes[1][0] + update_sizes[2][0])
+    hdiv = [
+        width_inches * split_lr,
+        width_inches * (1 - split_lr),
+    ]
+
+    if cbar:
+        hdiv.extend(
+            [
+                0.02 * hdiv[0],
+                0.02 * hdiv[0],
+            ]
+        )
+    hdivv = np.array(hdiv)
+    height_inches = width_inches * aspect
+    vdiv = np.array([height_inches * split_tb, height_inches * (1 - split_tb)])
+    return hdiv, vdiv
 
 
 def get_mask_cuts_mask(mask: NDArray) -> tuple[int, ...]:
@@ -100,6 +124,7 @@ def plot_frames_activ(
         vmax=np.max(background),
         cmap="gray",
         origin="lower",
+        aspect="equal",
     )
     if z_score is not None:
         masked_z = z_score[slices][bbox].squeeze()
@@ -110,6 +135,7 @@ def plot_frames_activ(
             cmap=get_coolgraywarm(z_thresh, max=z_max),
             vmin=-z_max,
             vmax=z_max,
+            aspect="equal",
             interpolation="nearest",
             origin="lower",
         )
@@ -118,7 +144,8 @@ def plot_frames_activ(
         contours = find_contours(roi_cut)
         for c in contours:
             ax.plot(c[:, 1], c[:, 0] - 0.5, c="cyan", label="ground-truth", linewidth=1)
-    ax.axis("off")
+    ax.set_xticks([])
+    ax.set_yticks([])
     return ax, im
 
 
@@ -131,22 +158,31 @@ def axis3dcut(
     width_inches: float = 7,
     cbar: bool = True,
     cuts: tuple[int, ...] | None = None,
-) -> tuple[plt.Figure, plt.Axes]:
+    bbox: tuple[tuple] | None = None,
+    slices: tuple[tuple[slice, slice, slice], ...] | None = None,
+) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI."""
-    ax.axis("off")
+    #    ax.axis("off")
     if cuts is None and gt_roi is not None:
         cuts_ = get_mask_cuts_mask(gt_roi)
         gt_roi_ = gt_roi
+    elif cuts is not None and gt_roi is not None:
+        cuts_ = cuts
+        gt_roi_ = gt_roi
+    elif cuts is None and gt_roi is None:
+        raise ValueError("Missing gt_roi to compute ideal cuts.")
     elif cuts is not None and gt_roi is None:
         cuts_ = cuts
         gt_roi_ = None
-    elif cuts is None and gt_roi is None:
-        raise ValueError("Missing gt_roi to compute ideal cuts.")
 
-    hdiv, vdiv, bbox, slices = get_axis_properties(
-        background, cuts_, width_inches, cbar=cbar
-    )
-    # ax.set_aspect(np.sum(vdiv)/np.sum(hdiv))
+    if bbox is None and slices is None:
+        hdiv, vdiv, bbox, slices = get_axis_properties(
+            background, cuts_, width_inches, cbar=cbar
+        )
+    elif bbox is not None and slices is not None:
+        hdiv, vdiv = get_hdiv_vdiv(background, bbox, slices, width_inches, cbar=cbar)
+    else:
+        raise ValueError("Missing either bbox or slices.")
     divider = make_axes_locatable(ax)
     divider.set_horizontal([Size.Fixed(s) for s in hdiv])
     divider.set_vertical([Size.Fixed(s) for s in vdiv])
@@ -178,5 +214,7 @@ def axis3dcut(
 
     ax.set_axes_locator(divider.new_locator(nx=0, ny=0, ny1=-1, nx1=-1))
     ax.set_zorder(10)
-
-    return fig, ax
+    ax.axis("off")
+    # ax.set_xticks([])
+    # ax.set_yticks([])
+    return fig, ax, cuts_
