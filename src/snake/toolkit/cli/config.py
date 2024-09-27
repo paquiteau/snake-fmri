@@ -5,6 +5,7 @@ from typing import Any
 from dataclasses import dataclass, field
 import hydra
 from hydra.core.config_store import ConfigStore
+from hydra import compose, initialize
 from omegaconf import OmegaConf, DictConfig
 
 from snake.core.simulation import SimConfig
@@ -125,3 +126,9 @@ def make_hydra_cli(fun):
     return hydra.main(
         version_base=None, config_path="../../../cli-conf", config_name="config"
     )(fun)
+
+
+def load_config(filename, *overrides):
+    with initialize(config_path="../../../cli-conf", job_name="test_app"):
+        cfg = compose(config_name="config", overrides=list(overrides))
+        return cfg
