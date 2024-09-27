@@ -240,7 +240,7 @@ def make_base_mrd(
 
     # Apply the handlers and get the dynamic data
     if handlers is None:
-        handlers = HandlerList()
+        handlers = []
     for h in handlers:
         phantom = h.get_static(phantom, sim_conf)
 

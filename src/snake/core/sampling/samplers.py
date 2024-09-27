@@ -16,6 +16,7 @@ from .factories import (
 )
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
+from mrinufft.io import read_trajectory
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):
@@ -168,6 +169,26 @@ class NonCartesianAcquisitionSampler(BaseSampler):
 
         pbar.close()
         return dataset
+
+
+class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
+    """Load a trajectory from a file."""
+
+    __sampler_name__ = "load-trajectory"
+    __engine__ = "NUFFT"
+
+    path: str
+    constant: bool = True
+    obs_time_ms: int = 25
+    raster_time: float = 0.05
+    in_out: bool = True
+
+    def _single_frame(self, sim_conf: SimConfig) -> NDArray:
+        """Load the trajectory."""
+
+        data = read_trajectory(self.path, raster_time=self.raster_time)[0]
+        data /= 0.5 * data.max()
+        return data
 
 
 class StackOfSpiralSampler(NonCartesianAcquisitionSampler):

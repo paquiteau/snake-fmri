@@ -6,10 +6,12 @@ from .samplers import (
     StackOfSpiralSampler,
     NonCartesianAcquisitionSampler,
     EVI3dAcquisitionSampler,
+    LoadTrajectorySampler,
 )
 
 __all__ = [
     "BaseSampler",
+    "LoadTrajectorySampler",
     "EPI3dAcquisitionSampler",
     "EVI3dAcquisitionSampler",
     "StackOfSpiralSampler",

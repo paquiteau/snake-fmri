@@ -127,8 +127,9 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         for i, traj in enumerate(trajectories):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             phantom_state = np.sum(phantom_state, axis=0)
-            phantom_state = phantom_state[:, None, ...]
+            phantom_state = phantom_state[None, ...]
             nufft.samples = traj
+            nufft.n_batchs = len(phantom_state)
             final_ksp[i] = nufft.op(phantom_state)
         return final_ksp
 

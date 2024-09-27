@@ -11,9 +11,9 @@ from ..simulation import SimConfig
 from .base import AbstractHandler
 
 
-def apply_noise(phantom: Phantom, data, idx, snr) -> Phantom:
+def apply_noise(phantom: Phantom, data, idx, variance) -> Phantom:
     rng = np.random.default_rng((int(data[0, idx]), idx))  # new seed for every frame
-    noise_tissue = rng.standard_normal(size=phantom.masks.shape[1:]) / snr
+    noise_tissue = rng.standard_normal(size=phantom.masks.shape[1:]) * np.sqrt(variance)
     new_phantom = deepcopy(phantom)
     tissue_idx = list(phantom.labels).index("noise")
     new_phantom.masks[tissue_idx] = phantom.masks[tissue_idx] * noise_tissue
@@ -23,7 +23,7 @@ def apply_noise(phantom: Phantom, data, idx, snr) -> Phantom:
 class NoiseHandler(AbstractHandler):
 
     __handler_name__ = "noise-image"
-    snr: float
+    variance: float
 
     def get_static(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Add a static noise tissue"""
@@ -40,5 +40,5 @@ class NoiseHandler(AbstractHandler):
         return DynamicData(
             "noise",
             data=np.ones((1, sim_conf.max_n_shots), dtype=np.int32) * sim_conf.rng_seed,
-            func=partial(apply_noise, snr=self.snr),
+            func=partial(apply_noise, variance=self.variance),
         )

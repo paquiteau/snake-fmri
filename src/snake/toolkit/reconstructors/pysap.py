@@ -254,13 +254,21 @@ class SequentialReconstructor(BaseReconstructor):
         ):
             density_compensation = False
 
+        kwargs = {}
+        if "stacked" in self.nufft_backend:
+            kwargs["z_index"] = "auto"
+        if self.nufft_backend == "cufinufft":
+            kwargs["smaps_cached"] = True
+
         fourier_op = get_operator(
             self.nufft_backend,
             samples=traj,
             shape=data_loader.shape,
             n_coils=data_loader.n_coils,
-            smaps=xp.array(smaps) if smaps is not None else None,
+            smaps=smaps,
+            # smaps=xp.array(smaps) if smaps is not None else None,
             density=density_compensation,
+            **kwargs,
         )
 
         final_estimate = np.zeros(
@@ -293,7 +301,7 @@ class SequentialReconstructor(BaseReconstructor):
         pbar_iter = tqdm(total=self.max_iter_per_frame, position=1)
         for i, traj, data in data_loader.iter_frames():
             grad_op.fourier_op.samples = traj
-            spec_rad = grad_op.fourier_op.get_lipschitz_cst()
+            spec_rad = grad_op.fourier_op.get_lipschitz_cst(20)
             grad_op._obs_data = xp.array(data)
             grad_op.spec_rad = spec_rad
             grad_op.inv_spec_rad = 1 / spec_rad

@@ -11,7 +11,7 @@ from nilearn.glm.first_level.hemodynamic_models import _resample_regressor
 from nilearn.glm import compute_contrast, expression_to_contrast_vector
 from nilearn.glm.thresholding import fdr_threshold
 from scipy.stats import norm
-
+from scipy.interpolate import interp1d
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,15 @@ def contrast_zscore(
 ) -> NDArray:
     """Compute the contrast Z-score."""
     frame_times = (np.arange(len(data)) + 0.5) * TR_vol
-    regs = _resample_regressor(
-        bold_signal,
-        bold_sample_time,
-        frame_times,
-    )
+    # regs =  _resample_regressor(
+    #     bold_signal,
+    #     bold_sample_time,
+    #     frame_times,
+    # )
+
+    f = interp1d(bold_sample_time, bold_signal, fill_value="extrapolate")
+    regs = f(frame_times).T
+
     design_matrix = make_first_level_design_matrix(
         frame_times=frame_times,
         events=None,
