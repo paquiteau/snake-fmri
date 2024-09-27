@@ -5,27 +5,30 @@ defaults:
   - handlers:
     - activation-block
   - sampler:
-    - epi-3d
-  - reconstructors: adjoint
+    - load-trajectory
+  - reconstructors:
+      # - adjoint
+      - sequential
   - _self_
 
 cache_dir: ${oc.env:PWD}/cache
-result_dir: results/scenario1/
-filename:  ${oc.env:PWD}/scenario1_${engine.model}_${engine.snr}.mrd
+result_dir: results/scenario3
+filename:  ${cache_dir}/scenario3_${engine.model}_${engine.snr}.mrd
 
 sim_conf:
   max_sim_time: 300
-  seq: {TR: 50, TE: 25, FA: 12}
+  seq: {TR: 50, TE: 25,  FA: 12}
   hardware:
-    n_coils: 1
-    dwell_time_ms: 0.005
-  shape: [60, 72, 60]
+    n_coils: 32
+    dwell_time_ms: 0.001
+
+  shape: [182, 218, 182]
   fov_mm: [181.0, 217.0, 181.0]
 
 phantom:
   name: brainweb
   sub_id: 5
-  tissue_ignore: ["bck"]
+  tissue_file: "tissue_7T"
 
 handlers:
   activation-block:
@@ -34,20 +37,31 @@ handlers:
     block_off: 20 #seconds
     duration: 300 # seconds
     delta_r2s: 1000 # millisecond^-1
+
 sampler:
-  epi-3d:
-    acsz: 1
-    accelz: 1
-    orderz: CENTER_OUT
+  load-trajectory:
+    path: ${oc.env:PWD}/sparkling-3d.bin
+    constant: true
 
 engine:
-  n_jobs: 10
-  chunk_size: 60
+  n_jobs: 3
+  chunk_size: 180
   model: "simple"
   snr: 1000
+  nufft_backend: "cufinufft"
 
 reconstructors:
-  adjoint: {}
+  # adjoint:
+  #   nufft_backend: "stacked-gpunufft"
+  #   density_compensation: "pipe"
+  sequential:
+    nufft_backend: "gpunufft"
+    density_compensation: False
+    restart_strategy: COLD
+    max_iter_per_frame: 50
+    wavelet: "sym8"
+
+
 
 
 
@@ -68,6 +82,8 @@ hydra:
     #     _partial_: true
     #     _target_: snkf.cli.utils.aggregate_results
 
+    log_job:
+      _target_: hydra.experimental.callbacks.LogJobReturnCallback
     latest_run:
       _target_: hydra_callbacks.LatestRunLink
       run_base_dir:  ${result_dir}/outputs

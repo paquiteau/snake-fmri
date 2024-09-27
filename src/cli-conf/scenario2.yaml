@@ -12,7 +12,7 @@ defaults:
   - _self_
 
 cache_dir: ${oc.env:PWD}/cache
-result_dir: results
+result_dir: results/scenario2
 filename:  ${cache_dir}/scenario2_${engine.model}_${engine.snr}_${sampler.stack-of-spiral.constant}_${sampler.stack-of-spiral.accelz}.mrd
 
 sim_conf:
@@ -50,14 +50,13 @@ engine:
   model: "simple"
   snr: 10000
   nufft_backend: "stacked-gpunufft"
-
 reconstructors:
   # adjoint:
   #   nufft_backend: "stacked-gpunufft"
   #   density_compensation: "pipe"
   sequential:
     nufft_backend: "stacked-gpunufft"
-    density_compensation: "pipe"
+    density_compensation: false
     restart_strategy: WARM
     max_iter_per_frame: 50
     wavelet: "sym4"
