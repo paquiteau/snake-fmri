@@ -18,7 +18,6 @@ from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
 from snake.core.sampling import EPI3dAcquisitionSampler
-from snake.mrd_utils import make_base_mrd
 
 # %%
 
@@ -80,13 +79,28 @@ from snake.core.engine import EPIAcquisitionEngine
 
 engine = EPIAcquisitionEngine(model="simple")
 
-make_base_mrd("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
-make_base_mrd("example_EPI_t2s.mrd", sampler, phantom, sim_conf, smaps=smaps)
+engine("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
 
-engine("example_EPI.mrd", worker_chunk_size=60, n_workers=1)
+engine(
+    "example_EPI.mrd",
+    sampler,
+    phantom,
+    sim_conf,
+    smaps=smaps,
+    worker_chunk_size=60,
+    n_workers=1,
+)
 engine_t2s = EPIAcquisitionEngine(model="T2s")
 
-engine_t2s("example_EPI_t2s.mrd", worker_chunk_size=60, n_workers=1)
+engine_t2s(
+    "example_EPI_t2s.mrd",
+    sampler,
+    phantom,
+    sim_conf,
+    smaps=smaps,
+    worker_chunk_size=60,
+    n_workers=1,
+)
 
 # %%
 # Simple reconstruction

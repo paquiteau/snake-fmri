@@ -69,9 +69,7 @@ display_3D_trajectory(traj)
 
 from snake.core.handlers.noise import NoiseHandler
 
-noise_handler = NoiseHandler(snr=100)
-
-phantom = noise_handler.get_static(phantom, sim_conf)
+noise_handler = NoiseHandler(variance=0.01)
 
 # %%
 # Acquisition with Cartesian Engine

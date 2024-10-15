@@ -170,7 +170,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         # Guesstimate the workload
         if worker_chunk_size <= 0:
-            worker_chunk_size = sampler.n_shot_frame
+            # get the number of shot
+            worker_chunk_size = sampler.get_next_frame(sim_conf).shape[0]
         if n_workers <= 0:
             n_workers = mp.cpu_count() // 2
 
