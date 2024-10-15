@@ -1,6 +1,8 @@
 """Plotting utilities for the project."""
 
 import matplotlib
+from typing import Any
+
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy.typing import NDArray
@@ -28,7 +30,12 @@ def get_axis_properties(
     width_inches: float,
     cbar: bool = True,
     arr_pad: int = 4,
-) -> tuple[NDArray, NDArray, list, tuple]:
+) -> tuple[
+    NDArray,
+    NDArray,
+    tuple[tuple[slice, slice], ...],
+    tuple[tuple[Any, Any, Any], ...],
+]:
     """Generate mplt toolkit axes dividers."""
     slices = (np.s_[cuts[0], :, :], np.s_[:, cuts[1], :], np.s_[:, :, cuts[2]])
     bbox: list[tuple] = [(None, None), (None, None), (None, None)]
@@ -50,7 +57,7 @@ def get_axis_properties(
         bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
     hdiv, vdiv = get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=cbar)
 
-    return hdiv, vdiv, bbox, slices
+    return hdiv, vdiv, tuple(bbox), slices
 
 
 def get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=False):
@@ -102,10 +109,11 @@ def plot_frames_activ(
     z_score: NDArray,
     roi: NDArray | None,
     ax: plt.Axes,
-    slices: tuple[slice, slice, slice],
-    bbox: tuple[tuple],
+    slices: tuple[Any, ...],
+    bbox: tuple[Any, ...],
     z_thresh: float = 3,
     z_max: float = 11,
+    bg_cmap="gray",
 ) -> tuple[plt.Axes, matplotlib.image.AxesImage]:
     """Plot activation maps and background.
 
@@ -122,7 +130,7 @@ def plot_frames_activ(
         bg,
         vmin=np.min(background),
         vmax=np.max(background),
-        cmap="gray",
+        cmap=bg_cmap,
         origin="lower",
         aspect="equal",
     )
@@ -158,8 +166,9 @@ def axis3dcut(
     width_inches: float = 7,
     cbar: bool = True,
     cuts: tuple[int, ...] | None = None,
-    bbox: tuple[tuple] | None = None,
-    slices: tuple[tuple[slice, slice, slice], ...] | None = None,
+    bbox: tuple[tuple[Any, Any], ...] | None = None,
+    slices: tuple[tuple[Any, Any, Any], ...] | None = None,
+    bg_cmap: str = "gray",
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI."""
     #    ax.axis("off")
@@ -176,11 +185,13 @@ def axis3dcut(
         gt_roi_ = None
 
     if bbox is None and slices is None:
-        hdiv, vdiv, bbox, slices = get_axis_properties(
+        hdiv, vdiv, bbox_, slices_ = get_axis_properties(
             background, cuts_, width_inches, cbar=cbar
         )
     elif bbox is not None and slices is not None:
         hdiv, vdiv = get_hdiv_vdiv(background, bbox, slices, width_inches, cbar=cbar)
+        bbox_ = bbox
+        slices_ = slices
     else:
         raise ValueError("Missing either bbox or slices.")
     divider = make_axes_locatable(ax)
@@ -191,10 +202,16 @@ def axis3dcut(
         axG[i] = plt.Axes(fig, ax.get_position(original=True))
         axG[i].set_axes_locator(divider.new_locator(nx=nx, ny=ny, ny1=ny1))
         fig.add_axes(axG[i])
-
-    plot_frames_activ(background, z_score, gt_roi_, axG[0], slices[0], bbox[0])
-    plot_frames_activ(background, z_score, gt_roi_, axG[1], slices[1], bbox[1])
-    plot_frames_activ(background, z_score, gt_roi_, axG[2], slices[2], bbox[2])
+    for i in range(3):
+        plot_frames_activ(
+            background,
+            z_score,
+            gt_roi_,
+            axG[i],
+            slices_[i],
+            bbox_[i],
+            bg_cmap=bg_cmap,
+        )
 
     if cbar:
         cax = type(ax)(fig, ax.get_position(original=True))
@@ -207,7 +224,7 @@ def axis3dcut(
             cax.set_yticks(np.concatenate([-np.arange(3, 12, 2), np.arange(3, 12, 2)]))
         else:
             # use the background image
-            im = ScalarMappable(norm="linear", cmap="gray")
+            im = ScalarMappable(norm="linear", cmap=bg_cmap)
             im.set_clim(vmin=np.min(background), vmax=np.max(background))
             matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
         fig.add_axes(cax)
