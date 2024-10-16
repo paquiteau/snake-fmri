@@ -81,7 +81,7 @@ def reconstruction(cfg: DictConfig) -> None:
     gc.collect()
 
     results = []
-    for name, rec in cfg.reconstructors.items():
+    for _name, rec in cfg.reconstructors.items():
         rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
         data_rec_file = Path(f"data_rec_{rec_str}.npy").resolve()
         data_zscore_file = Path(f"data_zscore_{rec_str}.npy").resolve()

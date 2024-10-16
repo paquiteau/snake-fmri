@@ -185,7 +185,6 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
 
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Load the trajectory."""
-
         data = read_trajectory(self.path, raster_time=self.raster_time)[0]
         data /= 0.5 * data.max()
         return data
@@ -262,7 +261,6 @@ class EPI3dAcquisitionSampler(BaseSampler):
 
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
-
         return stacked_epi_factory(
             shape=sim_conf.shape,
             accelz=self.accelz,

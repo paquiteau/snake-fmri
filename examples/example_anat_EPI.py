@@ -41,7 +41,8 @@ sim_conf
 #
 # The simulation acquires
 # the data describe in a phantom. A phantom consists of fuzzy segmentation of
-# head tissue, and their MR intrisic parameters (density, T1, T2, T2*,  magnetic susceptibilities)
+# head tissue, and their MR intrisic parameters
+# (density, T1, T2, T2*,  magnetic susceptibilities)
 #
 # Here we use Brainweb reference mask and values for convenience.
 

@@ -9,7 +9,6 @@ import os
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing.managers import SharedMemoryManager
-from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, ClassVar
 
@@ -164,7 +163,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         **kwargs: Any,
     ):
         """Perform the acquisition and fill the dataset."""
-
         # Create the base dataset
         make_base_mrd(filename, sampler, phantom, sim_conf, handlers, smaps, coil_cov)
 

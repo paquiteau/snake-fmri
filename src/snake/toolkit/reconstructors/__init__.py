@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+"""Reconstructors wrapping different reconstruction algorithms."""
+
 from .base import BaseReconstructor
 from .pysap import ZeroFilledReconstructor, SequentialReconstructor
 

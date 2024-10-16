@@ -56,7 +56,7 @@ class Phantom:
         tissue_name: str,
         mask: NDArray[np.float32],
         props: NDArray[np.float32],
-        phantom_name=None,
+        phantom_name: str | None = None,
     ) -> Phantom:
         """Add a tissue to the phantom. Creates a new Phantom object."""
         masks = np.concatenate((self.masks, mask[None, ...]), axis=0)

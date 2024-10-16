@@ -54,8 +54,10 @@ def get_snr(test: NDArray, ref: NDArray, roi: NDArray | None = None) -> float:
     return np.sqrt(np.mean(abs(signal) ** 2) / np.mean(abs(noise) ** 2))
 
 
-def get_snr_console_db(test: NDArray, roi_data=None, roi_noise=None) -> float:
-    """Compute the SNR 'like at the console'
+def get_snr_console_db(
+    test: NDArray, roi_data: NDArray = None, roi_noise: NDArray = None
+) -> float:
+    """Compute the SNR 'like at the console'.
 
     using region of interest for the signal and noise in the same image.
 

@@ -104,7 +104,7 @@ def get_kspace_slice_loc(
         )
     rng = validate_rng(rng)
 
-    def _get_samples(p):
+    def _get_samples(p: NDArray) -> list[int]:
         p /= np.sum(p)
         return list(rng.choice(borders, size=n_samples_borders, replace=False, p=p))
 

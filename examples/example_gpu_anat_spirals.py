@@ -13,7 +13,6 @@ alternative is to use the CLI ``snake-main``
 # %%
 
 # Imports
-import numpy as np
 from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps

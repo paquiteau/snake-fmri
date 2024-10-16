@@ -55,15 +55,21 @@ def get_axis_properties(
         cmin = max(0, cmin - arr_pad)
         cmax = min(cmax + arr_pad, mask.shape[1])
         bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
-    hdiv, vdiv = get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=cbar)
+    hdiv, vdiv = _get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=cbar)
 
     return hdiv, vdiv, tuple(bbox), slices
 
 
-def get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=False):
+def _get_hdiv_vdiv(
+    array_bg: NDArray,
+    bbox: tuple[tuple[slice]],
+    slices: tuple[slice],
+    width_inches: float,
+    cbar: bool = False,
+) -> tuple[NDArray, NDArray]:
     sizes = np.array([(bb.stop - bb.start) for b in bbox for bb in b])
 
-    sizes = tuple(array_bg[s][b].shape for s, b in zip(slices, bbox))
+    sizes = tuple(array_bg[s][b].shape for s, b in zip(slices, bbox, strict=False))
     alpha1 = sizes[1][1] / sizes[2][1]
     update_sizes = [[0, 0], [0, 0], [0, 0]]
     update_sizes[2][0] = sizes[2][0]
@@ -90,7 +96,7 @@ def get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=False):
                 0.02 * hdiv[0],
             ]
         )
-    hdivv = np.array(hdiv)
+    np.array(hdiv)
     height_inches = width_inches * aspect
     vdiv = np.array([height_inches * split_tb, height_inches * (1 - split_tb)])
     return hdiv, vdiv
@@ -113,7 +119,7 @@ def plot_frames_activ(
     bbox: tuple[Any, ...],
     z_thresh: float = 3,
     z_max: float = 11,
-    bg_cmap="gray",
+    bg_cmap: str = "gray",
 ) -> tuple[plt.Axes, matplotlib.image.AxesImage]:
     """Plot activation maps and background.
 
@@ -189,7 +195,7 @@ def axis3dcut(
             background, cuts_, width_inches, cbar=cbar
         )
     elif bbox is not None and slices is not None:
-        hdiv, vdiv = get_hdiv_vdiv(background, bbox, slices, width_inches, cbar=cbar)
+        hdiv, vdiv = _get_hdiv_vdiv(background, bbox, slices, width_inches, cbar=cbar)
         bbox_ = bbox
         slices_ = slices
     else:

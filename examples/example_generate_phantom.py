@@ -5,17 +5,17 @@ Generate a Phantom and visualize the contrast at different TE values
 Example for generating a phantom and visualizing the contrast at different TE values.
 """
 
-import numpy as np
 from snake.core.phantom import Phantom
 from snake.core.engine.utils import get_ideal_phantom
 from snake.core.simulation import SimConfig, GreConfig
 
 
-# +
-# This notebook has interactive widgets, run it in google colab or locally to enjoy it fully
-# -
+# %%
+# This notebook has interactive widgets, run it in google colab or locally to
+# enjoy it fully
+#
 
-
+# %%
 shape = (181, 217, 181)
 TR = 100
 TE = 25

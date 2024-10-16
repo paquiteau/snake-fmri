@@ -1,1 +1,1 @@
-"""SNAKE Package"""
+"""SNAKE Package."""

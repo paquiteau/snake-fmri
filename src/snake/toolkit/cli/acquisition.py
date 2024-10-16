@@ -5,7 +5,6 @@ import logging
 from omegaconf import OmegaConf
 from snake.core.engine import BaseAcquisitionEngine
 from snake.core.handlers import HandlerList
-from snake.mrd_utils import make_base_mrd
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
 from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda, make_hydra_cli

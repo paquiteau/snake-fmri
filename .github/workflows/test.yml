@@ -26,7 +26,7 @@ jobs:
       - name: Linter
         run: |
           black --check src tests
-          ruff .
+          ruff check .
       - name: Annotate locations with typos
         uses: codespell-project/codespell-problem-matcher@v1
       - name: Codespell

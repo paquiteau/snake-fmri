@@ -48,7 +48,8 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
                 field_value_str = repr(field_value)
 
             table_rows.append(
-                f"<tr><td>{field_name} (<i>{field_type}</i>)</td><td>{field_value_str}</td></tr>"
+                f"<tr><td>{field_name}(<i>{field_type}</i>)</td>"
+                f"<td>{field_value_str}</td></tr>"
             )
     else:
         table_rows.append(

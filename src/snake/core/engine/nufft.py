@@ -1,7 +1,6 @@
 """Acquisition engine using nufft."""
 
 from collections.abc import Sequence
-from copy import deepcopy
 
 import ismrmrd as mrd
 import numpy as np
