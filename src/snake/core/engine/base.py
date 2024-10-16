@@ -7,7 +7,7 @@ import logging
 import multiprocessing as mp
 import os
 from collections.abc import Mapping, Sequence
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing.managers import SharedMemoryManager
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -197,14 +197,15 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         # This is an alternative to using swmr mode, that I could not get to work.
 
         os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
-
+        if n_workers > 1:
+            Executor = ProcessPoolExecutor(
+                n_workers, mp_context=mp.get_context(self.__mp_mode__)
+            )
+        else:
+            Executor = ThreadPoolExecutor(max_workers=1)
         with (
             SharedMemoryManager() as smm,
-            ProcessPoolExecutor(
-                # FIXME: use fork for cartesian sampling, spawn for nufft with cuda.
-                n_workers,
-                mp_context=mp.get_context(self.__mp_mode__),
-            ) as executor,
+            Executor as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,
             TemporaryDirectory(
