@@ -47,13 +47,16 @@ dependencies = [ # Optional
   "brainweb-dl",
   "mri-nufft",
   "ismrmrd",
+  "hydra-core",
+  "hydra-callbacks",
+  "hydra-colorlog",
 ]
 
 [project.optional-dependencies] # Optional
 dev = ["black", "ruff", "isort"]
 test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist"]
-doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery","sphinx-book-theme"]
-toolkit = ["hydra-core", "hydra-callbacks", "hydra-colorlog", "matplotlib", "pysap-fmri"]
+doc = ["myst-parser", "sphinx-copybutton","jupyter-book", "sphinx-gallery","sphinx-book-theme"]
+toolkit = [ "matplotlib", "pysap-fmri"]
 # List URLs that are relevant to your project
 # This field corresponds to the "Project-URL" and "Home-Page" metadata fields:
 [project.urls]  # Optional
