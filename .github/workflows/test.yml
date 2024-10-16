@@ -27,6 +27,11 @@ jobs:
         run: |
           black --check src tests
           ruff .
+      - name: Annotate locations with typos
+        uses: codespell-project/codespell-problem-matcher@v1
+      - name: Codespell
+        uses: codespell-project/actions-codespell@v2
+      # Run tests
       - name: Test
         run: |
           pytest
