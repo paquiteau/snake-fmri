@@ -84,7 +84,7 @@ class NoCaseEnum(Enum, metaclass=EnumMeta):
 
 class MethodRegister:
     """
-    A Decorator to register methods of the same type in dictionnaries.
+    A Decorator to register methods of the same type in dictionaries.
 
     Parameters
     ----------

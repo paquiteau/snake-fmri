@@ -1,4 +1,4 @@
-"""Utilies for running parallel computations with processes and shared memory."""
+"""Utilities for running parallel computations with processes and shared memory."""
 
 import logging
 from collections.abc import Callable, Generator

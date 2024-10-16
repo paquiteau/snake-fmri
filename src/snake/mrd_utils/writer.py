@@ -101,7 +101,7 @@ def add_smaps_mrd(
         return dataset
     elif smaps.shape != (sim_conf.hardware.n_coils, *sim_conf.shape):
         raise ValueError(
-            "Imcompatible smaps shape"
+            "Incompatible smaps shape"
             f"{smaps.shape} != {(sim_conf.hardware.n_coils, *sim_conf.shape)} "
         )
     dataset.append_image(
@@ -179,7 +179,7 @@ def add_coil_cov_mrd(
         return dataset
     elif coil_cov.shape != (n_coils, n_coils):
         raise ValueError(
-            f"Imcompatible coil_cov shape {coil_cov.shape} != {(n_coils, n_coils)} "
+            f"Incompatible coil_cov shape {coil_cov.shape} != {(n_coils, n_coils)} "
         )
     dataset.append_image(
         "coil_cov",

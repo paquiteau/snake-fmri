@@ -60,7 +60,7 @@ class RandomMotionImageHandler(AbstractHandler):
             self._motion_data = np.loadtxt(self.motion_file)
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
-        """Get dynamic informations."""
+        """Get dynamic information."""
         n_frames = sim_conf.max_n_shots
 
         if self._motion_data is not None and self.motion_file_tr_ms is not None:

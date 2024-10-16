@@ -33,7 +33,7 @@ def _birdcage_maps(
     r: float = 1.5,
     nzz: int = 8,
 ) -> NDArray[np.complex64]:
-    """Simulate birdcage coil sensitivies.
+    """Simulate birdcage coil sensitivities.
 
     Parameters
     ----------

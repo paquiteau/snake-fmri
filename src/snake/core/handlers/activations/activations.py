@@ -31,7 +31,7 @@ class ActivationMixin(LogMixin):
         events that start before frame_times[0] + min_onset are not considered.
         Default=-24.
     roi_threshold: float, default 0.0
-        If greated than 0, the roi becomes a binary mask, with roi_threshold
+        If greater than 0, the roi becomes a binary mask, with roi_threshold
         as separation.
 
     See Also
@@ -128,7 +128,7 @@ class ActivationMixin(LogMixin):
         """Get dynamic time series for adding Activations."""
         bold_strength = sim_conf.seq.TE / self.delta_r2s
 
-        self.log.info("Computed BOLD Strenght: %s", bold_strength)
+        self.log.info("Computed BOLD Strength: %s", bold_strength)
         bold = get_bold(
             sim_conf.sim_tr_ms,
             sim_conf.max_sim_time,

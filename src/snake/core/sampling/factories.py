@@ -35,7 +35,7 @@ def validate_rng(rng: int | None | np.random.Generator = None) -> np.random.Gene
     elif isinstance(rng, np.random.Generator):
         return rng
     else:
-        raise ValueError("rng shoud be a numpy Generator, None or an integer seed.")
+        raise ValueError("rng should be a numpy Generator, None or an integer seed.")
 
 
 class VDSorder(NoCaseEnum):

@@ -77,11 +77,11 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         dataset.write_xml_header(mrd.xsd.ToXML(hdr))  # write the updated header back
 
         # Write the acquisition.
-        # We create the dataset manualy with custom dtype.
+        # We create the dataset manually with custom dtype.
         # Compared to using mrd.Dataset.append_acquisition
         # - this is faster (20-50%)
         # - uses fixed sized array (All shot have the same size !)
-        # - allow for smart chunking (usefull for reading/writing efficiently)
+        # - allow for smart chunking (useful for reading/writing efficiently)
 
         acq_dtype = np.dtype(
             [
@@ -524,11 +524,11 @@ class EVI3dAcquisitionSampler(BaseSampler):
         )
 
         # Write the acquisition.
-        # We create the dataset manualy with custom dtype.
+        # We create the dataset manually with custom dtype.
         # Compared to using mrd.Dataset.append_acquisition
         # - this is faster !
         # - uses fixed sized array (All shot have the same size !)
-        # - allow for smart chunking (usefull for reading/writing efficiently)
+        # - allow for smart chunking (useful for reading/writing efficiently)
         acq = np.empty(
             (n_ksp_frames * sim_conf.shape[1] * sim_conf.shape[0],), dtype=acq_dtype
         )

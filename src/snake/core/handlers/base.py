@@ -68,7 +68,7 @@ class HandlerList(UserList):
             return yaml.dump(self.serialize())
 
     def serialize(self) -> list[dict[str, Any]]:
-        """Serialize the handlerList as a list of dictionnary."""
+        """Serialize the handlerList as a list of dictionary."""
         # handlers are dataclasses.
         return [dataclasses.asdict(h) for h in self.data]
 
