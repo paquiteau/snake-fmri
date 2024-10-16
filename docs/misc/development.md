@@ -1,5 +1,5 @@
 # Developing SNAKE {#developing-snake}
-## Developement environment {#developement-environment}
+## Development environment {#developement-environment}
 
 We recommend to use a virtual environment, and install SNAKE-FMRI and
 its dependencies in it.

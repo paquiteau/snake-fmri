@@ -141,3 +141,4 @@ exclude = ["examples/"]
 
 [tool.codespell]
 ignore-words-list = ["TE","fpr"]
+skip = ["docs/generated", "*.ipynb"]

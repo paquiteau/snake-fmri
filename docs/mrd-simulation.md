@@ -18,7 +18,7 @@ The SNAKE MRD file structure is as follows:
 
  - `header` group: contains the metadata for the file, as well as serialized information for the simulation. 
  - `acquisition` group: contains the raw k-space data and the acquisition parameters. 
- - `images` group: contains the static informations for the simulation (phantom, coil sensitivity maps, etc.).
+ - `images` group: contains the static information for the simulation (phantom, coil sensitivity maps, etc.).
  - `waveforms` group: contains the dynamic information for the simulation (motion, physiological noise, etc.).
  
  

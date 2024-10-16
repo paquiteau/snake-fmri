@@ -160,7 +160,7 @@ engine_t2s(
 # This is available in the companion package ``snake.toolkit``.
 #
 # Loading the ``.mrd`` file to retrieve all information can be done using the
-# ``ismrmd`` python package, but SNAKE provides convient dataloaders, which are
+# ``ismrmd`` python package, but SNAKE provides convenient dataloaders, which are
 # more efficient, and take cares of managing underlying files access. As we are
 # showcasing the API, we will do things manually here, and use only core SNAKE.
 

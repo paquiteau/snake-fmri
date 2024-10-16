@@ -41,7 +41,7 @@ sim_conf
 #
 # The simulation acquires
 # the data describe in a phantom. A phantom consists of fuzzy segmentation of
-# head tissue, and their MR intrisic parameters
+# head tissue, and their MR intrinsic parameters
 # (density, T1, T2, T2*,  magnetic susceptibilities)
 #
 # Here we use Brainweb reference mask and values for convenience.
@@ -124,7 +124,7 @@ engine(
 # This is available in the companion package ``snake.toolkit``.
 #
 # Loading the ``.mrd`` file to retrieve all information can be done using the
-# ``ismrmd`` python package, but SNAKE provides convient dataloaders, which are
+# ``ismrmd`` python package, but SNAKE provides convenient dataloaders, which are
 # more efficient, and take cares of managing underlying files access. As we are
 # showcasing the API, we will do things manually here, and use only core SNAKE.
 
