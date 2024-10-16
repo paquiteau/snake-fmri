@@ -42,7 +42,9 @@ except Exception:
     NUFFT_BACKEND = "stacked-finufft"
     COMPUTE_BACKEND = "numpy"
 
-
+print(
+    f"Using NUFFT backend: {NUFFT_BACKEND}", f"Using Compute backend: {COMPUTE_BACKEND}"
+)
 # %%
 
 sim_conf = SimConfig(

@@ -33,6 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: |
+        pip install finufft ipywidgets
         pip install -e .[doc]
 
     # Build the book
