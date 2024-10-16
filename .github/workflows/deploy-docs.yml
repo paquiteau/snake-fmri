@@ -38,13 +38,12 @@ jobs:
     # Build the book
     - name: Build the book
       run: |
-        cd docs
-        jupyter-book build .
+        python -m sphinx docs docs_build
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
       with:
-        path: 'docs/_build/html'
+        path: 'docs_build/'
 
     - name: Deploy to GitHub Pages
       id: deployment
