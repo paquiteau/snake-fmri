@@ -19,6 +19,31 @@ from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
 from snake.core.sampling import StackOfSpiralSampler
 
+from mrinufft import get_operator
+
+
+# For faster computation, try to use the GPU
+
+NUFFT_BACKEND = "stacked-gpunufft"
+COMPUTE_BACKEND = "cupy"
+
+try:
+    import cupy as cp
+
+    if not cp.cupy.cuda.runtime.getDeviceCount():
+        raise ValueError("No CUDA Device found")
+
+    get_operator("stacked-gpunufft")
+except Exception:
+    try:
+        get_operator("stacked-finufft")
+    except ValueError as e:
+        raise ValueError("No NUFFT backend available") from e
+
+    NUFFT_BACKEND = "stacked-finufft"
+    COMPUTE_BACKEND = "numpy"
+
+
 # %%
 
 sim_conf = SimConfig(
@@ -28,7 +53,7 @@ sim_conf = SimConfig(
     fov_mm=(181, 217, 181),
     shape=(60, 72, 60),
 )
-sim_conf.hardware.n_coils = 8
+sim_conf.hardware.n_coils = 1  # Update to get multi coil results.
 sim_conf.hardware.field_strength = 7
 phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
 
@@ -111,7 +136,7 @@ engine(
     smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
-    nufft_backend="stacked-gpunufft",
+    nufft_backend=NUFFT_BACKEND,
 )
 engine_t2s = NufftAcquisitionEngine(model="T2s", snr=30000)
 
@@ -123,7 +148,7 @@ engine_t2s(
     handlers=[noise_handler],
     worker_chunk_size=60,
     n_workers=1,
-    nufft_backend="stacked-gpunufft",
+    nufft_backend=NUFFT_BACKEND,
 )
 
 # %%
@@ -147,14 +172,15 @@ from snake.toolkit.reconstructors import (
 )
 
 zer_rec = ZeroFilledReconstructor(
-    nufft_backend="stacked-gpunufft", density_compensation="pipe"
+    nufft_backend=NUFFT_BACKEND, density_compensation=None
 )
 seq_rec = SequentialReconstructor(
-    nufft_backend="stacked-gpunufft",
-    density_compensation="pipe",
-    max_iter_per_frame=15,
+    nufft_backend=NUFFT_BACKEND,
+    density_compensation=None,
+    max_iter_per_frame=30,
     threshold=2e-6,
-    optimizer="pogm",
+    optimizer="fista",
+    compute_backend=COMPUTE_BACKEND,
 )
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
     adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
