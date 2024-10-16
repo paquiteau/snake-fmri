@@ -1,7 +1,7 @@
 # SNAKE-fMRI: Simulator from neuro-activation to K-space Exploration
 
 
-<img align="left" width="33%" src="https://github.com/paquiteau/snake-fmri/blob/main/docs/images/logos/logo-snake_light.svg"> 
+<img align="left" width="33%" src="https://github.com/paquiteau/snake-fmri/blob/main/docs/_static/logos/snake-fmriV2-logo.png"> 
 <h1> A Simulator from Neurovascular coupling to Acquisition of K-space data for Exploration of fMRI Technique </br></br></h1>
 
 

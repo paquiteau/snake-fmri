@@ -112,7 +112,7 @@ html_theme_options = {
     "home_page_in_toc": True,
     "logo": {
         "image_light": "_static/logos/snake-fmriV2-logo.png",
-        "image_dark": "_static/logos/snake-fmriV2-logo.png",
+        "image_dark": "_static/logos/snake-fmriV2-logo_dark.png",
     },
 }
 html_title = "SNAKE-fMRI Documentation"
