@@ -39,7 +39,7 @@ jobs:
     - name: Build the book
       run: |
         cd docs
-        ./build_docs.sh
+        jupyter-book build .
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@v1
