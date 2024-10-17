@@ -1,5 +1,7 @@
 """Samplers generate kspace trajectories."""
 
+from __future__ import annotations
+from typing import Literal
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
@@ -20,11 +22,25 @@ from mrinufft.io import read_trajectory
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):
-    """Base class for non-cartesian acquisition samplers."""
+    """
+    Base class for non-cartesian acquisition samplers.
+
+    Parameters
+    ----------
+    constant: bool
+        If True, the trajectory is constant.
+    obs_time_ms: int
+        Time spent to acquire a single shot
+    in_out: bool
+        If true, the trajectory is acquired with a double join pattern from/to the periphery
+    ndim: int
+        Number of dimensions of the trajectory (2 or 3)
+    """
 
     __engine__ = "NUFFT"
     in_out: bool = True
     obs_time_ms: int = 30
+    ndim: Literal[2] | Literal[3] = 3
 
     def add_all_acq_mrd(
         self,
@@ -87,7 +103,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             [
                 ("head", mrd.hdf5.acquisition_header_dtype),
                 ("data", np.float32, (sim_conf.hardware.n_coils * n_samples * 2,)),
-                ("traj", np.float32, (n_samples * 3,)),
+                ("traj", np.float32, (n_samples * self.ndim,)),
             ]
         )
         acq_size = np.empty((1,), dtype=acq_dtype).nbytes
@@ -149,7 +165,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                         active_channels=sim_conf.hardware.n_coils,
                         available_channels=sim_conf.hardware.n_coils,
                         number_of_samples=n_samples,
-                        trajectory_dimensions=3,
+                        trajectory_dimensions=self.ndim,
                     ),
                     dtype=mrd.hdf5.acquisition_header_dtype,
                 )
