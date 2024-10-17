@@ -40,7 +40,6 @@ class NonCartesianAcquisitionSampler(BaseSampler):
     __engine__ = "NUFFT"
     in_out: bool = True
     obs_time_ms: int = 30
-    ndim: Literal[2] | Literal[3] = 3
 
     def add_all_acq_mrd(
         self,
@@ -54,6 +53,8 @@ class NonCartesianAcquisitionSampler(BaseSampler):
         TR_vol_ms = sim_conf.seq.TR * single_frame.shape[0]
         n_ksp_frames_true = sim_conf.max_sim_time * 1000 / TR_vol_ms
         n_ksp_frames = int(n_ksp_frames_true)
+
+        trajectory_dimension = single_frame.shape[-1]
 
         self.log.info("Generating %d frames", n_ksp_frames)
         self.log.info("Frame have %d shots", n_shots_frame)
@@ -103,7 +104,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
             [
                 ("head", mrd.hdf5.acquisition_header_dtype),
                 ("data", np.float32, (sim_conf.hardware.n_coils * n_samples * 2,)),
-                ("traj", np.float32, (n_samples * self.ndim,)),
+                ("traj", np.float32, (n_samples * trajectory_dimension,)),
             ]
         )
         acq_size = np.empty((1,), dtype=acq_dtype).nbytes
@@ -165,7 +166,7 @@ class NonCartesianAcquisitionSampler(BaseSampler):
                         active_channels=sim_conf.hardware.n_coils,
                         available_channels=sim_conf.hardware.n_coils,
                         number_of_samples=n_samples,
-                        trajectory_dimensions=self.ndim,
+                        trajectory_dimensions=trajectory_dimension,
                     ),
                     dtype=mrd.hdf5.acquisition_header_dtype,
                 )
@@ -188,7 +189,17 @@ class NonCartesianAcquisitionSampler(BaseSampler):
 
 
 class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
-    """Load a trajectory from a file."""
+    """Load a trajectory from a file.
+
+    Parameters
+    ----------
+    constant: bool
+        If True, the trajectory is constant.
+    obs_time_ms: int
+        Time spent to acquire a single shot
+    in_out: bool
+        If true, the trajectory is acquired with a double join pattern from/to the periphery
+    """
 
     __sampler_name__ = "load-trajectory"
     __engine__ = "NUFFT"
