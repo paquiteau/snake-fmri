@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 import numpy as np
 
@@ -112,8 +112,8 @@ class SimConfig:
     """All base configuration of a simulation."""
 
     max_sim_time: float = 300
-    seq: GreConfig = default_gre
-    hardware: HardwareConfig = default_hardware
+    seq: GreConfig = field(default_factory=lambda: GreConfig(TR=50, TE=30, FA=15))
+    hardware: HardwareConfig = field(default_factory=lambda: HardwareConfig())
     fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
     shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
     rng_seed: int = 19290506
