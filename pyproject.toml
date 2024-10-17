@@ -5,7 +5,7 @@ description = "A simulator and validator of fMRI reconstruction methods."
 # This field corresponds to the "Description" metadata field:
 readme = "README.md" # Optional
 
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dynamic = ["version"]
 
 license = {file = "LICENSE.txt"}
