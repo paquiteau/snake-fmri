@@ -109,7 +109,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         shared_phantom_props: (
             tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
         ) = None,
-        model: str = "T2s",
         **kwargs: Mapping[str, Any],
     ) -> str:
         """Entry point for worker.
@@ -134,7 +133,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                 d.data = d.data[:, chunk]
             trajs = self._job_trajectories(data_loader, hdr, sim_conf, chunk)
 
-            _job_model = getattr(self, f"_job_model_{model}")
+            _job_model = getattr(self, f"_job_model_{self.model}")
             smaps = None
             if sim_conf.hardware.n_coils > 1:
                 smaps = data_loader.get_smaps()
@@ -162,7 +161,43 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         n_workers: int = 0,
         **kwargs: Any,
     ):
-        """Perform the acquisition and fill the dataset."""
+        """Perform the acquisition and fill the dataset.
+
+        Parameters
+        ----------
+        filename : os.PathLike
+            The path to the MRD file.
+        sampler : BaseSampler
+            The sampler to use.
+        phantom : Phantom
+            The phantom to use.
+        sim_conf : SimConfig
+            The simulation configuration.
+        handlers : list[AbstractHandler] | HandlerList | None, optional
+            The handlers to use, by default None.
+        smaps : NDArray | None, optional
+            The sensitivity maps, by default None.
+        coil_cov : NDArray | None, optional
+            The coil covariance matrix, by default None.
+        worker_chunk_size : int, optional
+            The size of the chunk to process for each worker, by default 0 (auto).
+            Each worker w
+        n_workers : int, optional
+            The number of workers to use, by default 0 (auto). Half of CPU count will
+            be used (This usually corresponds to the number of physical cores on the
+            machine).
+        kwargs : Any
+            Additional keyword arguments, passed down to internal implementation.
+
+
+        Notes
+        -----
+        This function is the main entry point for the acquisition engine.
+        It will create the base dataset, and then dispatch the work to the workers.
+
+        Specific modeling steps are implemented in the `_job_model_T2s` and
+        `_job_model_simple` methods.
+        """
         # Create the base dataset
         make_base_mrd(filename, sampler, phantom, sim_conf, handlers, smaps, coil_cov)
 
@@ -220,7 +255,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     chunk_id,
                     tmp_dir=tmp_chunk_dir,
                     shared_phantom_props=phantom_props,
-                    model=self.model,
                     **kwargs,
                 ): chunk_id
                 for chunk_id in chunk_list

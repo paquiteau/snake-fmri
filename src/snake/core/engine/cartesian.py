@@ -1,5 +1,6 @@
 """Acquisition engine for Cartesian trajectories."""
 
+from typing import Any
 from collections.abc import Sequence
 from copy import deepcopy
 
@@ -22,6 +23,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     __mp_mode__ = "forkserver"
     model: str = "simple"
     snr: float = np.inf
+    epi_3d: bool = True
 
     def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
         limits = data_loader.header.encoding[0].encodingLimits
@@ -45,12 +47,13 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         n_lines_epi = limits.kspace_encoding_step_1.maximum
         readout_length = limits.kspace_encoding_step_0.maximum
         # Read all the chunk data from file.
-        raw_traj = data_loader._dataset["data"][
-            chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
-        ]["traj"].copy()
-
-        traj = raw_traj.view(np.uint32).reshape(
-            len(chunk), n_lines_epi, readout_length, 3
+        traj = (
+            data_loader._dataset["data"][
+                chunk[0] * n_lines_epi : (chunk[-1] + 1) * n_lines_epi
+            ]["traj"]
+            .copy()
+            .view(np.uint32)
+            .reshape(len(chunk), n_lines_epi, readout_length, 3)
         )
 
         return traj
@@ -62,6 +65,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
+        epi_3d: bool = True,
     ) -> np.ndarray:
         """Acquire k-space data. With T2s decay."""
         readout_length = trajectories.shape[-2]
@@ -98,20 +102,32 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
 
         for i, epi_2d in enumerate(trajectories):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
-
-            if smaps is None:
-                ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
-            else:
-                ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
             flat_epi = epi_2d.reshape(-1, 3)
+            if epi_3d:
+                if smaps is None:
+                    ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
+                else:
+                    ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
+            else:
+                # reduce to a single slice for the exicitation / fft is done in 2D.
+                slice_location = flat_epi[0, -1]  # FIXME: the slice is always axial.
+                flat_epi = flat_epi[:, :2]
+                phantom_slice = phantom_state[..., slice_location]
+                if smaps is None:
+                    smaps_ = smaps[..., slice_location]
+                    phantom_slice = phantom_slice[:, None, ...] * smaps_
+                else:
+                    phantom_slice = phantom_slice[:, None, ...]
+
+                ksp = fft(phantom_slice, axis=(-2, -1))
+
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil_sum = np.zeros(
-                    (n_lines_epi * readout_length), dtype=np.complex64
+                    n_lines_epi * readout_length, dtype=np.complex64
                 )
                 for b in range(phantom_state.shape[0]):
                     ksp_coil_sum += ksp[b, c][tuple(flat_epi.T)] * t2s_decay[b]
                 final_ksp[i, c] = ksp_coil_sum.reshape((n_lines_epi, readout_length))
-
         return final_ksp
 
     @staticmethod
@@ -121,6 +137,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
+        epi_3d: bool = True,
     ) -> np.ndarray:
         """Acquire k-space data. No T2s decay."""
         final_ksp = np.zeros(
@@ -135,11 +152,23 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         for i, epi_2d in enumerate(trajectories):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             phantom_state = np.sum(phantom_state, axis=0)
-            if smaps is None:
-                ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
-            else:
-                ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
             flat_epi = epi_2d.reshape(-1, 3)
+            if epi_3d:
+                if smaps is None:
+                    ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
+                else:
+                    ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
+            else:
+                slice_location = flat_epi[0, -1]  # FIXME: the slice is always axial.
+                flat_epi = flat_epi[:, :2]  # Reduced to 2D.
+                phantom_slice = phantom_state[..., slice_location]
+                if smaps is None:
+                    smaps_ = smaps[..., slice_location]
+                    phantom_slice = phantom_slice[:, None, ...] * smaps_
+                else:
+                    phantom_slice = phantom_slice[:, None, ...]
+
+                ksp = fft(phantom_slice, axis=(-2, -1))
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]
                 a = ksp_coil[tuple(flat_epi.T)]
@@ -170,6 +199,15 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         acq_chunk = data_loader._dataset["data"][shots]
         acq_chunk["data"] = chunk_data.reshape(acq_chunk["data"].shape)
         data_loader._dataset["data"][shots] = acq_chunk
+
+    def __call__(self, *args: Any, **kwargs: Any):
+        """Perform the acquisition and fill the dataset.
+
+        See Also
+        --------
+        BaseAcquisitionEngine.__call__
+        """
+        return super().__call__(*args, epi_3d=self.epi_3d, **kwargs)
 
 
 class EVIAcquisition(EPIAcquisitionEngine):
