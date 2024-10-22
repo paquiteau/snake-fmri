@@ -23,7 +23,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
     __mp_mode__ = "forkserver"
     model: str = "simple"
     snr: float = np.inf
-    epi_3d: bool = True
+    slice_2d: bool = False
 
     def _get_chunk_list(self, data_loader: MRDLoader) -> Sequence[int]:
         limits = data_loader.header.encoding[0].encodingLimits
@@ -65,7 +65,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
-        epi_3d: bool = True,
+        slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data. With T2s decay."""
         readout_length = trajectories.shape[-2]
@@ -103,23 +103,23 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         for i, epi_2d in enumerate(trajectories):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             flat_epi = epi_2d.reshape(-1, 3)
-            if epi_3d:
+            if slice_2d:
+                # reduce to a single slice for the exicitation / fft is done in 2D.
+                slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
+                flat_epi = flat_epi[:, 1:]
+                phantom_slice = phantom_state[:, slice_location]
+                if smaps is None:
+                    phantom_slice = phantom_slice[:, None, ...]
+                else:
+                    smaps_ = smaps[:, slice_location]
+                    phantom_slice = phantom_slice[:, None, ...] * smaps_
+
+                ksp = fft(phantom_slice, axis=(-2, -1))
+            else:
                 if smaps is None:
                     ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
                 else:
                     ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
-            else:
-                # reduce to a single slice for the exicitation / fft is done in 2D.
-                slice_location = flat_epi[0, -1]  # FIXME: the slice is always axial.
-                flat_epi = flat_epi[:, :2]
-                phantom_slice = phantom_state[..., slice_location]
-                if smaps is None:
-                    smaps_ = smaps[..., slice_location]
-                    phantom_slice = phantom_slice[:, None, ...] * smaps_
-                else:
-                    phantom_slice = phantom_slice[:, None, ...]
-
-                ksp = fft(phantom_slice, axis=(-2, -1))
 
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil_sum = np.zeros(
@@ -137,7 +137,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
         smaps: NDArray,
-        epi_3d: bool = True,
+        slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data. No T2s decay."""
         final_ksp = np.zeros(
@@ -153,22 +153,22 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             phantom_state = np.sum(phantom_state, axis=0)
             flat_epi = epi_2d.reshape(-1, 3)
-            if epi_3d:
+            print(flat_epi[0])
+            if slice_2d:
+                slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
+                flat_epi = flat_epi[:, 1:]  # Reduced to 2D.
+                phantom_slice = phantom_state[slice_location]
+                if smaps is None:
+                    phantom_slice = phantom_slice[None, ...]
+                else:
+                    smaps_ = smaps[:, slice_location]
+                    phantom_slice = phantom_slice[None, ...] * smaps_
+                ksp = fft(phantom_slice, axis=(-2, -1))
+            else:
                 if smaps is None:
                     ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
                 else:
                     ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
-            else:
-                slice_location = flat_epi[0, -1]  # FIXME: the slice is always axial.
-                flat_epi = flat_epi[:, :2]  # Reduced to 2D.
-                phantom_slice = phantom_state[..., slice_location]
-                if smaps is None:
-                    smaps_ = smaps[..., slice_location]
-                    phantom_slice = phantom_slice[:, None, ...] * smaps_
-                else:
-                    phantom_slice = phantom_slice[:, None, ...]
-
-                ksp = fft(phantom_slice, axis=(-2, -1))
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]
                 a = ksp_coil[tuple(flat_epi.T)]
@@ -199,15 +199,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         acq_chunk = data_loader._dataset["data"][shots]
         acq_chunk["data"] = chunk_data.reshape(acq_chunk["data"].shape)
         data_loader._dataset["data"][shots] = acq_chunk
-
-    def __call__(self, *args: Any, **kwargs: Any):
-        """Perform the acquisition and fill the dataset.
-
-        See Also
-        --------
-        BaseAcquisitionEngine.__call__
-        """
-        return super().__call__(*args, epi_3d=self.epi_3d, **kwargs)
 
 
 class EVIAcquisition(EPIAcquisitionEngine):

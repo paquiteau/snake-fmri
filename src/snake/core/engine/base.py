@@ -38,6 +38,15 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     """Base acquisition engine.
 
     Specific step can be overwritten in subclasses.
+
+    Parameters
+    ----------
+    model : str, optional
+        The model to use, by default "simple".
+    snr : float, optional
+        The signal to noise ratio, by default np.inf.
+    slice_2d : bool, optional
+        Whether to slice the 2D data, by default False.
     """
 
     __engine_name__: ClassVar[str]
@@ -46,6 +55,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     model: str = "simple"
     snr: float = np.inf
+    slice_2d: bool = False
 
     def _get_chunk_list(
         self,
@@ -255,6 +265,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
                     chunk_id,
                     tmp_dir=tmp_chunk_dir,
                     shared_phantom_props=phantom_props,
+                    slice_2d=self.slice_2d,
                     **kwargs,
                 ): chunk_id
                 for chunk_id in chunk_list
