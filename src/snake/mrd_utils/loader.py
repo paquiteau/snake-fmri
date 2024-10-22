@@ -332,8 +332,25 @@ class NonCartesianFrameDataLoader(MRDLoader):
     ...     image = nufft.adj_op(kspace)
     """
 
-    def get_kspace_frame(self, idx: int) -> tuple[np.ndarray, np.ndarray]:
-        """Get the k-space frame."""
+    def get_kspace_frame(
+        self, idx: int, shot_dim: bool = False
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Get the k-space frame and the associated trajectory.
+
+        Parameters
+        ----------
+        idx : int
+            Index of the frame to get.
+        shot_dim : bool, optional
+            Return the data reshaped with the shot dimension first.
+
+        Returns
+        -------
+        np.ndarray
+            The trajectory.
+        np.ndarray
+            The kspace data.
+        """
         n_acq_per_frame = self.n_acquisition // self.n_frames
         start = idx * n_acq_per_frame
         end = (idx + 1) * n_acq_per_frame
@@ -344,6 +361,11 @@ class NonCartesianFrameDataLoader(MRDLoader):
         data = data.reshape(-1, self.n_coils, self.n_sample)
         data = np.moveaxis(data, 1, 0)
         data = data.reshape(self.n_coils, -1)
+        if shot_dim:
+            return (
+                traj.reshape(n_acq_per_frame, -1, 3),
+                data.reshape(self.n_coils, n_acq_per_frame, -1),
+            )
         return traj, data
 
 
