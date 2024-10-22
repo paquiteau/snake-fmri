@@ -31,8 +31,7 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
     from typing import get_type_hints
     from dataclasses import fields
 
-    resolved_hints = get_type_hints(obj)
-
+    resolved_hints = obj.__annotations__
     field_names = [f.name for f in fields(obj)]
     field_values = {name: getattr(obj, name) for name in field_names}
     resolved_field_types = {name: resolved_hints[name] for name in field_names}
@@ -41,7 +40,7 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
         for field_name in field_names:
             # Recursively call _repr_html_ for nested dataclasses
             field_value = field_values[field_name]
-            field_type = resolved_field_types[field_name].__name__
+            field_type = resolved_field_types[field_name]
             try:
                 field_value_str = field_value._repr_html_(vertical=not vertical)
             except AttributeError:
