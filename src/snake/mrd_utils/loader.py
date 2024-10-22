@@ -73,7 +73,7 @@ class MRDLoader(LogMixin):
                 swmr=self._swmr,
             )
             matrixSize = self.header.encoding[0].encodedSpace.matrixSize
-            self.shape = matrixSize.x, matrixSize.y, matrixSize.z
+            self._shape = matrixSize.x, matrixSize.y, matrixSize.z
         self._level += 1
         return self
 
@@ -172,6 +172,16 @@ class MRDLoader(LogMixin):
     def n_frames(self) -> int:
         """Number of frames."""
         return self.header.encoding[0].encodingLimits.repetition.maximum
+
+    @property
+    def shape(self) -> tuple[int, ...]:
+        """Shape of the volume."""
+        try:
+            return self._shape
+        except AttributeError as exc:
+            raise RuntimeError(
+                "You need to run the dataloader as a context manager."
+            ) from exc
 
     @property
     def n_coils(self) -> int:
