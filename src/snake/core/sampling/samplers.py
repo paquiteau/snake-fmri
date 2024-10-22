@@ -369,13 +369,11 @@ class EPI3dAcquisitionSampler(BaseSampler):
         acq_size = np.empty((1,), dtype=acq_dtype).nbytes
         chunk = int(
             np.ceil(
-                (n_shots_frame * acq_size * n_samples)
+                (n_shots_frame * acq_size * n_lines)
                 / EnvConfig["SNAKE_HDF5_CHUNK_SIZE"]
             )
         )
-        chunk = min(
-            chunk, n_shots_frame * n_samples
-        )  # write at least a chunk per frmae.
+        chunk = min(chunk, n_shots_frame * n_lines)  # write at least a chunk per frmae.
         chunk_write_sizes = [
             len(c)
             for c in batched(
@@ -393,7 +391,7 @@ class EPI3dAcquisitionSampler(BaseSampler):
         pbar = tqdm(total=n_ksp_frames * n_shots_frame)
         dataset._dataset.create_dataset(
             "data",
-            shape=(n_ksp_frames * sim_conf.shape[0] * sim_conf.shape[1],),
+            shape=(n_ksp_frames * n_shots_frame * n_lines),
             dtype=acq_dtype,
             chunks=(chunk,),
         )
