@@ -175,6 +175,7 @@ def axis3dcut(
     bbox: tuple[tuple[Any, Any], ...] | None = None,
     slices: tuple[tuple[Any, Any, Any], ...] | None = None,
     bg_cmap: str = "gray",
+    vmin_vmax: tuple[float] = None,
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI."""
     #    ax.axis("off")
@@ -230,8 +231,12 @@ def axis3dcut(
             cax.set_yticks(np.concatenate([-np.arange(3, 12, 2), np.arange(3, 12, 2)]))
         else:
             # use the background image
+            if vmin_vmax is None:
+                vmin, vmax = (np.min(background), np.max(background))
+            else:
+                vmin, vmax = vmin_vmax
             im = ScalarMappable(norm="linear", cmap=bg_cmap)
-            im.set_clim(vmin=np.min(background), vmax=np.max(background))
+            im.set_clim(vmin=vmin, vmax=vmax)
             matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
         fig.add_axes(cax)
 
