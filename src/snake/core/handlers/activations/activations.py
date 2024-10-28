@@ -157,7 +157,39 @@ class ActivationMixin(LogMixin):
 
 
 class BlockActivationHandler(ActivationMixin, AbstractHandler):
-    """Activation Handler with block design."""
+    """Activation Handler with block design.
+
+    Parameters
+    ----------
+    block_on: float
+        time the block activation is on.
+    block_off: float
+        time the block activation is off
+    duration: float
+        Total duration of the pattern in seconds
+    offset: float, default 0
+        Start time of the pattern in seconds
+    roi_tissue_name: str, default "ROI"
+        Name of the ROI tissue
+    event_name: str, default "block_on"
+        Name of the event
+    delta_r2s: float, default 1000.0
+        Delta R2s value
+    hrf_model: str, default "glover"
+        HRF model
+    oversampling: int, default 50
+        Oversampling factor
+    min_onset: float, default -24.0
+        Minimal onset
+    roi_threshold: float, default 0.0
+        ROI threshold
+
+    Notes
+    -----
+    See Also the GLM module of Nilearn.
+
+
+    """
 
     __handler_name__ = "activation-block"
 

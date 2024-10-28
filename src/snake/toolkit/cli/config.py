@@ -24,6 +24,7 @@ class EngineConfig:
     model: str = "simple"
     snr: float = 0
     nufft_backend: str = "finufft"
+    slice_2d: bool = False
 
 
 @dataclass
