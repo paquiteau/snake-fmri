@@ -213,7 +213,8 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Load the trajectory."""
         data = read_trajectory(self.path, raster_time=self.raster_time)[0]
-        data /= 0.5 * data.max()
+        data = np.minimum(data, 0.5)
+        data = np.maximum(data, -0.5)
         return data
 
 
