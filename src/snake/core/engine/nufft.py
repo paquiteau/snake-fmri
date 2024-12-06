@@ -119,7 +119,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         for i, traj in enumerate(trajectories):
             phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             if slice_2d:
-                slice_loc = np.rint((traj[0, -1] + 0.5) * sim_conf.shape[-1])
+                slice_loc = round((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
                 if smaps is not None:
                     nufft.smaps = smaps[..., slice_loc]
