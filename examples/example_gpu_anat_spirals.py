@@ -48,7 +48,7 @@ print(
 # %%
 
 sim_conf = SimConfig(
-    max_sim_time=1,
+    max_sim_time=3,
     seq=GreConfig(TR=50, TE=22, FA=12),
     hardware=default_hardware,
     fov_mm=(181, 217, 181),
@@ -68,7 +68,7 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space, with an acceleration factor AF=4 on the z-axis.
 
 sampler = StackOfSpiralSampler(
-    accelz=4,
+    accelz=2,
     acsz=0.1,
     orderz="top-down",
     nb_revolutions=12,
@@ -225,6 +225,8 @@ for ax, img, title in zip(
 
 
 plt.show()
+
+# %%
 
 # %%
 

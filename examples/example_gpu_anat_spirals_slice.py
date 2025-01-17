@@ -13,6 +13,9 @@ alternative is to use the CLI ``snake-main``
 # %%
 
 # Imports
+import numpy as np
+import matplotlib.pyplot as plt
+
 from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
@@ -158,6 +161,7 @@ engine_t2s(
 # %%
 
 from snake.mrd_utils import NonCartesianFrameDataLoader
+from snake.toolkit.plotting import axis3dcut
 
 with NonCartesianFrameDataLoader("example_spiral_t2s_2D.mrd") as data_loader:
     traj, kspace_data = data_loader.get_kspace_frame(0, shot_dim=True)
@@ -166,62 +170,16 @@ with NonCartesianFrameDataLoader("example_spiral_t2s_2D.mrd") as data_loader:
 kspace_data = kspace_data.squeeze()
 
 # %%
-kspace_data.shape
-traj[0].shape
-
-# %%
-kspace_data.shape
-
-# %%
-traj[0]
-
-# %%
-data_loader.shape
-
-# %%
-shot_debug = np.load("../debug_traj18.npy")
-ksp_debug = np.load("../debug_ksp18.npy")
-
-# %%
-shot_debug.shape
-
-# %%
-shot_debug
-
-# %%
-nufft2 = get_operator(NUFFT_BACKEND)(samples=shot_debug[:,:2]*2*np.pi, shape=(60,72), density="voronoi", n_batchs=4)
-adj_debug = nufft2.adj_op(ksp_debug)
-plt.imshow(abs(adj_debug[0])) 
-
-# %%
-shot=traj[18].copy()
+shot = traj[18].copy()
 print(shot)
-nufft = get_operator(NUFFT_BACKEND)(samples=shot[:,:2], shape=data_loader.shape[:-1], density=None, n_batchs=len(kspace_data))
-nufft.samples = shot[:,:2]
+nufft = get_operator(NUFFT_BACKEND)(
+    samples=shot[:, :2],
+    shape=data_loader.shape[:-1],
+    density=None,
+    n_batchs=len(kspace_data),
+)
+nufft.samples = shot[:, :2]
 image = nufft.adj_op(kspace_data)
-nufft.shape
 
-# %%
-
-# %%
-print(image.shape)
-import numpy as np
-image = np.moveaxis(image,0,-1)
-image.shape
-
-# %%
-
-import matplotlib.pyplot as plt
-from snake.toolkit.plotting import axis3dcut
-
-# %%
-from fmri.viz.images import tile_view
-
-# %%
-tile_view(image, samples=10)
-
-# %%
-
-# %%
-
-# %%
+fig, ax = plt.subplots()
+axis3dcut(fig, ax, image, None, cuts=(40, 40, 40))
