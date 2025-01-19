@@ -1,6 +1,5 @@
 """Acquisition engine for Cartesian trajectories."""
 
-from typing import Any
 from collections.abc import Sequence
 from copy import deepcopy
 

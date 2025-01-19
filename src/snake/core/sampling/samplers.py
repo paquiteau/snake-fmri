@@ -1,7 +1,6 @@
 """Samplers generate kspace trajectories."""
 
 from __future__ import annotations
-from typing import Literal
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
@@ -32,7 +31,8 @@ class NonCartesianAcquisitionSampler(BaseSampler):
     obs_time_ms: int
         Time spent to acquire a single shot
     in_out: bool
-        If true, the trajectory is acquired with a double join pattern from/to the periphery
+        If true, the trajectory is acquired with a double join pattern from/to
+        the periphery
     ndim: int
         Number of dimensions of the trajectory (2 or 3)
     """
@@ -198,7 +198,8 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
     obs_time_ms: int
         Time spent to acquire a single shot
     in_out: bool
-        If true, the trajectory is acquired with a double join pattern from/to the periphery
+        If true, the trajectory is acquired with a double join pattern from/to
+        the periphery
     """
 
     __sampler_name__ = "load-trajectory"
