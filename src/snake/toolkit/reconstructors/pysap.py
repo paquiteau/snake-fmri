@@ -206,7 +206,7 @@ class SequentialReconstructor(BaseReconstructor):
         """Return a string representation of the reconstructor."""
         return f"{self.__reconstructor_name__}-{self.restart_strategy}"
 
-    def setup(self, sim_conf: SimConfig = None, shape=None) -> None:
+    def setup(self, sim_conf: SimConfig = None, shape: tuple[int] = None) -> None:
         """Set up the reconstructor."""
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.linear import Identity
