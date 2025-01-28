@@ -33,7 +33,7 @@ The phantom object is a static representation of the Phantom, the dynamic inform
 [](#BaseSampler) are objects responsible to parametrize and generate k-space shots for the acquisition. They can be time-varying, or not.
 
 ## Acquisition Engine 
-The [](#BaseEngine) is what really perform the acquisition of the k-space data in SNAKE. Currently SNAKE support two acqusition models: GRE acquisition with or without $T_2^*$ and they optionally can be restricted to 2D imaging. See [](#signal-model) for more details.
+The [](#BaseEngine) is what really perform the acquisition of the k-space data in SNAKE. Currently SNAKE support two acquisition models: GRE acquisition with or without $T_2^*$ and they optionally can be restricted to 2D imaging. See [](#signal-model) for more details.
 
 The base algorithm for the acquisition could be summarized as follows:
 ```python
