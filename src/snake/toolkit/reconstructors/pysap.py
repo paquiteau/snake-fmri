@@ -41,8 +41,7 @@ def _reconstruct_cartesian_frame(
         CartesianFrameDataLoader(filename) as data_loader,
     ):
         mask, kspace = data_loader.get_kspace_frame(idx)
-        sim_conf = data_loader.get_sim_conf()
-        adj_data = ifft(kspace, axis=tuple(range(len(sim_conf.shape), 0, -1)))
+        adj_data = ifft(kspace, axis=tuple(range(len(data_loader.shape), 0, -1)))
         if smaps_props is not None and data_loader.n_coils > 1:
             with array_from_shm(smaps_props) as smaps_info:
                 smaps = smaps_info[0]
@@ -73,7 +72,11 @@ class ZeroFilledReconstructor(BaseReconstructor):
         """Initialize Reconstructor."""
         pass
 
-    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> NDArray:
+    def reconstruct(
+        self,
+        data_loader: MRDLoader,
+        sim_conf: SimConfig = None,
+    ) -> NDArray:
         """Reconstruct data with zero-filled method."""
         with data_loader:
             if isinstance(data_loader, CartesianFrameDataLoader):
@@ -84,7 +87,9 @@ class ZeroFilledReconstructor(BaseReconstructor):
                 raise ValueError("Unknown dataloader")
 
     def _reconstruct_cartesian(
-        self, data_loader: CartesianFrameDataLoader, sim_conf: SimConfig
+        self,
+        data_loader: CartesianFrameDataLoader,
+        sim_conf: SimConfig = None,
     ) -> NDArray:
         smaps = data_loader.get_smaps()
         if smaps is None and data_loader.n_coils > 1:
@@ -126,7 +131,9 @@ class ZeroFilledReconstructor(BaseReconstructor):
         return final_images
 
     def _reconstruct_nufft(
-        self, data_loader: NonCartesianFrameDataLoader, sim_conf: SimConfig
+        self,
+        data_loader: NonCartesianFrameDataLoader,
+        sim_conf: SimConfig = None,
     ) -> NDArray:
         """Reconstruct data with nufft method."""
         from mrinufft import get_operator
@@ -199,7 +206,7 @@ class SequentialReconstructor(BaseReconstructor):
         """Return a string representation of the reconstructor."""
         return f"{self.__reconstructor_name__}-{self.restart_strategy}"
 
-    def setup(self, sim_conf: SimConfig) -> None:
+    def setup(self, sim_conf: SimConfig = None, shape=None) -> None:
         """Set up the reconstructor."""
         from fmri.operators.weighted import AutoWeightedSparseThreshold
         from modopt.opt.linear import Identity
@@ -207,15 +214,22 @@ class SequentialReconstructor(BaseReconstructor):
         from modopt.opt.proximity import SparseThreshold
         from modopt.base.backend import get_backend
 
+        if sim_conf is None and shape is None:
+            raise ValueError("SimConfig or shape must be provided.")
+        elif sim_conf is not None and shape is not None:
+            raise ValueError("SimConfig and shape cannot be provided at the same time.")
+        elif sim_conf is not None:
+            shape = sim_conf.shape
+
         self.space_linear_op = WaveletTransform(
             self.wavelet,
-            shape=sim_conf.shape,
+            shape=shape,
             level=3,
             mode="zero",
             compute_backend=self.compute_backend,
         )
         xp, _ = get_backend(self.compute_backend)
-        _ = self.space_linear_op.op(xp.zeros(sim_conf.shape, dtype=np.complex64))
+        _ = self.space_linear_op.op(xp.zeros(shape, dtype=np.complex64))
 
         if self.threshold == "sure":
             self.space_prox_op = AutoWeightedSparseThreshold(
@@ -230,9 +244,10 @@ class SequentialReconstructor(BaseReconstructor):
                 linear=Identity(), weights=self.threshold
             )
 
-    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> np.ndarray:
+    def reconstruct(self, data_loader: MRDLoader) -> np.ndarray:
         """Reconstruct with Sequential."""
-        self.setup(sim_conf)
+        shape = data_loader.shape
+        self.setup(shape)
         from fmri.operators.gradient import (
             GradAnalysis,
             GradSynthesis,
@@ -287,12 +302,12 @@ class SequentialReconstructor(BaseReconstructor):
         if self.optimizer in ["pogm"]:
             grad_op = GradSynthesis(linear_op=self.space_linear_op, **grad_kwargs)
 
-        x_init = xp.zeros(sim_conf.shape, dtype=np.complex64)
+        x_init = xp.zeros(shape, dtype=np.complex64)
         if (
             isinstance(self.density_compensation, str)
             and "first" in self.density_compensation
         ):
-            density_comp_vector = pipe(traj, sim_conf.shape, self.nufft_backend)
+            density_comp_vector = pipe(traj, shape, self.nufft_backend)
             x_init = fourier_op.adj_op(xp.array(data * density_comp_vector, copy=False))
         else:
             x_init = fourier_op.adj_op(xp.array(data, copy=False))
