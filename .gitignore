@@ -25,3 +25,5 @@ results/
 multirun/
 outputs/
 debug/
+
+docs/auto_*/
