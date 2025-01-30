@@ -209,7 +209,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         `_job_model_simple` methods.
         """
         # Create the base dataset
-        make_base_mrd(filename, sampler, phantom, sim_conf, handlers, smaps, coil_cov)
+        make_base_mrd(filename, sampler, phantom, sim_conf, handlers, smaps, coil_cov, self.model, self.slice_2d)
 
         # Guesstimate the workload
         if worker_chunk_size <= 0:

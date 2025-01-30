@@ -1,0 +1,4 @@
+[console_scripts]
+snake-acq = snake.toolkit.cli.acquisition:acquisition_cli
+snake-main = snake.toolkit.cli.main:main_cli
+snake-rec = snake.toolkit.cli.reconstruction:reconstruction_cli

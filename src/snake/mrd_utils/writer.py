@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
+def get_mrd_header(sim_conf: SimConfig, engine: str, model: str, slice_2d: bool) -> mrd.xsd.ismrmrdHeader:
     """Create a MRD Header for snake-fmri data."""
     H = mrd.xsd.ismrmrdHeader()
     # Experimental conditions
@@ -77,6 +77,13 @@ def get_mrd_header(sim_conf: SimConfig, engine: str) -> mrd.xsd.ismrmrdHeader:
                 ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
                 ("rng_seed", sim_conf.rng_seed),
                 ("max_sim_time", sim_conf.max_sim_time),
+            ]
+        ],
+        userParameterString=[
+            mrd.xsd.userParameterStringType(name=name, value=value)
+            for name, value in [
+                ("engine_model", model),
+                ("slice_2d", str(slice_2d)),
             ]
         ]
     )
@@ -204,6 +211,8 @@ def make_base_mrd(
     handlers: list[AbstractHandler] | HandlerList | None = None,
     smaps: NDArray | None = None,
     coil_cov: NDArray | None = None,
+    model: str = "simple",
+    slice_2d: bool = False,
 ) -> mrd.Dataset:
     """
     Create a base `.mrd` file from the simulation configurations.
@@ -233,7 +242,7 @@ def make_base_mrd(
         pass
     dataset = mrd.Dataset(filename, "dataset", create_if_needed=True)
     dataset.write_xml_header(
-        mrd.xsd.ToXML(get_mrd_header(sim_conf, sampler.__engine__))
+        mrd.xsd.ToXML(get_mrd_header(sim_conf, sampler.__engine__, model, slice_2d))
     )
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)

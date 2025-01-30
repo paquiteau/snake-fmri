@@ -8,6 +8,7 @@ from snake.core.handlers import HandlerList
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
 from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda, make_hydra_cli
+import os
 
 log = logging.getLogger(__name__)
 
@@ -52,19 +53,33 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     if engine_klass.__engine_name__ == "NUFFT":
         kwargs["nufft_backend"] = cfg.engine.nufft_backend
     engine = engine_klass(model=cfg.engine.model, snr=cfg.engine.snr, slice_2d=cfg.engine.slice_2d)  # type: ignore
-
-    engine(
-        cfg.filename,
-        sampler=sampler,
-        phantom=phantom,
-        sim_conf=sim_conf,
-        handlers=handlers,
-        smaps=smaps,
-        coil_cov=None,  # FIXME: Add coil covariance in scenarios
-        worker_chunk_size=cfg.engine.chunk_size,
-        n_workers=cfg.engine.n_jobs,
-        **kwargs,
-    )
+    if os.path.exists(cfg.filename):
+        log.warning(f"File '{cfg.filename}' already exists!")
+        while True:
+            choice = input("Overwrite? (y/n): ").strip().lower()
+            if choice == 'y':
+                log.info("User chose to overwrite.")
+                break
+            elif choice == 'n':
+                log.info("User chose to abort.")
+                log.info("Acquisition file not modified.")
+                overwrite = False
+                break
+            else:
+                log.warning("Invalid input, please enter 'y' or 'n'.")
+    if overwrite:
+        engine(
+            cfg.filename,
+            sampler=sampler,
+            phantom=phantom,
+            sim_conf=sim_conf,
+            handlers=handlers,
+            smaps=smaps,
+            coil_cov=None,  # FIXME: Add coil covariance in scenarios
+            worker_chunk_size=cfg.engine.chunk_size,
+            n_workers=cfg.engine.n_jobs,
+            **kwargs,
+        )
 
     log.info("Acquisition done")
     log.info("Output file is at %s", cfg.filename)
