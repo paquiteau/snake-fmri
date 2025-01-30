@@ -68,5 +68,4 @@ to perform the acquisition SNAKE efficiently use the multiprocessing python modu
 
 :::{warning}
 Currently the SNAKE multiprocessing acquisition and the use of GPU-based NUFFT are incompatible on Windows.
-
 :::

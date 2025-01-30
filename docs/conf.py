@@ -43,6 +43,7 @@ extensions = [
     "myst_sphinx_gallery",
     "myst_nb",
     "scenario",
+    "sphinx_gallery.gen_gallery",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -99,15 +100,15 @@ source_suffix = {
     ".myst": "myst-nb",
 }
 
-# Gallery of examples
-myst_sphinx_gallery_config = GalleryConfig(
-    examples_dirs="../examples",
-    gallery_dirs="auto_examples",
-    root_dir=Path(__file__).parent,
-    notebook_thumbnail_strategy="code",
-)
-
-# A second gallery for the scenarios is built in the extension.
+# The scenario Gallery is built using myst-sphinx-gallery.
+# # Gallery of examples
+# myst_sphinx_gallery_config = GalleryConfig(
+#     examples_dirs="../examples",
+#     gallery_dirs="auto_examples",
+#     root_dir=Path(__file__).parent,
+#     notebook_thumbnail_strategy="code",
+#     thumbnail_strategy="last",
+# )
 
 
 # -- Options for HTML output -------------------------------------------------
@@ -135,3 +136,12 @@ html_theme_options = {
     },
 }
 html_title = "SNAKE-fMRI Documentation"
+
+
+# ----- Sphinx Gallery options ----------------------------------
+#
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+}

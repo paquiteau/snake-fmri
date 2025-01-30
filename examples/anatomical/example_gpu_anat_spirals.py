@@ -84,7 +84,6 @@ if sim_conf.hardware.n_coils > 1:
 # %%
 # The acquisition trajectory looks like this
 traj = sampler.get_next_frame(sim_conf)
-print(traj.shape)
 from mrinufft.trajectories.display import display_3D_trajectory
 
 display_3D_trajectory(traj)
