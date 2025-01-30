@@ -52,7 +52,16 @@ engine:
   nufft_backend: "stacked-gpunufft"
 reconstructors:
   # adjoint:
-  #   nufft_backend: "stacked-gpunufft"/snake-fmri
+  #   nufft_backend: "stacked-gpunufft"
+  #   density_compensation: "pipe"
+  sequential:
+    nufft_backend: "stacked-gpunufft"
+    density_compensation: false
+    restart_strategy: WARM
+    max_iter_per_frame: 50
+    wavelet: "sym4"
+
+
 
 
 

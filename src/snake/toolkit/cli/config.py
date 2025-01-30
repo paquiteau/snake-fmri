@@ -125,5 +125,5 @@ def cleanup_cuda() -> None:
 def make_hydra_cli(fun: callable) -> callable:
     """Create a Hydra CLI for the function."""
     return hydra.main(
-        version_base=None, config_path="../../../cli-conf", config_name="scenario2-2d"
+        version_base=None, config_path="../../../cli-conf", config_name="config"
     )(fun)
