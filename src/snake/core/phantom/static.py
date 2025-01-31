@@ -64,6 +64,10 @@ class Phantom:
         props = np.concatenate((self.props, props), axis=0)
         return Phantom(phantom_name or self.name, masks, labels, props)
 
+    @property
+    def labels_idx(self):
+        return {label: i for i, label in enumerate(self.labels)}
+
     @classmethod
     def from_brainweb(
         cls,
