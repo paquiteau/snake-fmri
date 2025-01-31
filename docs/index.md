@@ -104,3 +104,13 @@ auto_scenarios/index
 auto_api/snake/snake.core.rst
 auto_api/snake/snake.toolkit.rst
 ```
+
+
+```{toctree}
+:hidden:
+:caption: Miscellaneous
+
+misc/contributors
+misc/development
+misc/license
+```
