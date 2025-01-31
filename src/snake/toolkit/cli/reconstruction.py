@@ -57,7 +57,7 @@ def reconstruction(cfg: DictConfig) -> None:
             data_rec_file = Path(f"data_rec_{rec_str}.npy")
             log.info(f"Using {name} reconstructor")
             rec.setup(sim_conf)
-            rec_data = rec.reconstruct(data_loader, sim_conf)
+            rec_data = rec.reconstruct(data_loader, sim_conf, data_loader.slice_2d)
             log.info(f"Reconstruction done with {name}")
             # Save the reconstruction
             np.save(data_rec_file, rec_data)

@@ -22,7 +22,9 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 
-def get_mrd_header(sim_conf: SimConfig, engine: str, model: str, slice_2d: bool) -> mrd.xsd.ismrmrdHeader:
+def get_mrd_header(
+    sim_conf: SimConfig, engine: str, model: str, slice_2d: bool
+) -> mrd.xsd.ismrmrdHeader:
     """Create a MRD Header for snake-fmri data."""
     H = mrd.xsd.ismrmrdHeader()
     # Experimental conditions
@@ -85,7 +87,7 @@ def get_mrd_header(sim_conf: SimConfig, engine: str, model: str, slice_2d: bool)
                 ("engine_model", model),
                 ("slice_2d", str(slice_2d)),
             ]
-        ]
+        ],
     )
 
     return H
