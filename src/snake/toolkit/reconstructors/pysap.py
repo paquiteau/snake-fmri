@@ -73,20 +73,18 @@ class ZeroFilledReconstructor(BaseReconstructor):
         """Initialize Reconstructor."""
         pass
 
-    def reconstruct(
-        self, data_loader: MRDLoader, sim_conf: SimConfig, slice_2d: bool
-    ) -> NDArray:
+    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> NDArray:
         """Reconstruct data with zero-filled method."""
         with data_loader:
             if isinstance(data_loader, CartesianFrameDataLoader):
-                return self._reconstruct_cartesian(data_loader, sim_conf, slice_2d)
+                return self._reconstruct_cartesian(data_loader, sim_conf)
             elif isinstance(data_loader, NonCartesianFrameDataLoader):
-                return self._reconstruct_nufft(data_loader, sim_conf, slice_2d)
+                return self._reconstruct_nufft(data_loader, sim_conf)
             else:
                 raise ValueError("Unknown dataloader")
 
     def _reconstruct_cartesian(
-        self, data_loader: CartesianFrameDataLoader, sim_conf: SimConfig, slice_2d
+        self, data_loader: CartesianFrameDataLoader, sim_conf: SimConfig
     ) -> NDArray:
         smaps = data_loader.get_smaps()
         if smaps is None and data_loader.n_coils > 1:
@@ -127,7 +125,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
         return final_images
 
     def _reconstruct_nufft(
-        self, data_loader: NonCartesianFrameDataLoader, sim_conf: SimConfig, slice_2d
+        self, data_loader: NonCartesianFrameDataLoader, sim_conf: SimConfig
     ) -> NDArray:
         """Reconstruct data with nufft method."""
         from mrinufft import get_operator
@@ -136,7 +134,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
         shape = data_loader.shape
         traj, kspace_data = data_loader.get_kspace_frame(0)
 
-        if slice_2d:
+        if data_loader.slice_2d:
             shape = data_loader.shape[:2]
             traj = traj.reshape(data_loader.n_shots, -1, traj.shape[-1])[0, :, :2]
 
@@ -165,7 +163,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
         for i in tqdm(range(data_loader.n_frames)):
             traj, data = data_loader.get_kspace_frame(i)
-            if slice_2d:
+            if data_loader.slice_2d:
                 nufft_operator.samples = traj.reshape(
                     data_loader.n_shots, -1, traj.shape[-1]
                 )[0, :, :2]
