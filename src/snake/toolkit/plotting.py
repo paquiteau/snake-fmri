@@ -24,21 +24,49 @@ def get_coolgraywarm(thresh: float = 3, max: float = 7) -> matplotlib.colorbar.C
 
 
 # %%
-def get_axis_properties(
+def _get_axis_properties(
     array_bg: NDArray,
     cuts: tuple[int, ...],
     width_inches: float,
     cbar: bool = True,
     arr_pad: int = 4,
+    tight_crop: bool = True,
 ) -> tuple[
     NDArray,
     NDArray,
     tuple[tuple[slice, slice], ...],
     tuple[tuple[Any, Any, Any], ...],
 ]:
-    """Generate mplt toolkit axes dividers."""
+    """Generate mplt toolkit axes dividers for a 3D array.
+
+    Parameters
+    ----------
+    array_bg: 3D array
+        The 3D array to display.
+    cuts: tuple
+        The cuts to performs to create 3 2D array to display.
+    width_inches: float
+        The width of the figure in inches.
+    cbar: bool
+        Display the colorbar.
+    arr_pad: int
+        Padding to add to the bounding box.
+    tight_crop: bool, default True
+        If True, crop the image to their bouding box, to remove empty space.
+
+    Returns
+    -------
+    hdiv: np.ndarray
+        The horizontal division.
+    vdiv: np.ndarray
+        The vertical division.
+    bbox: tuple
+        The bounding box of the 2D arrays cuts.
+    slices: tuple
+        The slices to take from the 3D array.
+    """
     slices = (np.s_[cuts[0], :, :], np.s_[:, cuts[1], :], np.s_[:, :, cuts[2]])
-    bbox: list[tuple] = [(None, None), (None, None), (None, None)]
+    bbox: list[tuple] = [(None, None) for _ in range(3)]
     for i in range(3):
         cut = array_bg[slices[i]]
         if cut.dtype != "bool":
@@ -49,12 +77,14 @@ def get_axis_properties(
         cols = np.any(mask, axis=0)
         rmin, rmax = np.where(rows)[0][[0, -1]]
         cmin, cmax = np.where(cols)[0][[0, -1]]
-
-        rmin = max(0, rmin - arr_pad)
-        rmax = min(rmax + arr_pad, mask.shape[0])
-        cmin = max(0, cmin - arr_pad)
-        cmax = min(cmax + arr_pad, mask.shape[1])
-        bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
+        if tight_crop:
+            rmin = max(0, rmin - arr_pad)
+            rmax = min(rmax + arr_pad, mask.shape[0])
+            cmin = max(0, cmin - arr_pad)
+            cmax = min(cmax + arr_pad, mask.shape[1])
+            bbox[i] = (slice(rmin, rmax), slice(cmin, cmax))
+        else:
+            bbox[i] = (slice(0, cut.shape[0]), slice(0, cut.shape[1]))
     hdiv, vdiv = _get_hdiv_vdiv(array_bg, bbox, slices, width_inches, cbar=cbar)
 
     return hdiv, vdiv, tuple(bbox), slices
@@ -129,7 +159,11 @@ def plot_frames_activ(
     z_score: 3D array
     roi: 3D array
     ax: plt.Axes
-
+    slices: tuple
+    bbox: tuple
+    z_thresh: float
+    z_max: float
+    bg_cmap: str
     """
     bg = background[slices][bbox].squeeze()
     im = ax.imshow(
@@ -164,8 +198,6 @@ def plot_frames_activ(
 
 
 def axis3dcut(
-    fig: plt.Figure,
-    ax: plt.Axes,
     background: NDArray,
     z_score: NDArray,
     gt_roi: NDArray | None = None,
@@ -175,9 +207,56 @@ def axis3dcut(
     bbox: tuple[tuple[Any, Any], ...] | None = None,
     slices: tuple[tuple[Any, Any, Any], ...] | None = None,
     bg_cmap: str = "gray",
+    ax: plt.Axes | None = None,
     vmin_vmax: tuple[float] = None,
+    z_thresh: float = 3,
+    z_max: float = 11,
+    tight_crop: bool = True,
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
-    """Display a 3D image with zscore and ground truth ROI."""
+    """Display a 3D image with zscore and ground truth ROI.
+
+    This function is used to display a 3D brain image with optional overlay for the z-score
+    and the ground truth ROI outline.
+
+    Parameters
+    ----------
+    background: 3D array
+        The background image to display.
+    z_score: 3D array, optional
+        The z-score activation map to display, thresholded at z_thresh.
+    gt_roi: 3D array, optional
+        The ground truth ROI to display. If None, no ROI is displayed.
+    width_inches: float, optional
+        The width of the figure in inches.
+    cbar: bool, optional
+        Display the colorbar.
+    cuts: tuple, optional
+        The cuts to performs to create 3 2D array to display.
+        If None, the cuts are computed, such that the ROI is maximally exposed.
+    bbox: tuple, optional
+        The bounding box to display.
+    slices: tuple, optional
+        The slices to display.
+    bg_cmap: str, optional
+        The colormap for the background image.
+    ax: plt.Axes, optional
+        The axes to use to display the image.
+    vmin_vmax: tuple, optional
+        The vmin and vmax to use for the background image.
+    z_thresh: float, optional
+        The threshold to use for the z-score.
+    z_max: float, optional
+        The maximum value for the z-score.
+    tight_crop: bool, optional
+        If True, crop the image to their bouding box, to remove empty space.
+
+    Returns
+    -------
+    fig: plt.Figure
+        The figure.
+    ax: plt.Axes
+        The axes.
+    """
     #    ax.axis("off")
     if cuts is None and gt_roi is not None:
         cuts_ = get_mask_cuts_mask(gt_roi)
@@ -192,8 +271,12 @@ def axis3dcut(
         gt_roi_ = None
 
     if bbox is None and slices is None:
-        hdiv, vdiv, bbox_, slices_ = get_axis_properties(
-            background, cuts_, width_inches, cbar=cbar
+        hdiv, vdiv, bbox_, slices_ = _get_axis_properties(
+            background,
+            cuts_,
+            width_inches,
+            cbar=cbar,
+            tight_crop=tight_crop,
         )
     elif bbox is not None and slices is not None:
         hdiv, vdiv = _get_hdiv_vdiv(background, bbox, slices, width_inches, cbar=cbar)
@@ -201,6 +284,13 @@ def axis3dcut(
         slices_ = slices
     else:
         raise ValueError("Missing either bbox or slices.")
+
+    if ax is not None:
+        fig = ax.get_figure()
+    else:
+        # TODO Use the correct figure size
+        fig, ax = plt.subplots(figsize=(width_inches, width_inches))
+
     divider = make_axes_locatable(ax)
     divider.set_horizontal([Size.Fixed(s) for s in hdiv])
     divider.set_vertical([Size.Fixed(s) for s in vdiv])
