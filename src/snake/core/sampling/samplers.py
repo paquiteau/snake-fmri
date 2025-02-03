@@ -15,6 +15,7 @@ from .factories import (
     stacked_epi_factory,
     evi_factory,
     rotate_trajectory,
+    rotate_trajectory,
 )
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
