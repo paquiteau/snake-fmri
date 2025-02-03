@@ -203,7 +203,7 @@ def axis3dcut(
     gt_roi: NDArray | None = None,
     width_inches: float = 7,
     cbar: bool = True,
-    cuts: tuple[int, ...] | None = None,
+    cuts: tuple[int, ...] | tuple[float, ...] | None = None,
     bbox: tuple[tuple[Any, Any], ...] | None = None,
     slices: tuple[tuple[Any, Any, Any], ...] | None = None,
     bg_cmap: str = "gray",
@@ -270,6 +270,9 @@ def axis3dcut(
     elif cuts is not None and gt_roi is None:
         cuts_ = cuts
         gt_roi_ = None
+
+    if all(isinstance(c, float) and 0 < c < 1 for c in cuts_):
+        cuts_ = tuple(round(c * background.shape[i]) for i, c in enumerate(cuts_))
 
     if bbox is None and slices is None:
         hdiv, vdiv, bbox_, slices_ = _get_axis_properties(
