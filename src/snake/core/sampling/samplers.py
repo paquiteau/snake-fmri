@@ -19,7 +19,7 @@ from .factories import (
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
 from mrinufft.io import read_trajectory
-
+from collections.abc import Generator
 
 class NonCartesianAcquisitionSampler(BaseSampler):
     """
@@ -222,6 +222,7 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
 class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     """
     Spiral 2D Acquisition Handler to generate k-space data.
+
     Parameters
     ----------
     acsz: float | int
@@ -241,6 +242,7 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     **kwargs:
         Extra arguments (smaps, n_jobs, backend etc...)
     """
+
     __sampler_name__ = "stack-of-spiral"
     acsz: float | int
     accelz: int
@@ -254,22 +256,32 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     rotate_frame_angle: AngleRotation = AngleRotation.ZERO
     obs_time_ms: int = 30
     n_shot_slices: int = 1
-    
-    def fix_angle_rotation(self, frame, angle):
-        for traj in frame:
-            for rotated_traj in rotate_trajectory((traj,), angle): 
-                yield rotated_traj
+    frame_index: int = 0
 
-    def get_next_frame(self, sim_conf):
+    def fix_angle_rotation(
+            self, 
+            frame: Generator[np.ndarray, None, None],
+            angle: AngleRotation | float = 0
+            ) -> Generator[np.ndarray, None, None]: 
+        """Rotate the trajectory by a given angle."""
+        for traj in frame:
+            yield from rotate_trajectory((traj,), angle)
+
+    def get_next_frame(self, sim_conf: SimConfig) -> NDArray: 
+        """Generate the next rotated frame."""
         base_frame = self._single_frame(sim_conf)
-        self._frame_index = 0
         if self.constant or self.rotate_frame_angle == 0:
             return base_frame
         else:
-            self._frame_index += 1
+            self.frame_index += 1
+            print(self.frame_index)
             base_frame_gen = (traj[None,...] for traj in base_frame)
-            rotated_frame = self.fix_angle_rotation(base_frame_gen, self.rotate_frame_angle*self._frame_index)
-            return np.concatenate([traj.astype(np.float32) for traj in rotated_frame], axis=0)
+            rotated_frame = self.fix_angle_rotation(
+                base_frame_gen, self.rotate_frame_angle*self.frame_index
+                )
+            return np.concatenate(
+                [traj.astype(np.float32) for traj in rotated_frame], axis=0
+                )
         
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
