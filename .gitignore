@@ -9,6 +9,9 @@ todo*
 TODO*
 
 
+*.py[cod]
+__pycache__
+
 .python-version
 docs/generated/*
 docs_build
@@ -26,3 +29,27 @@ results/
 multirun/
 outputs/
 debug/
+docs/auto_*/
+docs/sg_execution_times.rst
+
+
+
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+.ipynb_checkpoints/*
+
+.python-version
+.venv/
+.env/
+env/
+venv/

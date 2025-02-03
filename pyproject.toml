@@ -55,7 +55,7 @@ dependencies = [ # Optional
 [project.optional-dependencies] # Optional
 dev = ["black", "ruff", "isort"]
 test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist"]
-doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery","sphinx-book-theme","matplotlib", "pysap-fmri", "ipywidgets"]
+doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery", "myst-sphinx-gallery", "sphinx-book-theme","matplotlib", "pysap-fmri", "ipywidgets", "myst-nb", "sphinx-autodoc2", "sphinx-design", "sphinx-tippy", "linkify-it-py"]
 toolkit = [ "matplotlib", "pysap-fmri"]
 # List URLs that are relevant to your project
 # This field corresponds to the "Project-URL" and "Home-Page" metadata fields:

@@ -1,4 +1,8 @@
-# This files contains the configuration to reproduce the scenario 1 of the Snkf paper.
+# ---
+# title: 3mm EVI fMRI
+# authors: Pierre-Antoine Comby, Alexandre Vignaud, Philippe Ciuciu
+# description: This is the configuration used for the scenario 1 of the SNAKE Paper, using EVI sampling pattern
+# ---
 
 defaults:
   - base_config

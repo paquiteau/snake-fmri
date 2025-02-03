@@ -13,6 +13,8 @@ alternative is to use the CLI ``snake-main``
 # %%
 
 # Imports
+import matplotlib.pyplot as plt
+
 from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
 from snake.core.smaps import get_smaps
@@ -32,14 +34,14 @@ try:
     if not cp.cupy.cuda.runtime.getDeviceCount():
         raise ValueError("No CUDA Device found")
 
-    get_operator("stacked-gpunufft")
+    get_operator("gpunufft")
 except Exception:
     try:
-        get_operator("stacked-finufft")
+        get_operator("finufft")
     except ValueError as e:
         raise ValueError("No NUFFT backend available") from e
 
-    NUFFT_BACKEND = "stacked-finufft"
+    NUFFT_BACKEND = "finufft"
     COMPUTE_BACKEND = "numpy"
 
 print(
@@ -60,6 +62,9 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 
 
 # %%
+phantom.masks.shape
+
+# %%
 # Setting up Acquisition Pattern and Initializing Result file.
 # ------------------------------------------------------------
 
@@ -68,7 +73,7 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space, with an acceleration factor AF=4 on the z-axis.
 
 sampler = StackOfSpiralSampler(
-    accelz=2,
+    accelz=1,
     acsz=0.1,
     orderz="top-down",
     nb_revolutions=12,
@@ -84,7 +89,6 @@ if sim_conf.hardware.n_coils > 1:
 # %%
 # The acquisition trajectory looks like this
 traj = sampler.get_next_frame(sim_conf)
-print(traj.shape)
 from mrinufft.trajectories.display import display_3D_trajectory
 
 display_3D_trajectory(traj)
@@ -126,23 +130,23 @@ noise_handler = NoiseHandler(variance=0.01)
 
 from snake.core.engine import NufftAcquisitionEngine
 
-engine = NufftAcquisitionEngine(model="simple", snr=30000)
+# engine = NufftAcquisitionEngine(model="simple", snr=30000, slice_2d=True)
 
-engine(
-    "example_spiral.mrd",
-    sampler,
-    phantom,
-    sim_conf,
-    handlers=[noise_handler],
-    smaps=smaps,
-    worker_chunk_size=60,
-    n_workers=1,
-    nufft_backend=NUFFT_BACKEND,
-)
-engine_t2s = NufftAcquisitionEngine(model="T2s", snr=30000)
+# engine(
+#     "example_spiral_2D.mrd",
+#     sampler,
+#     phantom,
+#     sim_conf,
+#     handlers=[noise_handler],
+#     smaps=smaps,
+#     worker_chunk_size=60,
+#     n_workers=1,
+#     nufft_backend=NUFFT_BACKEND,
+# )
+engine_t2s = NufftAcquisitionEngine(model="T2s", snr=30000, slice_2d=True)
 
 engine_t2s(
-    "example_spiral_t2s.mrd",
+    "example_spiral_t2s_2D.mrd",
     sampler,
     phantom,
     sim_conf,
@@ -153,81 +157,27 @@ engine_t2s(
 )
 
 # %%
-# Simple reconstruction
-# ---------------------
-#
-# Getting k-space data is nice, but
-# SNAKE also provides rudimentary reconstruction tools to get images (and check
-# that we didn't mess up the acquisition process).
-# This is available in the companion package ``snake.toolkit``.
-#
-# Loading the ``.mrd`` file to retrieve all information can be done using the
-# ``ismrmd`` python package, but SNAKE provides convenient dataloaders, which are
-# more efficient, and take cares of managing underlying files access. As we are
-# showcasing the API, we will do things manually here, and use only core SNAKE.
 
 from snake.mrd_utils import NonCartesianFrameDataLoader
-from snake.toolkit.reconstructors import (
-    SequentialReconstructor,
-    ZeroFilledReconstructor,
-)
-
-zer_rec = ZeroFilledReconstructor(
-    nufft_backend=NUFFT_BACKEND, density_compensation=None
-)
-seq_rec = SequentialReconstructor(
-    nufft_backend=NUFFT_BACKEND,
-    density_compensation=None,
-    max_iter_per_frame=30,
-    threshold=2e-6,
-    optimizer="fista",
-    compute_backend=COMPUTE_BACKEND,
-)
-with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
-    adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
-    cs_spiral = abs(seq_rec.reconstruct(data_loader, sim_conf)[0])
-with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
-    adjoint_spiral_T2s = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
-    cs_spiral_T2s = abs(seq_rec.reconstruct(data_loader, sim_conf)[0])
-
-
-# %%
-# Plotting the result
-# -------------------
-
-import matplotlib.pyplot as plt
 from snake.toolkit.plotting import axis3dcut
 
-fig, axs = plt.subplots(
-    2,
-    3,
-    figsize=(19, 10),
-    gridspec_kw=dict(wspace=0, hspace=0),
+with NonCartesianFrameDataLoader("example_spiral_t2s_2D.mrd") as data_loader:
+    traj, kspace_data = data_loader.get_kspace_frame(0, shot_dim=True)
+
+# %%
+kspace_data = kspace_data.squeeze()
+
+# %%
+shot = traj[18].copy()
+print(shot)
+nufft = get_operator(NUFFT_BACKEND)(
+    samples=shot[:, :2],
+    shape=data_loader.shape[:-1],
+    density=None,
+    n_batchs=len(kspace_data),
 )
+nufft.samples = shot[:, :2]
+image = nufft.adj_op(kspace_data)
 
-
-for ax, img, title in zip(
-    axs[0],
-    (adjoint_spiral, adjoint_spiral_T2s, abs(adjoint_spiral - adjoint_spiral_T2s)),
-    ("simple", "T2s", "diff"),
-):
-    axis3dcut(fig, ax, img.T, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4)
-    ax.set_title(title)
-
-
-for ax, img, title in zip(
-    axs[1],
-    (cs_spiral, cs_spiral_T2s, abs(cs_spiral - cs_spiral_T2s)),
-    ("simple", "T2s", "diff"),
-):
-    axis3dcut(fig, ax, img.T, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4)
-    ax.set_title(title + " CS")
-
-
-plt.show()
-
-# %%
-
-# %%
-
-# %%
+fig, ax = plt.subplots()
+axis3dcut(fig, ax, image, None, cuts=(40, 40, 40))
