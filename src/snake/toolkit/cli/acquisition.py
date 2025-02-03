@@ -51,7 +51,9 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     kwargs = {}
     if engine_klass.__engine_name__ == "NUFFT":
         kwargs["nufft_backend"] = cfg.engine.nufft_backend
-    engine = engine_klass(model=cfg.engine.model, snr=cfg.engine.snr, slice_2d=cfg.engine.slice_2d)  # type: ignore
+    engine = engine_klass(
+        model=cfg.engine.model, snr=cfg.engine.snr, slice_2d=cfg.engine.slice_2d
+    )  # type: ignore
 
     engine(
         cfg.filename,

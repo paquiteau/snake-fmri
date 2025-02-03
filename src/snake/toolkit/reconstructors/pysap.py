@@ -114,7 +114,6 @@ class ZeroFilledReconstructor(BaseReconstructor):
                 ): idx
                 for idx in range(data_loader.n_frames)
             }
-
             for future in as_completed(futures):
                 future.result()
                 pbar.update(1)
@@ -132,10 +131,15 @@ class ZeroFilledReconstructor(BaseReconstructor):
         from mrinufft import get_operator
 
         smaps = data_loader.get_smaps()
-
+        shape = data_loader.shape
         traj, kspace_data = data_loader.get_kspace_frame(0)
+
+        if data_loader.slice_2d:
+            shape = data_loader.shape[:2]
+            traj = traj.reshape(data_loader.n_shots, -1, traj.shape[-1])[0, :, :2]
+
         kwargs = dict(
-            shape=data_loader.shape,
+            shape=shape,
             n_coils=data_loader.n_coils,
             smaps=smaps,
         )
@@ -146,6 +150,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
             kwargs["density"] = self.density_compensation
         if "stacked" in self.nufft_backend:
             kwargs["z_index"] = "auto"
+
         nufft_operator = get_operator(
             self.nufft_backend,
             samples=traj,
@@ -158,8 +163,16 @@ class ZeroFilledReconstructor(BaseReconstructor):
 
         for i in tqdm(range(data_loader.n_frames)):
             traj, data = data_loader.get_kspace_frame(i)
-            nufft_operator.samples = traj
-            final_images[i] = abs(nufft_operator.adj_op(data))
+            if data_loader.slice_2d:
+                nufft_operator.samples = traj.reshape(
+                    data_loader.n_shots, -1, traj.shape[-1]
+                )[0, :, :2]
+                data = np.reshape(data, (data.shape[0], data_loader.n_shots, -1))
+                for j in range(data.shape[1]):
+                    final_images[i, :, :, j] = abs(nufft_operator.adj_op(data[:, j]))
+            else:
+                nufft_operator.samples = traj
+                final_images[i] = abs(nufft_operator.adj_op(data))
         return final_images
 
 

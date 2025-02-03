@@ -28,7 +28,6 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
         '<caption style="border:1px solid lightgray;">'
         f"<strong>{class_name}</strong></caption>"
     ]
-    from typing import get_type_hints
     from dataclasses import fields
 
     resolved_hints = obj.__annotations__
