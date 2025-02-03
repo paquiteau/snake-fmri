@@ -29,7 +29,7 @@ multirun/
 outputs/
 debug/
 docs/auto_*/
-
+docs/sg_execution_times.rst
 
 
 
