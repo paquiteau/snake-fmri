@@ -14,8 +14,7 @@ from .factories import (
     stack_spiral_factory,
     stacked_epi_factory,
     evi_factory,
-    rotate_trajectory,
-    rotate_trajectory,
+    rotate_trajectory
 )
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
@@ -244,7 +243,7 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
         Extra arguments (smaps, n_jobs, backend etc...)
     """
 
-    __sampler_name__ = "stack-of-spiral"
+    __sampler_name__ = "rotated-stack-of-spiral"
     acsz: float | int
     accelz: int
     orderz: VDSorder = VDSorder.TOP_DOWN
@@ -254,7 +253,7 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     constant: bool = False
     in_out: bool = True
     rotate_angle: AngleRotation = AngleRotation.ZERO
-    rotate_frame_angle: AngleRotation = AngleRotation.ZERO
+    rotate_frame_angle: AngleRotation | int = 0
     obs_time_ms: int = 30
     n_shot_slices: int = 1
     frame_index: int = 0
@@ -266,7 +265,8 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
             ) -> Generator[np.ndarray, None, None]: 
         """Rotate the trajectory by a given angle."""
         for traj in frame:
-            yield from rotate_trajectory((traj,), angle)
+            yield from rotate_trajectory((x for x in [traj]), angle)
+        
 
     def get_next_frame(self, sim_conf: SimConfig) -> NDArray: 
         """Generate the next rotated frame."""
@@ -275,10 +275,10 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
             return base_frame
         else:
             self.frame_index += 1
-            print(self.frame_index)
+            rotate_frame_angle = np.pi*(self.rotate_frame_angle/180)
             base_frame_gen = (traj[None,...] for traj in base_frame)
             rotated_frame = self.fix_angle_rotation(
-                base_frame_gen, self.rotate_frame_angle*self.frame_index
+                base_frame_gen, float(rotate_frame_angle*self.frame_index)
                 )
             return np.concatenate(
                 [traj.astype(np.float32) for traj in rotated_frame], axis=0
