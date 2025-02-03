@@ -14,12 +14,13 @@ from .factories import (
     stack_spiral_factory,
     stacked_epi_factory,
     evi_factory,
-    rotate_trajectory
+    rotate_trajectory,
 )
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
 from mrinufft.io import read_trajectory
 from collections.abc import Generator
+
 
 class NonCartesianAcquisitionSampler(BaseSampler):
     """
@@ -219,6 +220,7 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
         data = np.maximum(data, -0.5)
         return data
 
+
 class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     """
     Spiral 2D Acquisition Handler to generate k-space data.
@@ -259,31 +261,28 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
     frame_index: int = 0
 
     def fix_angle_rotation(
-            self, 
-            frame: Generator[np.ndarray, None, None],
-            angle: AngleRotation | float = 0
-            ) -> Generator[np.ndarray, None, None]: 
+        self, frame: Generator[np.ndarray, None, None], angle: AngleRotation | float = 0
+    ) -> Generator[np.ndarray, None, None]:
         """Rotate the trajectory by a given angle."""
         for traj in frame:
             yield from rotate_trajectory((x for x in [traj]), angle)
-        
 
-    def get_next_frame(self, sim_conf: SimConfig) -> NDArray: 
+    def get_next_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the next rotated frame."""
         base_frame = self._single_frame(sim_conf)
         if self.constant or self.rotate_frame_angle == 0:
             return base_frame
         else:
             self.frame_index += 1
-            rotate_frame_angle = np.pi*(self.rotate_frame_angle/180)
-            base_frame_gen = (traj[None,...] for traj in base_frame)
+            rotate_frame_angle = np.pi * (self.rotate_frame_angle / 180)
+            base_frame_gen = (traj[None, ...] for traj in base_frame)
             rotated_frame = self.fix_angle_rotation(
-                base_frame_gen, float(rotate_frame_angle*self.frame_index)
-                )
+                base_frame_gen, float(rotate_frame_angle * self.frame_index)
+            )
             return np.concatenate(
                 [traj.astype(np.float32) for traj in rotated_frame], axis=0
-                )
-        
+            )
+
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the sampling pattern."""
         n_samples = int(self.obs_time_ms / sim_conf.hardware.dwell_time_ms)
@@ -302,7 +301,8 @@ class RotatedStackOfSpiralSampler(NonCartesianAcquisitionSampler):
             rng=sim_conf.rng,
         )
         return single_frame
-    
+
+
 class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
     """
     Spiral 2D Acquisition Handler to generate k-space data.
