@@ -215,8 +215,8 @@ def axis3dcut(
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI.
 
-    This function is used to display a 3D brain image with optional overlay for the z-score
-    and the ground truth ROI outline.
+    This function is used to display a 3D brain image with optional overlay for
+    the z-score and the ground truth ROI outline.
 
     Parameters
     ----------
@@ -256,6 +256,7 @@ def axis3dcut(
         The figure.
     ax: plt.Axes
         The axes.
+
     """
     #    ax.axis("off")
     if cuts is None and gt_roi is not None:

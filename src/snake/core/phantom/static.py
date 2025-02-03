@@ -65,7 +65,8 @@ class Phantom:
         return Phantom(phantom_name or self.name, masks, labels, props)
 
     @property
-    def labels_idx(self):
+    def labels_idx(self) -> dict[str, int]:
+        """Get the index of the labels."""
         return {label: i for i, label in enumerate(self.labels)}
 
     @classmethod
