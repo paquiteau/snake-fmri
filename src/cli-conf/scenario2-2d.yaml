@@ -5,7 +5,7 @@ defaults:
   - handlers:
     - activation-block
   - sampler:
-    - stack-of-spiral
+    - rotated-stack-of-spiral
   - reconstructors:
       - adjoint
       #- sequential
@@ -35,6 +35,7 @@ handlers:
     block_on: 20 # seconds
     block_off: 20 #seconds
     duration: 360 # seconds
+    delta_r2s: 1000 # millisecond^-1
 
 sampler:
   stack-of-spiral:
@@ -43,6 +44,13 @@ sampler:
     nb_revolutions: 10
     constant: true
     spiral_name: "galilean"
+  rotated-stack-of-spiral:
+    acsz: 1
+    accelz: 1
+    nb_revolutions: 10
+    constant: false
+    spiral_name: "galilean"
+    rotate_frame_angle: 0
 
 engine:
   n_jobs: 1
