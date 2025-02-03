@@ -14,10 +14,12 @@ from .factories import (
     stack_spiral_factory,
     stacked_epi_factory,
     evi_factory,
+    rotate_trajectory,
 )
 from snake.mrd_utils.utils import ACQ
 from snake._meta import batched, EnvConfig
 from mrinufft.io import read_trajectory
+from collections.abc import Generator
 
 
 class NonCartesianAcquisitionSampler(BaseSampler):
@@ -274,6 +276,48 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
             n_shot_slices=self.n_shot_slices,
             rng=sim_conf.rng,
         )
+
+
+class RotatedStackOfSpiralSampler(StackOfSpiralSampler):
+    """
+    Spiral 2D Acquisition Handler to generate k-space data.
+
+    Parameters
+    ----------
+    rotate_frame_angle: AngleRotation | int
+        Angle of rotation of the frame.
+    frame_index: int
+        Index of the frame.
+    **kwargs:
+        Extra arguments (smaps, n_jobs, backend etc...)
+    """
+
+    __sampler_name__ = "rotated-stack-of-spiral"
+    rotate_frame_angle: AngleRotation | int = 0
+    frame_index: int = 0
+
+    def fix_angle_rotation(
+        self, frame: Generator[np.ndarray, None, None], angle: AngleRotation | float = 0
+    ) -> Generator[np.ndarray, None, None]:
+        """Rotate the trajectory by a given angle."""
+        for traj in frame:
+            yield from rotate_trajectory((x for x in [traj]), angle)
+
+    def get_next_frame(self, sim_conf: SimConfig) -> NDArray:
+        """Generate the next rotated frame."""
+        base_frame = self._single_frame(sim_conf)
+        if self.constant or self.rotate_frame_angle == 0:
+            return base_frame
+        else:
+            self.frame_index += 1
+            rotate_frame_angle = np.pi * (self.rotate_frame_angle / 180)
+            base_frame_gen = (traj[None, ...] for traj in base_frame)
+            rotated_frame = self.fix_angle_rotation(
+                base_frame_gen, float(rotate_frame_angle * self.frame_index)
+            )
+            return np.concatenate(
+                [traj.astype(np.float32) for traj in rotated_frame], axis=0
+            )
 
 
 class EPI3dAcquisitionSampler(BaseSampler):
