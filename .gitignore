@@ -20,7 +20,8 @@ docs_build
 .mypy_cache/
 .ipynb_checkpoints/
 .ropeproject/
-
+__pycache__/
+*.egg-info/
 _version.py
 
 *.mrd

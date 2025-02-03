@@ -211,6 +211,16 @@ class MRDLoader(LogMixin):
         """
         return self.header.encoding[0].encodingLimits.kspace_encoding_step_1.maximum
 
+    @property
+    def engine_model(self) -> str:
+        """Get the engine model."""
+        return self.header.userParameters.userParameterString[0].value
+
+    @property
+    def slice_2d(self) -> bool:
+        """Is the acquisition run on 2D slices."""
+        return bool(self.header.userParameters.userParameterString[1].value)
+
     #############
     # Get data  #
     #############
