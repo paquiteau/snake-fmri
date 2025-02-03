@@ -52,7 +52,7 @@ def _get_axis_properties(
     arr_pad: int
         Padding to add to the bounding box.
     tight_crop: bool, default True
-        If True, crop the image to their bouding box, to remove empty space.
+        If True, crop the image to their bounding box, to remove empty space.
 
     Returns
     -------
@@ -248,7 +248,7 @@ def axis3dcut(
     z_max: float, optional
         The maximum value for the z-score.
     tight_crop: bool, optional
-        If True, crop the image to their bouding box, to remove empty space.
+        If True, crop the image to their bounding box, to remove empty space.
 
     Returns
     -------
