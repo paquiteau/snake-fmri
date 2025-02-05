@@ -137,7 +137,7 @@ from snake.toolkit.plotting import axis3dcut
 
 fig, ax = plt.subplots()
 
-axis3dcut(fig, ax, image_data.squeeze().T, None, None, cbar=False, cuts=(40, 60, 40))
+axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(40, 60, 40), ax=ax)
 plt.show()
 
 # %%

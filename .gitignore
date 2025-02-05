@@ -25,6 +25,7 @@ __pycache__/
 _version.py
 
 *.mrd
+**/*.mrd
 results/
 multirun/
 outputs/
@@ -33,7 +34,7 @@ docs/auto_*/
 docs/sg_execution_times.rst
 
 
-
+jupyter_execute/
 htmlcov/
 .tox/
 .nox/

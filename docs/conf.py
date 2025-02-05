@@ -43,6 +43,7 @@ extensions = [
     "myst_sphinx_gallery",
     "myst_nb",
     "scenario",
+    "colab_extension",
     "sphinx_gallery.gen_gallery",
 ]
 
@@ -52,8 +53,12 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
-
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "auto_examples/anatomical/*.ipynb",
+]
 
 autodoc2_packages = ["../src/snake/"]
 autodoc2_output_dir = "auto_api"
@@ -74,6 +79,13 @@ intersphinx_mapping = {
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
 
+colab_notebook = {
+    "dependencies": ["snake-fmri", "mri-nufft[finufft,cufinufft]"],
+    "branch": "gh-pages",
+    "path": "examples",
+    "base_colab_url": "https://colab.research.google.com",
+    "repo": "https://github.com/paquiteau/snake-fmri",
+}
 
 # -- MyST configuration ---------------------------------------------------
 #
@@ -144,4 +156,5 @@ html_title = "SNAKE-fMRI Documentation"
 sphinx_gallery_conf = {
     "examples_dirs": "../examples",  # path to your example scripts
     "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "filename_pattern": "/example",
 }

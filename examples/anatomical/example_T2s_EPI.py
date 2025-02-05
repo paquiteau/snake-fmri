@@ -152,7 +152,7 @@ for ax, img, title in zip(
     (image_simple, image_T2s, abs(image_simple - image_T2s)),
     ("simple", "T2s", "diff"),
 ):
-    axis3dcut(fig, ax, img, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4)
+    axis3dcut(img, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4, ax=ax)
     ax.set_title(title)
 
 plt.show()

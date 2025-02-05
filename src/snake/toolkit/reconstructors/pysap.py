@@ -260,7 +260,7 @@ class SequentialReconstructor(BaseReconstructor):
     def reconstruct(self, data_loader: MRDLoader) -> np.ndarray:
         """Reconstruct with Sequential."""
         shape = data_loader.shape
-        self.setup(shape)
+        self.setup(shape=shape)
         from fmri.operators.gradient import (
             GradAnalysis,
             GradSynthesis,

@@ -219,7 +219,7 @@ class MRDLoader(LogMixin):
     @property
     def slice_2d(self) -> bool:
         """Is the acquisition run on 2D slices."""
-        return bool(self.header.userParameters.userParameterString[1].value)
+        return self.header.userParameters.userParameterString[1].value == "True"
 
     #############
     # Get data  #
