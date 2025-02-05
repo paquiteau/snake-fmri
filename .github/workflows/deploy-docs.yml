@@ -33,8 +33,9 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install finufft ipywidgets
+        pip install mri-nufft[finufft] ipywidgets
         pip install -e .[doc]
+        pip install git+https://github.com/mind-inria/mri-nufft
 
     # Build the book
     - name: Build the book
