@@ -33,7 +33,7 @@ from snake.toolkit.plotting import axis3dcut
 import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots()
-axis3dcut(fig, ax, contrast_at_TE.T, None, None, cuts=(60, 60, 60), width_inches=5)
+axis3dcut(contrast_at_TE.T, None, None, cuts=(60, 60, 60), ax=ax, width_inches=5)
 fig
 
 from ipywidgets import interact

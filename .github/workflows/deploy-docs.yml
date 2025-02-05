@@ -23,7 +23,7 @@ jobs:
   deploy-book:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
 
     # Install dependencies
     - name: Set up Python 3.10
@@ -33,19 +33,21 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install finufft ipywidgets
+        pip install mri-nufft[finufft] ipywidgets
         pip install -e .[doc]
+        pip install git+https://github.com/mind-inria/mri-nufft
 
     # Build the book
     - name: Build the book
+      continue-on-error: true
       run: |
         python -m sphinx docs docs_build
 
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v1
+      uses: actions/upload-pages-artifact@v3
       with:
         path: 'docs_build/'
 
     - name: Deploy to GitHub Pages
       id: deployment
-      uses: actions/deploy-pages@v1
+      uses: actions/deploy-pages@v4

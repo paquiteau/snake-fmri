@@ -14,9 +14,12 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 #
 
 import os
+from pathlib import Path
 import sys
+from myst_sphinx_gallery import GalleryConfig, generate_gallery
 
 sys.path.insert(0, os.path.abspath("../.."))  # Source code dir relative to this file
+sys.path.insert(1, os.path.abspath("_ext/"))  # load custom extensions
 
 # -- Project information -----------------------------------------------------
 
@@ -31,18 +34,17 @@ author = "SNAKE-fMRI Contributors"
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "sphinx_copybutton",
-    "sphinx.ext.duration",
-    "sphinx.ext.doctest",
-    "sphinx.ext.autodoc",
-    "sphinx.ext.autosummary",
-    "sphinx.ext.doctest",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
-    "sphinx.ext.napoleon",
+    "sphinx_design",
+    "sphinx_tippy",
+    "sphinx_copybutton",
+    "autodoc2",
+    "myst_sphinx_gallery",
+    "myst_nb",
+    "scenario",
+    "colab_extension",
     "sphinx_gallery.gen_gallery",
-    "myst_parser",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -51,37 +53,23 @@ templates_path = ["_templates"]
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = [
+    "_build",
+    "Thumbs.db",
+    ".DS_Store",
+    "auto_examples/anatomical/*.ipynb",
+]
 
-
-# generate autosummary even if no references
-autosummary_generate = True
-# autosummary_imported_members = True
-autodoc_inherit_docstrings = True
-autodoc_member_order = "bysource"
-autodoc_typehints = "description"
-
-napoleon_include_private_with_doc = True
-napolon_numpy_docstring = True
-napoleon_use_admonition_for_references = True
-
-
+autodoc2_packages = ["../src/snake/"]
+autodoc2_output_dir = "auto_api"
+autodoc2_docstring_parser_regexes = [
+    (
+        ".*",
+        "numpy_docstring",
+    ),
+]
 pygments_style = "sphinx"
 highlight_language = "python"
-
-# -- Options for Sphinx Gallery ----------------------------------------------
-
-sphinx_gallery_conf = {
-    "doc_module": "snake",
-    "backreferences_dir": "generated/gallery_backreferences",
-    "reference_url": {"snake": None},
-    "examples_dirs": ["../examples/"],
-    "gallery_dirs": ["generated/autoexamples"],
-    "prefer_full_module": {r"module\.submodule"},
-    "filename_pattern": "/example_",
-    "ignore_pattern": r"/(__init__|conftest|utils|example_gpu_(.*?))\.py",
-    "nested_sections": True,
-}
 
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
@@ -90,6 +78,50 @@ intersphinx_mapping = {
     "cupy": ("https://docs.cupy.dev/en/stable/", None),
     "matplotlib": ("https://matplotlib.org/stable/", None),
 }
+
+colab_notebook = {
+    "dependencies": ["snake-fmri", "mri-nufft[finufft,cufinufft]"],
+    "branch": "gh-pages",
+    "path": "examples",
+    "base_colab_url": "https://colab.research.google.com",
+    "repo": "https://github.com/paquiteau/snake-fmri",
+}
+
+# -- MyST configuration ---------------------------------------------------
+#
+# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
+myst_enable_extensions = [
+    "smartquotes",  # use “ ”
+    "replacements",  # (c) and (tm) etc
+    "dollarmath",  # use $ and $$ for maths. (more friendly than ```{math}...``` or {math}`...`)
+    "amsmath",  # direct support for \begin{equation}
+    "linkify",  # automatic link marking
+    "colon_fence",  # use colon for directive (but please keep using ``` for maths and codes)
+    "html_admonition",  # can use <div class="admonition note">
+]
+
+# nb_custom_formats = {
+#     ".yaml": "scenario.scenario2file",
+#     ".py": ("jupytext.reads", {"fmt": "py:percent"}),
+# }
+
+source_suffix = {
+    ".rst": "restructuredtext",
+    ".md": "myst-nb",
+    ".ipynb": "myst-nb",
+    ".myst": "myst-nb",
+}
+
+# The scenario Gallery is built using myst-sphinx-gallery.
+# # Gallery of examples
+# myst_sphinx_gallery_config = GalleryConfig(
+#     examples_dirs="../examples",
+#     gallery_dirs="auto_examples",
+#     root_dir=Path(__file__).parent,
+#     notebook_thumbnail_strategy="code",
+#     thumbnail_strategy="last",
+# )
+
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -116,3 +148,13 @@ html_theme_options = {
     },
 }
 html_title = "SNAKE-fMRI Documentation"
+
+
+# ----- Sphinx Gallery options ----------------------------------
+#
+
+sphinx_gallery_conf = {
+    "examples_dirs": "../examples",  # path to your example scripts
+    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
+    "filename_pattern": "/example",
+}

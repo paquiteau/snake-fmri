@@ -1,6 +1,7 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
+from copy import deepcopy
 
 import base64
 import contextlib
@@ -12,7 +13,7 @@ from enum import IntEnum
 from importlib.resources import files
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
-from typing import TypeVar
+from typing import TypeVar, Any
 
 import ismrmrd as mrd
 import numpy as np
@@ -63,6 +64,11 @@ class Phantom:
         labels = np.concatenate((self.labels, np.array([tissue_name])))
         props = np.concatenate((self.props, props), axis=0)
         return Phantom(phantom_name or self.name, masks, labels, props)
+
+    @property
+    def labels_idx(self) -> dict[str, int]:
+        """Get the index of the labels."""
+        return {label: i for i, label in enumerate(self.labels)}
 
     @classmethod
     def from_brainweb(
@@ -255,6 +261,19 @@ class Phantom:
                 + "\n"
             )
         return ret
+
+    def __deepcopy__(self, memo: Any) -> Phantom:
+        """Create a copy of the phantom."""
+        return Phantom(
+            name=self.name,
+            masks=deepcopy(self.masks, memo),
+            labels=deepcopy(self.labels, memo),
+            props=deepcopy(self.props, memo),
+        )
+
+    def copy(self) -> Phantom:
+        """Return deep copy of the Phantom."""
+        return deepcopy(self)
 
 
 T = TypeVar("T")

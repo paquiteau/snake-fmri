@@ -1,16 +1,21 @@
 # %%
 """
-Compare Fourier Model and T2* Model for Stack of Spirals trajectory
-===========================================
+Compare Fourier Model and T2* Model for 2D Stack of Spirals trajectory
+======================================================================
 
 This examples walks through the elementary components of SNAKE.
 
 Here we proceed step by step and use the Python interface. A more integrated
 alternative is to use the CLI ``snake-main``
 
+
 """
 
 # %%
+# .. colab-link::
+#    :needs_gpu: 1
+#
+#    !pip install mri-nufft[gpunufft] scikit-image
 
 # Imports
 import matplotlib.pyplot as plt
@@ -89,7 +94,6 @@ if sim_conf.hardware.n_coils > 1:
 # %%
 # The acquisition trajectory looks like this
 traj = sampler.get_next_frame(sim_conf)
-print(traj.shape)
 from mrinufft.trajectories.display import display_3D_trajectory
 
 display_3D_trajectory(traj)
@@ -170,7 +174,6 @@ kspace_data = kspace_data.squeeze()
 
 # %%
 shot = traj[18].copy()
-print(shot)
 nufft = get_operator(NUFFT_BACKEND)(
     samples=shot[:, :2],
     shape=data_loader.shape[:-1],
@@ -181,4 +184,4 @@ nufft.samples = shot[:, :2]
 image = nufft.adj_op(kspace_data)
 
 fig, ax = plt.subplots()
-axis3dcut(fig, ax, image, None, cuts=(40, 40, 40))
+axis3dcut(abs(image), None, cuts=(40, 40, 40), ax=ax)

@@ -1,7 +1,7 @@
 # %%
 """
 Compare Fourier Model and T2* Model for Stack of Spirals trajectory
-===========================================
+===================================================================
 
 This examples walks through the elementary components of SNAKE.
 
@@ -84,10 +84,12 @@ if sim_conf.hardware.n_coils > 1:
 # %%
 # The acquisition trajectory looks like this
 traj = sampler.get_next_frame(sim_conf)
-print(traj.shape)
 from mrinufft.trajectories.display import display_3D_trajectory
 
 display_3D_trajectory(traj)
+
+# %%
+traj.shape
 
 # %%
 # Adding noise in Image
@@ -184,12 +186,21 @@ seq_rec = SequentialReconstructor(
     compute_backend=COMPUTE_BACKEND,
 )
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
-    adjoint_spiral = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
-    cs_spiral = abs(seq_rec.reconstruct(data_loader, sim_conf)[0])
+    adjoint_spiral = abs(zer_rec.reconstruct(data_loader)[0])
+    cs_spiral = abs(seq_rec.reconstruct(data_loader)[0])
 with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
-    adjoint_spiral_T2s = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
-    cs_spiral_T2s = abs(seq_rec.reconstruct(data_loader, sim_conf)[0])
+    adjoint_spiral_T2s = abs(zer_rec.reconstruct(data_loader,sim_conf)[0])
+    cs_spiral_T2s = abs(seq_rec.reconstruct(data_loader)[0])
 
+
+# %%
+with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
+    traj,data = data_loader.get_kspace_frame(0)
+
+# %%
+data.shape
+
+# %%
 
 # %%
 # Plotting the result
@@ -211,7 +222,7 @@ for ax, img, title in zip(
     (adjoint_spiral, adjoint_spiral_T2s, abs(adjoint_spiral - adjoint_spiral_T2s)),
     ("simple", "T2s", "diff"),
 ):
-    axis3dcut(fig, ax, img.T, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4)
+    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax,width_inches=4)
     ax.set_title(title)
 
 
@@ -220,7 +231,7 @@ for ax, img, title in zip(
     (cs_spiral, cs_spiral_T2s, abs(cs_spiral - cs_spiral_T2s)),
     ("simple", "T2s", "diff"),
 ):
-    axis3dcut(fig, ax, img.T, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4)
+    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax,width_inches=4)
     ax.set_title(title + " CS")
 
 
