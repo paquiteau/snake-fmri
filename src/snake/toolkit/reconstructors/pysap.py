@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
+from mrinufft.density import get_density
 
 # Local imports
 from snake.mrd_utils import (
@@ -155,8 +156,14 @@ class ZeroFilledReconstructor(BaseReconstructor):
             kwargs["density"] = None
         else:
             kwargs["density"] = self.density_compensation
+            method = self.density_compensation
         if "stacked" in self.nufft_backend:
             kwargs["z_index"] = "auto"
+
+        if isinstance(method, str):
+            method = get_density(method)
+        if not callable(method):
+            raise ValueError(f"Unknown density method: {method}")
 
         nufft_operator = get_operator(
             self.nufft_backend,
@@ -171,9 +178,11 @@ class ZeroFilledReconstructor(BaseReconstructor):
         for i in tqdm(range(data_loader.n_frames)):
             traj, data = data_loader.get_kspace_frame(i)
             if data_loader.slice_2d:
-                nufft_operator.samples = traj.reshape(
-                    data_loader.n_shots, -1, traj.shape[-1]
-                )[0, :, :2]
+                traj = traj.reshape(data_loader.n_shots, -1, traj.shape[-1])
+                nufft_operator.samples = traj[0, :, :2]
+                nufft_operator.density = method(
+                    traj[:, :, :2], shape, backend=self.nufft_backend
+                )
                 data = np.reshape(data, (data.shape[0], data_loader.n_shots, -1))
                 for j in range(data.shape[1]):
                     final_images[i, :, :, j] = abs(nufft_operator.adj_op(data[:, j]))
