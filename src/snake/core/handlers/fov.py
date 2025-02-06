@@ -45,12 +45,14 @@ def extract_rotated_3d_region(
     np.ndarray: The extracted 3D region.
     """
     dx, dy, dz = size
-    new_shape = tuple(round(s / z) for s, z in zip(size, zoom_factor))
+    new_shape = tuple(round(s / z) for s, z in zip(size, zoom_factor, strict=True))
     rotation_matrix = R.from_euler("xyz", angles, degrees=True).as_matrix()
 
     # Generate a coordinate grid for the output block
     X, Y, Z = np.meshgrid(
-        *tuple(np.linspace(-d / 2, d / 2, s) for d, s in zip(size, new_shape)),
+        *tuple(
+            np.linspace(-d / 2, d / 2, s) for d, s in zip(size, new_shape, strict=True)
+        ),
         indexing="ij",
     )
     coords = np.vstack([X.ravel(), Y.ravel(), Z.ravel()])
