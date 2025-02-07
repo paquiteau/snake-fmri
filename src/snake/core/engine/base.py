@@ -9,6 +9,7 @@ import os
 from collections.abc import Mapping, Sequence
 from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_completed
 from multiprocessing.managers import SharedMemoryManager
+from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, ClassVar
 
@@ -17,21 +18,25 @@ import numpy as np
 from numpy.typing import NDArray
 from tqdm.auto import tqdm
 
+from typing_extensions import dataclass_transform
+
 from snake._meta import EnvConfig, MetaDCRegister, batched
 
 from ...mrd_utils import MRDLoader, make_base_mrd
+from ..handlers import AbstractHandler, HandlerList
 from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
-from ..simulation import SimConfig
 from ..sampling import BaseSampler
-from ..handlers import AbstractHandler, HandlerList
+from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
 
+AnyPath =  str | Path
 
+@dataclass_transform(kw_only_default=True)
 class MetaEngine(MetaDCRegister):
     """MetaClass for engines."""
 
-    dunder_name = "engine"
+    dunder_name: ClassVar[str] = "engine"
 
 
 class BaseAcquisitionEngine(metaclass=MetaEngine):
@@ -113,7 +118,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def _acquire_ksp_job(
         self,
-        filename: os.PathLike,
+        filename: AnyPath,
         chunk: Sequence[int],
         tmp_dir: str,
         shared_phantom_props: (
@@ -160,7 +165,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def __call__(
         self,
-        filename: os.PathLike,
+        filename: AnyPath,
         sampler: BaseSampler,
         phantom: Phantom,
         sim_conf: SimConfig,
@@ -175,7 +180,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         Parameters
         ----------
-        filename : os.PathLike
+        filename : AnyPath
             The path to the MRD file.
         sampler : BaseSampler
             The sampler to use.

@@ -1,4 +1,9 @@
-"""Handler for modifying the Field of View of the Phantom."""
+"""Handler for modifying the Field of View of the Phantom.
+
+TODO: Add a FOV-motion handler that combines FOV and motion (moving the head is
+equivalent to changing the center point of FOV + angles).
+
+"""
 
 from __future__ import annotations
 import warnings

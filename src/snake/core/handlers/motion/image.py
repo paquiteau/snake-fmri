@@ -1,4 +1,8 @@
-"""Motion in the image domain."""
+"""Motion in the image domain.
+
+TODO: Add constraints on maximal displacements
+TODO: Use FOV displacements
+"""
 
 from copy import deepcopy
 
