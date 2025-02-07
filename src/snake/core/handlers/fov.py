@@ -16,12 +16,9 @@ from .base import AbstractHandler
 from snake.core.parallel import run_parallel
 from snake.core.phantom import Phantom
 from snake.core.simulation import SimConfig
-
+from snake._meta import ThreeInts, ThreeFloats
 
 # TODO allow to use cupy for faster computation (if available)
-
-ThreeInts = tuple[int, int, int]
-ThreeFloats = tuple[float, float, float]
 
 
 def extract_rotated_3d_region(
@@ -134,7 +131,13 @@ class FOVHandler(AbstractHandler):
             ),
             dtype=phantom.masks.dtype,
         )
-        print("=======", size_vox, zoom_factor)
+        new_smaps = np.zeros(
+            (
+                phantom.smaps.shape[0],
+                *tuple(round(size_vox[i] / zoom_factor[i]) for i in range(3)),
+            ),
+            dtype=phantom.smaps.dtype,
+        )
 
         run_parallel(
             _apply_transform,
@@ -146,9 +149,22 @@ class FOVHandler(AbstractHandler):
             angles=self.angles,
             zoom_factor=zoom_factor,
         )
+
+        run_parallel(
+            _apply_transform,
+            phantom.smaps,
+            new_smaps,
+            parallel_axis=0,
+            center=center_vox,
+            size=size_vox,
+            angles=self.angles,
+            zoom_factor=zoom_factor,
+        )
+
         # Create a new phantom with updated masks
         new_phantom = phantom.copy()
         new_phantom.masks = new_masks
+        new_phantom.smaps = new_smaps
 
         # update the sim_config
         new_shape = new_phantom.anat_shape

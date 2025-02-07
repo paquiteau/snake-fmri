@@ -17,6 +17,9 @@ from typing_extensions import dataclass_transform
 
 T = TypeVar("T")
 
+ThreeInts = tuple[int, int, int]
+ThreeFloats = tuple[float, float, float]
+
 
 def make_log_property(dunder_name: str) -> Callable:
     """Create a property logger."""

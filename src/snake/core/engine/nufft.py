@@ -91,7 +91,6 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,
-        smaps: NDArray,
         nufft_backend: str,
         slice_2d: bool = False,
     ) -> np.ndarray:
@@ -105,7 +104,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0],
             sim_conf,
-            smaps,
+            phantom.smaps,
             backend=nufft_backend,
             slice_2d=slice_2d,
         )
@@ -121,8 +120,8 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
             if slice_2d:
                 slice_loc = round((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
-                if smaps is not None:
-                    nufft.smaps = smaps[..., slice_loc]
+                if phantom.smaps is not None:
+                    nufft.smaps = phantom.smaps[..., slice_loc]
                 phantom_state = phantom_state[:, None, ..., slice_loc]
             else:
                 phantom_state = phantom_state[:, None, ...]
@@ -140,7 +139,6 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,
-        smaps: NDArray,
         nufft_backend: str,
         slice_2d: bool = False,
     ) -> np.ndarray:
@@ -153,7 +151,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0],
             sim_conf,
-            smaps,
+            phantom.smaps,
             backend=nufft_backend,
             slice_2d=slice_2d,
         )
@@ -165,8 +163,8 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
             if slice_2d:
                 slice_loc = int((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
-                if smaps is not None:
-                    nufft.smaps = smaps[..., slice_loc]
+                if phantom.smaps is not None:
+                    nufft.smaps = phantom.smaps[..., slice_loc]
                 phantom_state = phantom_state[None, ..., slice_loc]
             else:
                 nufft.samples = traj

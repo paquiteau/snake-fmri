@@ -30,7 +30,8 @@ from ..sampling import BaseSampler
 from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
 
-AnyPath =  str | Path
+AnyPath = str | Path
+
 
 @dataclass_transform(kw_only_default=True)
 class MetaEngine(MetaDCRegister):
@@ -93,7 +94,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
         *args: Any,
         **kwargs: Any,
     ) -> NDArray:
@@ -105,7 +105,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
         *args: Any,
         **kwargs: Any,
     ) -> NDArray:
@@ -122,7 +121,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         chunk: Sequence[int],
         tmp_dir: str,
         shared_phantom_props: (
-            tuple[str, ArrayProps, ArrayProps, ArrayProps] | None
+            tuple[str, ArrayProps, ArrayProps, ArrayProps, ArrayProps | None] | None
         ) = None,
         **kwargs: Mapping[str, Any],
     ) -> str:
@@ -149,15 +148,12 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             trajs = self._job_trajectories(data_loader, hdr, sim_conf, chunk)
 
             _job_model = getattr(self, f"_job_model_{self.model}")
-            smaps = None
-            if sim_conf.hardware.n_coils > 1:
-                smaps = data_loader.get_smaps()
             if shared_phantom_props is None:
                 phantom = data_loader.get_phantom()
-                ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
+                ksp = _job_model(phantom, ddatas, sim_conf, trajs, **kwargs)
             else:
                 with Phantom.from_shared_memory(*shared_phantom_props) as phantom:
-                    ksp = _job_model(phantom, ddatas, sim_conf, trajs, smaps, **kwargs)
+                    ksp = _job_model(phantom, ddatas, sim_conf, trajs, **kwargs)
 
         chunk_file = os.path.join(tmp_dir, f"partial_{chunk[0]}-{chunk[-1]}.npy")
         np.save(chunk_file, ksp)
@@ -170,7 +166,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         phantom: Phantom,
         sim_conf: SimConfig,
         handlers: list[AbstractHandler] | HandlerList | None = None,
-        smaps: NDArray | None = None,
         coil_cov: NDArray | None = None,
         worker_chunk_size: int = 0,
         n_workers: int = 0,
@@ -190,8 +185,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             The simulation configuration.
         handlers : list[AbstractHandler] | HandlerList | None, optional
             The handlers to use, by default None.
-        smaps : NDArray | None, optional
-            The sensitivity maps, by default None.
         coil_cov : NDArray | None, optional
             The coil covariance matrix, by default None.
         worker_chunk_size : int, optional
@@ -220,7 +213,6 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             phantom,
             sim_conf,
             handlers,
-            smaps,
             coil_cov,
             self.model,
             self.slice_2d,
