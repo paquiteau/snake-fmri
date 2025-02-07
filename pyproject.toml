@@ -131,16 +131,9 @@ convention = "numpy"
 "tests/test_*.py" = ["D", "ANN"]
 
 
-[tool.pylsp-mypy]
-enabled = true
-live_mode = true
-strict = true
-#overrides = ["--ignore-missing-imports"]
+[tool.basedpyright]
 
-[tool.mypy]
-ignore_missing_imports=true
-exclude = ["examples/"]
-#overrides = ["--ignore-missing-imports"]
+typeCheckingMode = "off"
 
 [tool.codespell]
 ignore-words-list = ["TE","fpr"]
