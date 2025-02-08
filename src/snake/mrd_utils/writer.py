@@ -207,6 +207,13 @@ def make_base_mrd(
     coil_covar : NDArray, optional
         The coil covariance matrix, by default None
     """
+    # Apply the handlers and get the dynamic data, this might modifies the sim_conf !!
+    if handlers is None:
+        handlers = []
+    for h in handlers:
+        phantom = h.get_static(phantom, sim_conf)
+    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
+
     try:
         log.warning("Existing %s it will be overwritten", filename)
         os.remove(filename)
@@ -219,14 +226,6 @@ def make_base_mrd(
     )
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)
-
-    # Apply the handlers and get the dynamic data
-    if handlers is None:
-        handlers = []
-    for h in handlers:
-        phantom = h.get_static(phantom, sim_conf)
-
-    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
 
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
