@@ -26,7 +26,7 @@ from snake.core.simulation import SimConfig
 from tqdm.auto import tqdm
 
 from .base import BaseReconstructor
-from .fourier import ifft
+from .fourier import ifft, init_nufft
 
 
 def _reconstruct_cartesian_frame(
@@ -80,16 +80,15 @@ class ZeroFilledReconstructor(BaseReconstructor):
         """Reconstruct data with zero-filled method."""
         with data_loader:
             if isinstance(data_loader, CartesianFrameDataLoader):
-                return self._reconstruct_cartesian(data_loader, sim_conf)
+                return self._reconstruct_cartesian(data_loader)
             elif isinstance(data_loader, NonCartesianFrameDataLoader):
-                return self._reconstruct_nufft(data_loader, sim_conf)
+                return self._reconstruct_nufft(data_loader)
             else:
                 raise ValueError("Unknown dataloader")
 
     def _reconstruct_cartesian(
         self,
         data_loader: CartesianFrameDataLoader,
-        sim_conf: SimConfig = None,
     ) -> NDArray:
         smaps = data_loader.get_smaps()
         if smaps is None and data_loader.n_coils > 1:
@@ -132,38 +131,11 @@ class ZeroFilledReconstructor(BaseReconstructor):
     def _reconstruct_nufft(
         self,
         data_loader: NonCartesianFrameDataLoader,
-        sim_conf: SimConfig = None,
     ) -> NDArray:
         """Reconstruct data with nufft method."""
-        from mrinufft import get_operator
-
-        smaps = data_loader.get_smaps()
-        shape = data_loader.shape
-        traj, kspace_data = data_loader.get_kspace_frame(0)
-
-        if data_loader.slice_2d:
-            shape = data_loader.shape[:2]
-            traj = traj.reshape(data_loader.n_shots, -1, traj.shape[-1])[0, :, :2]
-
-        kwargs = dict(
-            shape=shape,
-            n_coils=data_loader.n_coils,
-            smaps=smaps,
+        nufft_operator = init_nufft(
+            data_loader, self.nufft_backend, self.density_compensation
         )
-        print(self.density_compensation, type(self.density_compensation))
-        if self.density_compensation is False:
-            kwargs["density"] = None
-        else:
-            kwargs["density"] = self.density_compensation
-        if "stacked" in self.nufft_backend:
-            kwargs["z_index"] = "auto"
-
-        nufft_operator = get_operator(
-            self.nufft_backend,
-            samples=traj,
-            **kwargs,
-        )
-
         final_images = np.empty(
             (data_loader.n_frames, *data_loader.shape), dtype=np.float32
         )
