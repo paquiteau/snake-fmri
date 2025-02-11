@@ -113,6 +113,7 @@ class ActivationMixin(LogMixin):
             props=np.concatenate(
                 (phantom.props, phantom.props[tissue_index, :]),
                 axis=0,
+                smaps=phantom.smaps,
             ),
         )
         new_phantom = phantom.add_tissue(

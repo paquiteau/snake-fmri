@@ -98,7 +98,9 @@ class MRDLoader(LogMixin):
             for i in np.arange(start, stop, step):
                 yield i, *self.get_kspace_frame(i)
 
-    def get_kspace_frame(self, idx: int) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
+    def get_kspace_frame(
+        self, idx: int
+    ) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
         """Get k-space frame trajectory/mask and data."""
         raise NotImplementedError()
 
@@ -233,15 +235,14 @@ class MRDLoader(LogMixin):
         name = image.meta.pop("name")
         labels = np.array(image.meta["labels"].split(","))
         props = unserialize_array(image.meta["props"])
-
+        smaps = self.get_smaps()
         return Phantom(
             masks=image.data,
             labels=labels,
             props=props,
             name=name,
+            smaps=smaps,
         )
-
-        return Phantom.from_mrd_dataset(self)
 
     @cached_property
     def _all_waveform_infos(self) -> dict[int, dict]:

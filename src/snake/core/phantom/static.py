@@ -73,15 +73,21 @@ class Phantom:
         """Get the index of the labels."""
         return {label: i for i, label in enumerate(self.labels)}
 
-    def get_smaps(
+    def make_smaps(
         self, n_coils: int = None, sim_conf: SimConfig = None, antenna: str = "birdcage"
     ) -> None:
         """Get coil sensitivity maps for the phantom."""
         if n_coils is None and sim_conf is not None:
             n_coils = sim_conf.hardware.n_coils
-
-        if n_coils > 1 and self.smaps is None:
+        elif sim_conf is None and n_coils is None:
+            raise ValueError("Either n_coils or sim_conf must be provided.")
+        if n_coils == 1:
+            log.warning("Only one coil, no need for smaps.")
+        elif n_coils > 1 and self.smaps is None:
             self.smaps = get_smaps(self.anat_shape, n_coils=n_coils, antenna=antenna)
+            log.debug(f"Created smaps for {n_coils} coils.")
+        elif self.smaps is not None:
+            log.warning("Smaps already exists.")
 
     @classmethod
     def from_brainweb(
