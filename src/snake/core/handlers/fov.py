@@ -143,7 +143,6 @@ class FOVHandler(AbstractHandler):
             zoom_factor=zoom_factor,
         )
         if phantom.smaps is not None:
-            return Phantom.from_masks(new_masks, sim_conf)
             new_smaps = np.zeros(
                 (
                     phantom.smaps.shape[0],

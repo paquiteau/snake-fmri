@@ -227,18 +227,19 @@ class Phantom:
             ),
         )
         # Add the smaps
-        dataset.append_image(
-            "smaps",
-            mrd.image.Image(
-                head=mrd.image.ImageHeader(
-                    matrixSize=mrd.xsd.matrixSizeType(*self.smaps.shape[1:]),
-                    fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
-                    channels=len(self.smaps),
-                    acquisition_time_stamp=0,
+        if self.smaps is not None:
+            dataset.append_image(
+                "smaps",
+                mrd.image.Image(
+                    head=mrd.image.ImageHeader(
+                        matrixSize=mrd.xsd.matrixSizeType(*self.smaps.shape[1:]),
+                        fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
+                        channels=len(self.smaps),
+                        acquisition_time_stamp=0,
+                    ),
+                    data=self.smaps,
                 ),
-                data=self.smaps,
-            ),
-        )
+            )
         return dataset
 
     @classmethod
