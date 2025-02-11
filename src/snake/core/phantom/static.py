@@ -66,7 +66,9 @@ class Phantom:
         masks = np.concatenate((self.masks, mask[None, ...]), axis=0)
         labels = np.concatenate((self.labels, np.array([tissue_name])))
         props = np.concatenate((self.props, props), axis=0)
-        return Phantom(phantom_name or self.name, masks, labels, props)
+        return Phantom(
+            phantom_name or self.name, masks, labels, props, smaps=self.smaps
+        )
 
     @property
     def labels_idx(self) -> dict[str, int]:

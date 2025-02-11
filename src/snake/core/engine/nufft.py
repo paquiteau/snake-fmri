@@ -28,7 +28,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         dataset: mrd.Dataset,
         hdr: mrd.xsd.ismrmrdHeader,
         sim_conf: SimConfig,
-        shot_idx: Sequence[int],
+        shot_idx: Sequence[int] | int,
     ) -> NDArray:
         """Get Non Cartesian trajectories from the dataset.
 
@@ -72,10 +72,12 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         if slice_2d:
             shape_ = sim_conf.shape[:-1]
             if smaps is not None:
-                smaps_ = smaps[..., 0]
+                smaps_ = np.ascontiguousarray(
+                    smaps[..., 0]
+                )  # will be updated in the loop
 
         nufft = get_operator(backend)(
-            samples,  # dummy samples locs
+            samples,  # will be updated in the loop
             shape=shape_,
             n_coils=n_coils,
             smaps=smaps_,
@@ -121,7 +123,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
                 slice_loc = round((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
                 if phantom.smaps is not None:
-                    nufft.smaps = phantom.smaps[..., slice_loc]
+                    nufft.smaps = np.ascontiguousarray(phantom.smaps[..., slice_loc])
                 phantom_state = phantom_state[:, None, ..., slice_loc]
             else:
                 phantom_state = phantom_state[:, None, ...]
