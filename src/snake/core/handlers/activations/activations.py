@@ -61,35 +61,6 @@ class ActivationMixin(LogMixin):
             )
         roi = phantom.masks[tissue_index].squeeze()
         occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
-        # if self.bbox:
-        #     self.log.debug("ROI shape was ", occ_roi)
-        #     scaled_bbox = [0] * 6
-        #     for i in range(3):
-        #         scaled_bbox[2 * i] = (
-        #             int(self.bbox[2 * i] * occ_roi["shape"][i])
-        #             if self.bbox[2 * i]
-        #             else 0
-        #         )
-        #         scaled_bbox[2 * i + 1] = (
-        #             int(self.bbox[2 * i + 1] * occ_roi["shape"][i])
-        #             if self.bbox[2 * i + 1]
-        #             else occ_roi["shape"][i]
-        #         )
-        #         if scaled_bbox[2 * i + 1] < 0:
-        #             scaled_bbox[2 * i + 1] += occ_roi["shape"][i]
-
-        #     # replace None value by boundaries (0 or value)
-        #     # and shift the box
-        #     occ_roi["shape"] = (
-        #         scaled_bbox[1] - scaled_bbox[0],
-        #         scaled_bbox[3] - scaled_bbox[2],
-        #         scaled_bbox[5] - scaled_bbox[4],
-        #     )
-        #     occ_roi["center"] = (
-        #         occ_roi["center"][0] - scaled_bbox[0],
-        #         occ_roi["center"][1] - scaled_bbox[2],
-        #         occ_roi["center"][2] - scaled_bbox[4],
-        #     )
         roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])
         self.log.debug(
             "ROI parameters (orig, target, zoom) %s, %s, %s",
@@ -106,16 +77,6 @@ class ActivationMixin(LogMixin):
         roi[~ellipsoid] = 0
 
         # update the phantom
-        new_phantom = Phantom(
-            phantom.name + "-roi",
-            masks=np.concatenate((phantom.masks, roi[None, ...]), axis=0),
-            labels=np.concatenate((phantom.labels, np.array([self.roi_tissue_name]))),
-            props=np.concatenate(
-                (phantom.props, phantom.props[tissue_index, :]),
-                axis=0,
-                smaps=phantom.smaps,
-            ),
-        )
         new_phantom = phantom.add_tissue(
             self.roi_tissue_name,
             roi,
