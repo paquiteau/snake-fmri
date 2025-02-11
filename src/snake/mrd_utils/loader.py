@@ -85,9 +85,31 @@ class MRDLoader(LogMixin):
             self._file = None
 
     def iter_frames(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
+        self,
+        start: int | None = None,
+        stop: int | None = None,
+        step: int | None = None,
+        shot_dim: bool = False,
     ) -> Generator[tuple[int, NDArray[np.float32], NDArray[np.complex64]], None, None]:
-        """Iterate over kspace frames of the dataset."""
+        """Iterate over kspace frames of the dataset.
+
+        Parameters
+        ---------
+        start : int, optional
+            Start index of the iteration.
+        stop : int, optional
+            Stop index of the iteration.
+        step: int, optional
+            Step of the iteration.
+        shot_dim: bool, optional
+            Return the data reshaped with the shot dimension first.
+
+        Yields
+        -----
+        tuple[int, np.ndarray, np.ndarray]
+            The index of the frame, the trajectory and the kspace data.
+
+        """
         if start is None:
             start = 0
         if stop is None:
@@ -96,7 +118,7 @@ class MRDLoader(LogMixin):
             step = 1
         with self:
             for i in np.arange(start, stop, step):
-                yield i, *self.get_kspace_frame(i)
+                yield i, *self.get_kspace_frame(i, shot_dim=shot_dim)
 
     def get_kspace_frame(
         self, idx: int
