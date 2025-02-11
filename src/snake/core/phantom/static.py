@@ -151,15 +151,19 @@ class Phantom:
         )
         tissues_mask = tissue_resized
 
+        smaps = None
+        if sim_conf.hardware.n_coils > 1:
+            smaps = get_smaps(
+                tissues_mask.shape[1:],
+                n_coils=sim_conf.hardware.n_coils,
+            )
+
         return cls(
             "brainweb",
             tissues_mask,
             labels=np.array([t[0] for t in tissues_list]),
             props=np.array([t[1:] for t in tissues_list]),
-            smaps=get_smaps(
-                tissues_mask.shape[1:],
-                n_coils=sim_conf.hardware.n_coils,
-            ),
+            smaps=smaps,
         )
 
     @classmethod
@@ -202,7 +206,7 @@ class Phantom:
         meta_sr = mrd.Meta(
             {
                 "name": self.name,
-                "labels": f'{",".join(self.labels)}',
+                "labels": f"{','.join(self.labels)}",
                 "props": serialize_array(self.props),
             }
         ).serialize()
@@ -251,7 +255,9 @@ class Phantom:
         with array_from_shm(mask_prop, label_prop, properties_prop, smaps_prop) as arrs:
             yield cls(name, *arrs)
 
-    def in_shared_memory(self, manager: SharedMemoryManager) -> tuple[
+    def in_shared_memory(
+        self, manager: SharedMemoryManager
+    ) -> tuple[
         tuple[str, ArrayProps, ArrayProps, ArrayProps, ArrayProps | None],
         tuple[SharedMemory, SharedMemory, SharedMemory, SharedMemory | None],
     ]:

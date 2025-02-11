@@ -131,13 +131,6 @@ class FOVHandler(AbstractHandler):
             ),
             dtype=phantom.masks.dtype,
         )
-        new_smaps = np.zeros(
-            (
-                phantom.smaps.shape[0],
-                *tuple(round(size_vox[i] / zoom_factor[i]) for i in range(3)),
-            ),
-            dtype=phantom.smaps.dtype,
-        )
 
         run_parallel(
             _apply_transform,
@@ -149,17 +142,27 @@ class FOVHandler(AbstractHandler):
             angles=self.angles,
             zoom_factor=zoom_factor,
         )
-
-        run_parallel(
-            _apply_transform,
-            phantom.smaps,
-            new_smaps,
-            parallel_axis=0,
-            center=center_vox,
-            size=size_vox,
-            angles=self.angles,
-            zoom_factor=zoom_factor,
-        )
+        if phantom.smaps is not None:
+            return Phantom.from_masks(new_masks, sim_conf)
+            new_smaps = np.zeros(
+                (
+                    phantom.smaps.shape[0],
+                    *tuple(round(size_vox[i] / zoom_factor[i]) for i in range(3)),
+                ),
+                dtype=phantom.smaps.dtype,
+            )
+            run_parallel(
+                _apply_transform,
+                phantom.smaps,
+                new_smaps,
+                parallel_axis=0,
+                center=center_vox,
+                size=size_vox,
+                angles=self.angles,
+                zoom_factor=zoom_factor,
+            )
+        else:
+            new_smaps = None
 
         # Create a new phantom with updated masks
         new_phantom = phantom.copy()
