@@ -42,8 +42,8 @@ jobs:
           pip install -e .[dev]
       - name: Linters
         run: |
-          black --check src tests
-          ruff check .
+          ruff check src
+          ruff format --check src
       - name: Annotate locations with typos
         if: always()
         uses: codespell-project/codespell-problem-matcher@v1

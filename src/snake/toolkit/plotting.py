@@ -313,7 +313,7 @@ def axis3dcut(
             bbox_[i],
             bg_cmap=bg_cmap,
             z_thresh=z_thresh,
-            z_max=z_max
+            z_max=z_max,
         )
 
     if cbar:
@@ -324,7 +324,14 @@ def axis3dcut(
             im.set_clim(-z_max, z_max)
             matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
             cax.set_ylabel("z-scores", labelpad=-20)
-            cax.set_yticks(np.concatenate([-np.arange(z_thresh, z_max+1, 2), np.arange(z_thresh, z_max+1, 2)]))
+            cax.set_yticks(
+                np.concatenate(
+                    [
+                        -np.arange(z_thresh, z_max + 1, 2),
+                        np.arange(z_thresh, z_max + 1, 2),
+                    ]
+                )
+            )
         else:
             # use the background image
             if vmin_vmax is None:

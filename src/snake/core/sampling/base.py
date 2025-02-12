@@ -12,7 +12,7 @@ from ..simulation import SimConfig
 import ismrmrd as mrd
 
 
-@dataclass_transform(kw_only_default=True) # Required here for pyright to work.
+@dataclass_transform(kw_only_default=True)  # Required here for pyright to work.
 class MetaSampler(MetaDCRegister):
     """MetaClass for Samplers."""
 

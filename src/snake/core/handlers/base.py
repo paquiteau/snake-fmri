@@ -15,6 +15,7 @@ from ..simulation import SimConfig
 
 T = TypeVar("T")
 
+
 @dataclass_transform(kw_only_default=True)
 class MetaHandler(MetaDCRegister):
     """MetaClass for Handlers."""

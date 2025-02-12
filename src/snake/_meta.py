@@ -158,7 +158,6 @@ class ENVCONFIG(metaclass=Singleton):
 
     @classmethod
     def __getitem__(cls, key: str) -> Any:
-
         if key in os.environ:
             return os.environ[key]
         return getattr(cls, key)

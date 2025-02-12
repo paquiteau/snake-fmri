@@ -82,7 +82,7 @@ def mr_shepp_logan(
 
     # Make sure zlims are appropriate
     assert len(zlims) == 2, (
-        "zlims must be a tuple with 2 entries: upper and lower " "bounds!"
+        "zlims must be a tuple with 2 entries: upper and lower bounds!"
     )
     assert zlims[0] <= zlims[1], "zlims: lower bound must be first entry!"
 
@@ -179,7 +179,6 @@ def mr_ellipsoid_parameters() -> np.ndarray:
     # Need to subtract some ellipses here...
     Eneg = np.zeros(E.shape)
     for ii in range(E.shape[0]):
-
         # Ellipsoid geometry
         Eneg[ii, :7] = E[ii, :7]
 
