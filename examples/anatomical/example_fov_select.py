@@ -37,14 +37,14 @@ from snake.core.handlers.fov import FOVHandler
 
 
 # the center and size target_res are all in millimeters.
-fov_handlers = FOVHandler(
+fov_handler = FOVHandler(
     center=(90, 110, 100),
     size=(192, 192, 128),
     angles=(5, 0, 0),
     target_res=(2.0, 2.0, 2.0),
 )
 
-new_phantom = fov_handlers.get_static(phantom, sim_conf)
+new_phantom = fov_handler.get_static(phantom, sim_conf)
 
 # %%
 new_contrast = get_ideal_phantom(new_phantom, sim_conf)

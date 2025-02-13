@@ -249,10 +249,10 @@ class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
 
     acsz: float | int
     accelz: int
-    orderz: VDSorder = VDSorder.TOP_DOWN
+    orderz: str | VDSorder = VDSorder.TOP_DOWN
     nb_revolutions: int = 10
     spiral_name: str = "archimedes"
-    pdfz: VDSpdf = VDSpdf.GAUSSIAN
+    pdfz: str | VDSpdf = VDSpdf.GAUSSIAN
     constant: bool = False
     in_out: bool = True
     rotate_angle: AngleRotation = AngleRotation.ZERO

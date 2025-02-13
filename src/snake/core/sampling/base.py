@@ -3,6 +3,7 @@
 from __future__ import annotations
 import logging
 from typing import ClassVar
+from typing_extensions import dataclass_transform
 from numpy.typing import NDArray
 
 from snake._meta import MetaDCRegister
@@ -11,6 +12,7 @@ from ..simulation import SimConfig
 import ismrmrd as mrd
 
 
+@dataclass_transform(kw_only_default=True)  # Required here for pyright to work.
 class MetaSampler(MetaDCRegister):
     """MetaClass for Samplers."""
 

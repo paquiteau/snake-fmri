@@ -23,6 +23,8 @@ from ..parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
 from snake._meta import NoCaseEnum
 from ..simulation import SimConfig
 
+from snake.core.smaps import get_smaps
+
 log = logging.getLogger(__name__)
 
 
@@ -51,6 +53,7 @@ class Phantom:
     masks: NDArray[np.float32]
     labels: NDArray[np.string_]
     props: NDArray[np.float32]
+    smaps: NDArray[np.complex64] | None = None
 
     def add_tissue(
         self,
@@ -63,12 +66,30 @@ class Phantom:
         masks = np.concatenate((self.masks, mask[None, ...]), axis=0)
         labels = np.concatenate((self.labels, np.array([tissue_name])))
         props = np.concatenate((self.props, props), axis=0)
-        return Phantom(phantom_name or self.name, masks, labels, props)
+        return Phantom(
+            phantom_name or self.name, masks, labels, props, smaps=self.smaps
+        )
 
     @property
     def labels_idx(self) -> dict[str, int]:
         """Get the index of the labels."""
         return {label: i for i, label in enumerate(self.labels)}
+
+    def make_smaps(
+        self, n_coils: int = None, sim_conf: SimConfig = None, antenna: str = "birdcage"
+    ) -> None:
+        """Get coil sensitivity maps for the phantom."""
+        if n_coils is None and sim_conf is not None:
+            n_coils = sim_conf.hardware.n_coils
+        elif sim_conf is None and n_coils is None:
+            raise ValueError("Either n_coils or sim_conf must be provided.")
+        if n_coils == 1:
+            log.warning("Only one coil, no need for smaps.")
+        elif n_coils > 1 and self.smaps is None:
+            self.smaps = get_smaps(self.anat_shape, n_coils=n_coils, antenna=antenna)
+            log.debug(f"Created smaps for {n_coils} coils.")
+        elif self.smaps is not None:
+            log.warning("Smaps already exists.")
 
     @classmethod
     def from_brainweb(
@@ -138,11 +159,19 @@ class Phantom:
         )
         tissues_mask = tissue_resized
 
+        smaps = None
+        if sim_conf.hardware.n_coils > 1:
+            smaps = get_smaps(
+                tissues_mask.shape[1:],
+                n_coils=sim_conf.hardware.n_coils,
+            )
+
         return cls(
             "brainweb",
             tissues_mask,
             labels=np.array([t[0] for t in tissues_list]),
             props=np.array([t[1:] for t in tissues_list]),
+            smaps=smaps,
         )
 
     @classmethod
@@ -185,11 +214,12 @@ class Phantom:
         meta_sr = mrd.Meta(
             {
                 "name": self.name,
-                "labels": f'{",".join(self.labels)}',
+                "labels": f"{','.join(self.labels)}",
                 "props": serialize_array(self.props),
             }
         ).serialize()
 
+        # Add the phantom data
         dataset.append_image(
             "phantom",
             mrd.image.Image(
@@ -204,6 +234,20 @@ class Phantom:
                 attribute_string=meta_sr,
             ),
         )
+        # Add the smaps
+        if self.smaps is not None:
+            dataset.append_image(
+                "smaps",
+                mrd.image.Image(
+                    head=mrd.image.ImageHeader(
+                        matrixSize=mrd.xsd.matrixSizeType(*self.smaps.shape[1:]),
+                        fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
+                        channels=len(self.smaps),
+                        acquisition_time_stamp=0,
+                    ),
+                    data=self.smaps,
+                ),
+            )
         return dataset
 
     @classmethod
@@ -214,27 +258,30 @@ class Phantom:
         mask_prop: ArrayProps,
         properties_prop: ArrayProps,
         label_prop: ArrayProps,
+        smaps_prop: ArrayProps,
     ) -> Generator[Phantom, None, None]:
         """Give access the tissue masks and properties in shared memory."""
-        with array_from_shm(mask_prop, label_prop, properties_prop) as arrs:
+        with array_from_shm(mask_prop, label_prop, properties_prop, smaps_prop) as arrs:
             yield cls(name, *arrs)
 
-    def in_shared_memory(self, manager: SharedMemoryManager) -> tuple[
-        tuple[str, ArrayProps, ArrayProps, ArrayProps],
-        tuple[SharedMemory, SharedMemory, SharedMemory],
+    def in_shared_memory(
+        self, manager: SharedMemoryManager
+    ) -> tuple[
+        tuple[str, ArrayProps, ArrayProps, ArrayProps, ArrayProps | None],
+        tuple[SharedMemory, SharedMemory, SharedMemory, SharedMemory | None],
     ]:
         """Add a copy of the phantom in shared memory."""
         tissue_mask, _, tisue_mask_smm = array_to_shm(self.masks, manager)
         tissue_props, _, tissue_prop_smm = array_to_shm(self.props, manager)
         labels, _, labels_sm = array_to_shm(self.labels, manager)
+        if self.smaps is not None:
+            smaps, _, smaps_sm = array_to_shm(self.smaps, manager)
+        else:
+            smaps, smaps_sm = None, None
 
         return (
-            (self.name, tissue_mask, tissue_props, labels),
-            (
-                tisue_mask_smm,
-                tissue_prop_smm,
-                labels_sm,
-            ),
+            (self.name, tissue_mask, tissue_props, labels, smaps),
+            (tisue_mask_smm, tissue_prop_smm, labels_sm, smaps_sm),
         )
 
     @property
@@ -269,6 +316,7 @@ class Phantom:
             masks=deepcopy(self.masks, memo),
             labels=deepcopy(self.labels, memo),
             props=deepcopy(self.props, memo),
+            smaps=deepcopy(self.smaps, memo),
         )
 
     def copy(self) -> Phantom:

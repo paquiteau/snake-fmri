@@ -15,6 +15,7 @@ from collections.abc import Generator
 from .._meta import LogMixin
 
 if TYPE_CHECKING:
+    from _typeshed import AnyPath
     from ..core import Phantom, DynamicData
     from ..core import SimConfig
 
@@ -23,7 +24,7 @@ from .utils import b64encode2obj, unserialize_array
 log = logging.getLogger(__name__)
 
 
-def read_mrd_header(filename: os.PathLike | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
+def read_mrd_header(filename: AnyPath | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
     """Read the header of the MRD file."""
     if isinstance(filename, mrd.Dataset):
         dataset = filename
@@ -50,7 +51,7 @@ class MRDLoader(LogMixin):
 
     def __init__(
         self,
-        filename: os.PathLike,
+        filename: AnyPath,
         dataset_name: str = "dataset",
         writeable: bool = False,
         swmr: bool = False,
@@ -84,9 +85,31 @@ class MRDLoader(LogMixin):
             self._file = None
 
     def iter_frames(
-        self, start: int | None = None, stop: int | None = None, step: int | None = None
-    ) -> Generator[tuple[int, NDArray, NDArray], None, None]:
-        """Iterate over kspace frames of the dataset."""
+        self,
+        start: int | None = None,
+        stop: int | None = None,
+        step: int | None = None,
+        shot_dim: bool = False,
+    ) -> Generator[tuple[int, NDArray[np.float32], NDArray[np.complex64]], None, None]:
+        """Iterate over kspace frames of the dataset.
+
+        Parameters
+        ---------
+        start : int, optional
+            Start index of the iteration.
+        stop : int, optional
+            Stop index of the iteration.
+        step: int, optional
+            Step of the iteration.
+        shot_dim: bool, optional
+            Return the data reshaped with the shot dimension first.
+
+        Yields
+        -----
+        tuple[int, np.ndarray, np.ndarray]
+            The index of the frame, the trajectory and the kspace data.
+
+        """
         if start is None:
             start = 0
         if stop is None:
@@ -95,9 +118,11 @@ class MRDLoader(LogMixin):
             step = 1
         with self:
             for i in np.arange(start, stop, step):
-                yield i, *self.get_kspace_frame(i)
+                yield i, *self.get_kspace_frame(i, shot_dim=shot_dim)
 
-    def get_kspace_frame(self, idx: int) -> tuple[NDArray, NDArray]:
+    def get_kspace_frame(
+        self, idx: int
+    ) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
         """Get k-space frame trajectory/mask and data."""
         raise NotImplementedError()
 
@@ -232,15 +257,14 @@ class MRDLoader(LogMixin):
         name = image.meta.pop("name")
         labels = np.array(image.meta["labels"].split(","))
         props = unserialize_array(image.meta["props"])
-
+        smaps = self.get_smaps()
         return Phantom(
             masks=image.data,
             labels=labels,
             props=props,
             name=name,
+            smaps=smaps,
         )
-
-        return Phantom.from_mrd_dataset(self)
 
     @cached_property
     def _all_waveform_infos(self) -> dict[int, dict]:
@@ -275,15 +299,15 @@ class MRDLoader(LogMixin):
         """Parse the sim config."""
         return parse_sim_conf(self.header)
 
-    def _get_image_data(self, name: str, idx: int = 0) -> NDArray | None:
+    def _get_image_data(self, name: str, idx: int = 0) -> NDArray[np.complex64] | None:
         try:
-            image = self._read_image(name, idx).data
+            image = self._read_image(name, idx).data.astype(np.complex64)
         except LookupError:
             log.warning(f"No {name} found in the dataset.")
             return None
         return image
 
-    def get_smaps(self) -> NDArray | None:
+    def get_smaps(self) -> NDArray[np.complex64] | None:
         """Load the sensitivity maps from the dataset."""
         return self._get_image_data("smaps")
 
@@ -344,7 +368,7 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
     def get_kspace_frame(
         self, idx: int, shot_dim: bool = False
-    ) -> tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
         """Get the k-space frame and the associated trajectory.
 
         Parameters

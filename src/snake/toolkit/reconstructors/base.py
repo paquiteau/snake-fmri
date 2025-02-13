@@ -1,19 +1,23 @@
 """Base Class for Reconstructors."""
 
-from numpy.typing import NDArray
-
 import logging
 from dataclasses import field
 from typing import Any, ClassVar
-from ..._meta import MetaDCRegister
-from snake.mrd_utils import MRDLoader
+
+from numpy.typing import NDArray
+from typing_extensions import dataclass_transform
+
 from snake.core.simulation import SimConfig
+from snake.mrd_utils import MRDLoader
+
+from ..._meta import MetaDCRegister
 
 
+@dataclass_transform(kw_only_default=True)
 class MetaReconstructor(MetaDCRegister):
     """MetaClass Reconstructor."""
 
-    dunder_name = "reconstructor"
+    dunder_name: ClassVar[str] = "reconstructor"
 
 
 class BaseReconstructor(metaclass=MetaReconstructor):
@@ -34,7 +38,7 @@ class BaseReconstructor(metaclass=MetaReconstructor):
         """Set up the reconstructor."""
         self.log.info(f"Setup reconstructor {self.__class__.__name__}")
 
-    def reconstruct(self, data_loader: MRDLoader, sim_conf: SimConfig) -> NDArray:
+    def reconstruct(self, data_loader: MRDLoader) -> NDArray:
         """Reconstruct the kspace data to image space."""
         raise NotImplementedError
 

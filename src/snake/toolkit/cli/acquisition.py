@@ -6,7 +6,6 @@ from omegaconf import OmegaConf
 from snake.core.engine import BaseAcquisitionEngine
 from snake.core.handlers import HandlerList
 from snake.core.phantom import Phantom
-from snake.core.smaps import get_smaps
 from snake.toolkit.cli.config import ConfigSNAKE, cleanup_cuda, make_hydra_cli
 
 log = logging.getLogger(__name__)
@@ -36,9 +35,6 @@ def acquisition(cfg: ConfigSNAKE) -> None:
             "Multiple sampler configuration detected. Only the first one is used."
         )
     sampler = list(cfg.sampler.values())[0]
-    smaps = None
-    if sim_conf.hardware.n_coils > 1:
-        smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
 
     log.info("Initialization")
     log.info("Phantom: %s", phantom)
@@ -63,7 +59,6 @@ def acquisition(cfg: ConfigSNAKE) -> None:
         phantom=phantom,
         sim_conf=sim_conf,
         handlers=handlers,
-        smaps=smaps,
         coil_cov=None,  # FIXME: Add coil covariance in scenarios
         worker_chunk_size=cfg.engine.chunk_size,
         n_workers=cfg.engine.n_jobs,

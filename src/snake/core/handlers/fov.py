@@ -1,4 +1,9 @@
-"""Handler for modifying the Field of View of the Phantom."""
+"""Handler for modifying the Field of View of the Phantom.
+
+TODO: Add a FOV-motion handler that combines FOV and motion (moving the head is
+equivalent to changing the center point of FOV + angles).
+
+"""
 
 from __future__ import annotations
 import warnings
@@ -11,12 +16,9 @@ from .base import AbstractHandler
 from snake.core.parallel import run_parallel
 from snake.core.phantom import Phantom
 from snake.core.simulation import SimConfig
-
+from snake._meta import ThreeInts, ThreeFloats
 
 # TODO allow to use cupy for faster computation (if available)
-
-ThreeInts = tuple[int, int, int]
-ThreeFloats = tuple[float, float, float]
 
 
 def extract_rotated_3d_region(
@@ -45,12 +47,14 @@ def extract_rotated_3d_region(
     np.ndarray: The extracted 3D region.
     """
     dx, dy, dz = size
-    new_shape = tuple(round(s / z) for s, z in zip(size, zoom_factor))
+    new_shape = tuple(round(s / z) for s, z in zip(size, zoom_factor, strict=True))
     rotation_matrix = R.from_euler("xyz", angles, degrees=True).as_matrix()
 
     # Generate a coordinate grid for the output block
     X, Y, Z = np.meshgrid(
-        *tuple(np.linspace(-d / 2, d / 2, s) for d, s in zip(size, new_shape)),
+        *tuple(
+            np.linspace(-d / 2, d / 2, s) for d, s in zip(size, new_shape, strict=True)
+        ),
         indexing="ij",
     )
     coords = np.vstack([X.ravel(), Y.ravel(), Z.ravel()])
@@ -127,7 +131,6 @@ class FOVHandler(AbstractHandler):
             ),
             dtype=phantom.masks.dtype,
         )
-        print("=======", size_vox, zoom_factor)
 
         run_parallel(
             _apply_transform,
@@ -139,9 +142,31 @@ class FOVHandler(AbstractHandler):
             angles=self.angles,
             zoom_factor=zoom_factor,
         )
+        if phantom.smaps is not None:
+            new_smaps = np.zeros(
+                (
+                    phantom.smaps.shape[0],
+                    *tuple(round(size_vox[i] / zoom_factor[i]) for i in range(3)),
+                ),
+                dtype=phantom.smaps.dtype,
+            )
+            run_parallel(
+                _apply_transform,
+                phantom.smaps,
+                new_smaps,
+                parallel_axis=0,
+                center=center_vox,
+                size=size_vox,
+                angles=self.angles,
+                zoom_factor=zoom_factor,
+            )
+        else:
+            new_smaps = None
+
         # Create a new phantom with updated masks
         new_phantom = phantom.copy()
         new_phantom.masks = new_masks
+        new_phantom.smaps = new_smaps
 
         # update the sim_config
         new_shape = new_phantom.anat_shape

@@ -63,7 +63,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
         slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data. With T2s decay."""
@@ -107,18 +106,20 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
                 slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
                 flat_epi = flat_epi[:, 1:]
                 phantom_slice = phantom_state[:, slice_location]
-                if smaps is None:
+                if phantom.smaps is None:
                     phantom_slice = phantom_slice[:, None, ...]
                 else:
-                    smaps_ = smaps[:, slice_location]
+                    smaps_ = phantom.smaps[:, slice_location]
                     phantom_slice = phantom_slice[:, None, ...] * smaps_
 
                 ksp = fft(phantom_slice, axis=(-2, -1))
             else:
-                if smaps is None:
+                if phantom.smaps is None:
                     ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
                 else:
-                    ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
+                    ksp = fft(
+                        phantom_state[:, None, ...] * phantom.smaps, axis=(-3, -2, -1)
+                    )
 
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil_sum = np.zeros(
@@ -135,7 +136,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
         slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data. No T2s decay."""
@@ -157,17 +157,19 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
                 slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
                 flat_epi = flat_epi[:, 1:]  # Reduced to 2D.
                 phantom_slice = phantom_state[slice_location]
-                if smaps is None:
+                if phantom.smaps is None:
                     phantom_slice = phantom_slice[None, ...]
                 else:
-                    smaps_ = smaps[:, slice_location]
+                    smaps_ = phantom.smaps[:, slice_location]
                     phantom_slice = phantom_slice[None, ...] * smaps_
                 ksp = fft(phantom_slice, axis=(-2, -1))
             else:
-                if smaps is None:
+                if phantom.smaps is None:
                     ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
                 else:
-                    ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
+                    ksp = fft(
+                        phantom_state[None, ...] * phantom.smaps, axis=(-3, -2, -1)
+                    )
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]
                 a = ksp_coil[tuple(flat_epi.T)]
@@ -247,7 +249,6 @@ class EVIAcquisition(EPIAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
     ) -> np.ndarray:
         """Acquire k-space data. With T2s decay."""
         readout_length = trajectories.shape[-2]
@@ -299,10 +300,12 @@ class EVIAcquisition(EPIAcquisitionEngine):
                 * frame_phantom.masks
             )
 
-            if smaps is None:
+            if phantom.smaps is None:
                 ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
             else:
-                ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
+                ksp = fft(
+                    phantom_state[:, None, ...] * phantom.smaps, axis=(-3, -2, -1)
+                )
             flat_evi = evi.reshape(-1, 3)
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil_sum = np.zeros(
@@ -322,7 +325,6 @@ class EVIAcquisition(EPIAcquisitionEngine):
         dyn_datas: list[DynamicData],
         sim_conf: SimConfig,
         trajectories: NDArray,  # (Chunksize, N, 3)
-        smaps: NDArray,
     ) -> np.ndarray:
         """Acquire k-space data. No T2s decay."""
         final_ksp = np.zeros(
@@ -351,10 +353,10 @@ class EVIAcquisition(EPIAcquisitionEngine):
                 * frame_phantom.masks,
                 axis=0,
             )
-            if smaps is None:
+            if phantom.smaps is None:
                 ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
             else:
-                ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
+                ksp = fft(phantom_state[None, ...] * phantom.smaps, axis=(-3, -2, -1))
             flat_epi = epi_2d.reshape(-1, 3)
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]

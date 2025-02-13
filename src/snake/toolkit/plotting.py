@@ -198,8 +198,8 @@ def plot_frames_activ(
 
 
 def axis3dcut(
-    background: NDArray,
-    z_score: NDArray,
+    background: NDArray[np.float32],
+    z_score: NDArray[np.float32] | None,
     gt_roi: NDArray | None = None,
     width_inches: float = 7,
     cbar: bool = True,
@@ -312,6 +312,8 @@ def axis3dcut(
             slices_[i],
             bbox_[i],
             bg_cmap=bg_cmap,
+            z_thresh=z_thresh,
+            z_max=z_max,
         )
 
     if cbar:
@@ -319,10 +321,17 @@ def axis3dcut(
         cax.set_axes_locator(divider.new_locator(nx=3, ny=0, ny1=-1))
         if z_score is not None:
             im = ScalarMappable(norm="linear", cmap=get_coolgraywarm())
-            im.set_clim(-11, 11)
+            im.set_clim(-z_max, z_max)
             matplotlib.colorbar.Colorbar(cax, im, orientation="vertical")
             cax.set_ylabel("z-scores", labelpad=-20)
-            cax.set_yticks(np.concatenate([-np.arange(3, 12, 2), np.arange(3, 12, 2)]))
+            cax.set_yticks(
+                np.concatenate(
+                    [
+                        -np.arange(z_thresh, z_max + 1, 2),
+                        np.arange(z_thresh, z_max + 1, 2),
+                    ]
+                )
+            )
         else:
             # use the background image
             if vmin_vmax is None:

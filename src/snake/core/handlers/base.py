@@ -1,23 +1,26 @@
 """Base handler module."""
 
 from __future__ import annotations
-import yaml
+
 import dataclasses
 from collections import UserList
+from typing import Any, ClassVar, TypeVar
+
+import yaml
+from typing_extensions import dataclass_transform
 
 from ..._meta import MetaDCRegister
-from typing import ClassVar, TypeVar, Any
-
+from ..phantom import DynamicData, KspaceDynamicData, Phantom
 from ..simulation import SimConfig
-from ..phantom import Phantom, DynamicData, KspaceDynamicData
 
 T = TypeVar("T")
 
 
+@dataclass_transform(kw_only_default=True)
 class MetaHandler(MetaDCRegister):
     """MetaClass for Handlers."""
 
-    dunder_name = "handler"
+    dunder_name: ClassVar[str] = "handler"
 
 
 class AbstractHandler(metaclass=MetaHandler):

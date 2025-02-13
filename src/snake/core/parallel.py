@@ -101,6 +101,9 @@ def array_from_shm(
     shms = []
     arrays: list[NDArray] = []
     for prop in array_props:
+        if prop is None:  # optional arrays are ignored
+            arrays.append(None)
+            continue
         nbytes = int(np.dtype(prop.dtype).itemsize * np.prod(prop.shape))
         shms.append(SharedMemory(name=prop.name, size=nbytes))
         arrays.append(

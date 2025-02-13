@@ -100,34 +100,6 @@ def add_phantom_mrd(
     return phantom.to_mrd_dataset(dataset, sim_conf)
 
 
-def add_smaps_mrd(
-    dataset: mrd.Dataset,
-    sim_conf: SimConfig,
-    smaps: NDArray | None = None,
-) -> mrd.Dataset:
-    """Add the Smaps to the dataset."""
-    if smaps is None:
-        return dataset
-    elif smaps.shape != (sim_conf.hardware.n_coils, *sim_conf.shape):
-        raise ValueError(
-            "Incompatible smaps shape"
-            f"{smaps.shape} != {(sim_conf.hardware.n_coils, *sim_conf.shape)} "
-        )
-    dataset.append_image(
-        "smaps",
-        mrd.image.Image(
-            head=mrd.image.ImageHeader(
-                matrixSize=mrd.xsd.matrixSizeType(*smaps.shape[1:]),
-                fieldOfView_mm=mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm),
-                channels=len(smaps),
-                acquisition_time_stamp=0,
-            ),
-            data=smaps,
-        ),
-    )
-    return dataset
-
-
 def add_dynamic_mrd(
     dataset: mrd.Dataset, dynamic: DynamicData, sim_conf: SimConfig
 ) -> mrd.Dataset:
@@ -211,7 +183,6 @@ def make_base_mrd(
     phantom: Phantom,
     sim_conf: SimConfig,
     handlers: list[AbstractHandler] | HandlerList | None = None,
-    smaps: NDArray | None = None,
     coil_cov: NDArray | None = None,
     model: str = "simple",
     slice_2d: bool = False,
@@ -236,6 +207,13 @@ def make_base_mrd(
     coil_covar : NDArray, optional
         The coil covariance matrix, by default None
     """
+    # Apply the handlers and get the dynamic data, this might modifies the sim_conf !!
+    if handlers is None:
+        handlers = []
+    for h in handlers:
+        phantom = h.get_static(phantom, sim_conf)
+    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
+
     try:
         log.warning("Existing %s it will be overwritten", filename)
         os.remove(filename)
@@ -249,14 +227,6 @@ def make_base_mrd(
     with PerfLogger(logger=log, name="acq"):
         sampler.add_all_acq_mrd(dataset, sim_conf)
 
-    # Apply the handlers and get the dynamic data
-    if handlers is None:
-        handlers = []
-    for h in handlers:
-        phantom = h.get_static(phantom, sim_conf)
-
-    dynamic_data = [h.get_dynamic(phantom, sim_conf) for h in handlers]
-
     with PerfLogger(logger=log, name="phantom"):
         add_phantom_mrd(dataset, phantom, sim_conf)
 
@@ -266,9 +236,6 @@ def make_base_mrd(
                 if dyn is not None:
                     add_dynamic_mrd(dataset, dyn, sim_conf)
 
-    with PerfLogger(logger=log, name="smaps"):
-        if sim_conf.hardware.n_coils > 1 and smaps is not None:
-            add_smaps_mrd(dataset, sim_conf, smaps)
     with PerfLogger(logger=log, name="coil_cov"):
         if sim_conf.hardware.n_coils > 1 and coil_cov is not None:
             add_coil_cov_mrd(dataset, sim_conf, coil_cov)
