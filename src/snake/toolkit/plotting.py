@@ -143,7 +143,7 @@ def get_mask_cuts_mask(mask: NDArray) -> tuple[int, ...]:
 def plot_frames_activ(
     background: NDArray,
     z_score: NDArray,
-    roi: NDArray | None,
+    rois: list[NDArray] | None,
     ax: plt.Axes,
     slices: tuple[Any, ...],
     bbox: tuple[Any, ...],
@@ -187,11 +187,14 @@ def plot_frames_activ(
             interpolation="nearest",
             origin="lower",
         )
-    if roi is not None:
-        roi_cut = roi[slices][bbox].squeeze()
-        contours = find_contours(roi_cut)
-        for c in contours:
-            ax.plot(c[:, 1], c[:, 0] - 0.5, c="cyan", label="ground-truth", linewidth=1)
+    if rois is not None:
+        for roi in rois:
+            roi_cut = roi[slices][bbox].squeeze()
+            contours = find_contours(roi_cut)
+            for c in contours:
+                ax.plot(
+                    c[:, 1], c[:, 0] - 0.5, c="cyan", label="ground-truth", linewidth=1
+                )
     ax.set_xticks([])
     ax.set_yticks([])
     return ax, im
@@ -259,8 +262,10 @@ def axis3dcut(
 
     """
     #    ax.axis("off")
+    if isinstance(gt_roi, np.ndarray):
+        gt_roi = [gt_roi]
     if cuts is None and gt_roi is not None:
-        cuts_ = get_mask_cuts_mask(gt_roi)
+        cuts_ = get_mask_cuts_mask(gt_roi[0])
         gt_roi_ = gt_roi
     elif cuts is not None and gt_roi is not None:
         cuts_ = cuts

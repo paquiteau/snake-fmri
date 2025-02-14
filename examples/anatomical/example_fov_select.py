@@ -1,3 +1,4 @@
+# %%
 """
 Select the FOV and target resolution of the phantom
 ===================================================
