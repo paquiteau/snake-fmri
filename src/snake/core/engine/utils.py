@@ -9,6 +9,8 @@ from ..phantom import Phantom, PropTissueEnum, DynamicData
 from ..simulation import SimConfig
 
 
+# TODO Remove duplicate code here,
+# favor of Phantom.constrast("GRE", TR, TE, FA,  aggregate=True)
 def get_contrast_gre(phantom: Phantom, FA: float, TE: float, TR: float) -> NDArray:
     """Compute the GRE contrast at TE."""
     return (
