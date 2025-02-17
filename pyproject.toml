@@ -96,6 +96,7 @@ profile="black"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+testpaths=["tests"]
 addopts = [
     "--cov=snake",
     "--cov-report=term-missing",
@@ -142,4 +143,6 @@ skip = ["docs/generated", "*.ipynb"]
 [dependency-groups]
 dev = [
     "ipykernel>=6.29.5",
+    "ipympl>=0.9.6",
+    "ipython>=8.32.0",
 ]
