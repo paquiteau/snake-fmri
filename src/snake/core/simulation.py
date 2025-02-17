@@ -5,6 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 import numpy as np
+from snake._meta import ThreeInts, ThreeFloats
+import nibabel as nib
+from numpy.typing import NDArray
 
 
 def _repr_html_(obj: Any, vertical: bool = True) -> str:
@@ -106,14 +109,40 @@ default_gre = GreConfig(TR=50, TE=30, FA=15)
 
 
 @dataclass
+class FOVConfig:
+    """Field of View configuration."""
+
+    shape: ThreeInts = (192, 192, 128)
+    """Shape of the FOV in voxels."""
+    center: ThreeFloats = (0, 0, 0)
+    """distance of the center of the FOV in mm to the magnet isocenter."""
+    angles: ThreeFloats = (0, 0, 0)
+    """Rotation Angles of the FOV in degrees"""
+    res_mm: ThreeFloats = (1, 1, 1)
+    """Resolution of the FOV in mm."""
+    _repr_html_ = _repr_html_
+
+    def get_affine(self) -> NDArray:
+        """Get the affine matrix of the FOV."""
+        # FIXME: angles are not correct
+        return nib.affines.from_matvec(
+            np.eye(3),
+            self.res_mm,
+            self.center,
+        )
+
+
+@dataclass
 class SimConfig:
     """All base configuration of a simulation."""
 
     max_sim_time: float = 300
     seq: GreConfig = field(default_factory=lambda: GreConfig(TR=50, TE=30, FA=15))
     hardware: HardwareConfig = field(default_factory=lambda: HardwareConfig())
-    fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
-    shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
+    fov: FOVConfig = field(default_factory=lambda: FOVConfig())
+
+    # fov_mm: tuple[float, float, float] = (192.0, 192.0, 128.0)
+    # shape: tuple[int, int, int] = (192, 192, 128)  # Target reconstruction shape
     rng_seed: int = 19290506
 
     _repr_html_ = _repr_html_
@@ -130,7 +159,7 @@ class SimConfig:
     @property
     def res_mm(self) -> tuple[float, ...]:
         """Voxel resolution in mm."""
-        return tuple(self.fov_mm[i] / self.shape[i] for i in range(3))
+        return self.fov.res_mm
 
     @property
     def sim_tr_ms(self) -> float:
