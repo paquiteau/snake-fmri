@@ -15,7 +15,6 @@ from collections.abc import Generator
 from .._meta import LogMixin
 
 if TYPE_CHECKING:
-    from _typeshed import AnyPath
     from ..core import Phantom, DynamicData
     from ..core import SimConfig
 
@@ -23,8 +22,10 @@ from .utils import b64encode2obj, unserialize_array
 
 log = logging.getLogger(__name__)
 
+GenericPath = os.PathLike | str
 
-def read_mrd_header(filename: AnyPath | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
+
+def read_mrd_header(filename: GenericPath | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
     """Read the header of the MRD file."""
     if isinstance(filename, mrd.Dataset):
         dataset = filename
@@ -51,7 +52,7 @@ class MRDLoader(LogMixin):
 
     def __init__(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         dataset_name: str = "dataset",
         writeable: bool = False,
         swmr: bool = False,
@@ -94,7 +95,7 @@ class MRDLoader(LogMixin):
         """Iterate over kspace frames of the dataset.
 
         Parameters
-        ---------
+        ----------
         start : int, optional
             Start index of the iteration.
         stop : int, optional
@@ -105,7 +106,7 @@ class MRDLoader(LogMixin):
             Return the data reshaped with the shot dimension first.
 
         Yields
-        -----
+        ------
         tuple[int, np.ndarray, np.ndarray]
             The index of the frame, the trajectory and the kspace data.
 

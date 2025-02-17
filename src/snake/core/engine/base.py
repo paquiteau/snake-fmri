@@ -13,6 +13,7 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from typing import Any, ClassVar
 
+
 import ismrmrd as mrd
 import numpy as np
 from numpy.typing import NDArray
@@ -30,7 +31,7 @@ from ..sampling import BaseSampler
 from ..simulation import SimConfig
 from .utils import get_ideal_phantom, get_noise
 
-AnyPath = str | Path
+GenericPath = Path | str
 
 
 @dataclass_transform(kw_only_default=True)
@@ -117,7 +118,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def _acquire_ksp_job(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         chunk: Sequence[int],
         tmp_dir: str,
         shared_phantom_props: (
@@ -161,7 +162,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def __call__(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         sampler: BaseSampler,
         phantom: Phantom,
         sim_conf: SimConfig,
@@ -175,7 +176,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         Parameters
         ----------
-        filename : AnyPath
+        filename : GenericPath
             The path to the MRD file.
         sampler : BaseSampler
             The sampler to use.
