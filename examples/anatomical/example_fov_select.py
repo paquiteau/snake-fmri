@@ -11,16 +11,12 @@ from snake.toolkit.plotting import axis3dcut
 # %%
 # shape = (90, 110,90)
 # Original FOV And size of the phantom
-shape = (181, 217, 181)
-fov_mm = (181, 217, 181)
 TR = 50
 TE = 30
 FA = 40  # np.degrees(np.arccos(np.exp((-TR/2000))))
 field = "7T"  # "1T5"
 
-sim_conf = SimConfig(
-    max_sim_time=3, seq=GreConfig(TR=TR, TE=TE, FA=FA), fov_mm=fov_mm, shape=shape
-)
+sim_conf = SimConfig(max_sim_time=3, seq=GreConfig(TR=TR, TE=TE, FA=FA))
 sim_conf.hardware.n_coils = 32  # Update to get multi coil results.
 sim_conf.hardware.field_strength = 7
 

@@ -289,7 +289,7 @@ class Phantom:
         slice_dir = self.affine[:3, 2] / self.affine[2, 2]
         slice_dir = (-slice_dir[0], -slice_dir[1], slice_dir[2])
 
-        fov_mm = tuple(np.array(self.anat_shape) * np.diag(self.affine)[:3])
+        fov_mm = tuple(np.float32(np.array(self.anat_shape) * np.diag(self.affine)[:3]))
 
         # Add the phantom data
         dataset.append_image(

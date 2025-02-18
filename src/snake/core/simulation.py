@@ -114,22 +114,32 @@ class FOVConfig:
 
     shape: ThreeInts = (192, 192, 128)
     """Shape of the FOV in voxels."""
-    center: ThreeFloats = (0, 0, 0)
+    affine: NDArray = None
+    """Affine matrix of the FOV."""
+    center: ThreeFloats = None
     """distance of the center of the FOV in mm to the magnet isocenter."""
-    angles: ThreeFloats = (0, 0, 0)
-    """Rotation Angles of the FOV in degrees"""
-    res_mm: ThreeFloats = (1, 1, 1)
+    angles: ThreeFloats = None
+    """Euler Rotation Angles of the FOV in degrees"""
+    res_mm: ThreeFloats = None
     """Resolution of the FOV in mm."""
     _repr_html_ = _repr_html_
 
-    def get_affine(self) -> NDArray:
-        """Get the affine matrix of the FOV."""
-        # FIXME: angles are not correct
-        return nib.affines.from_matvec(
-            np.eye(3),
-            self.res_mm,
-            self.center,
-        )
+    def _post_init__(self) -> None:
+        """Check that either affine or center,angles,res_mm are set."""
+        if self.affine is None and (
+            self.center is None or self.angles is None or self.res_mm is None
+        ):
+            raise ValueError("Either affine or center, angles, and res_mm must be set.")
+        elif self.affine is not None:
+            # Get the center and angles from the affine matrix
+            ...
+        elif (
+            self.center is not None
+            and self.angles is not None
+            and self.res_mm is not None
+        ):
+            # Get the affine matrix from the center, angles, and resolution
+            ...
 
 
 @dataclass
