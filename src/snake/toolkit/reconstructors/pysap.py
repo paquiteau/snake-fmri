@@ -41,7 +41,11 @@ def _reconstruct_cartesian_frame(
         CartesianFrameDataLoader(filename) as data_loader,
     ):
         mask, kspace = data_loader.get_kspace_frame(idx)
-        adj_data = ifft(kspace, axis=tuple(range(len(data_loader.shape), 0, -1)))
+        if data_loader.slice_2d:
+            axes = (-2,-1)
+        else:
+            axes = tuple(range(len(data_loader.shape), 0, -1))
+        adj_data = ifft(kspace, axis=axes)
         if smaps_props is not None and data_loader.n_coils > 1:
             with array_from_shm(smaps_props) as smaps_info:
                 smaps = smaps_info[0]
@@ -208,11 +212,11 @@ class SequentialReconstructor(BaseReconstructor):
 
         self.space_linear_op = WaveletTransform(
             self.wavelet,
-            shape=shape,
+            shape=shape,  ##### shape[:2] if data_loader.slice_2d
             level=3,
             mode="zero",
             compute_backend=self.compute_backend,
-        )
+        )   
         xp, _ = get_backend(self.compute_backend)
         _ = self.space_linear_op.op(xp.zeros(shape, dtype=np.complex64))
 
@@ -232,6 +236,8 @@ class SequentialReconstructor(BaseReconstructor):
     def reconstruct(self, data_loader: MRDLoader) -> np.ndarray:
         """Reconstruct with Sequential."""
         shape = data_loader.shape
+        if data_loader.slice_2d:
+            shape = shape[:2]
         self.setup(shape=shape)
         from fmri.operators.gradient import (
             GradAnalysis,
@@ -244,7 +250,12 @@ class SequentialReconstructor(BaseReconstructor):
         xp, _ = get_backend(self.compute_backend)
 
         traj, data = data_loader.get_kspace_frame(0)
-
+        if data_loader.slice_2d:
+            traj = np.reshape(
+                traj,(data_loader.n_shots, -1, traj.shape[-1])
+                )[0, :, :2]
+            data = np.reshape(data, (data_loader.n_shots, -1))
+            
         smaps = data_loader.get_smaps()
 
         density_compensation = self.density_compensation
@@ -262,8 +273,8 @@ class SequentialReconstructor(BaseReconstructor):
 
         fourier_op = get_operator(
             self.nufft_backend,
-            samples=traj,
-            shape=data_loader.shape,
+            samples=traj,  
+            shape=shape,##### shape[:2] if 2D
             n_coils=data_loader.n_coils,
             smaps=smaps,
             # smaps=xp.array(smaps) if smaps is not None else None,
@@ -287,7 +298,7 @@ class SequentialReconstructor(BaseReconstructor):
         if self.optimizer in ["pogm"]:
             grad_op = GradSynthesis(linear_op=self.space_linear_op, **grad_kwargs)
 
-        x_init = xp.zeros(shape, dtype=np.complex64)
+        x_init = xp.zeros(data_loader.shape, dtype=np.complex64)
         if (
             isinstance(self.density_compensation, str)
             and "first" in self.density_compensation
@@ -295,22 +306,33 @@ class SequentialReconstructor(BaseReconstructor):
             density_comp_vector = pipe(traj, shape, self.nufft_backend)
             x_init = fourier_op.adj_op(xp.array(data * density_comp_vector, copy=False))
         else:
-            x_init = fourier_op.adj_op(xp.array(data, copy=False))
+            if data_loader.slice_2d:
+               for i in range (data.shape[0]):
+                    x_init[...,i] = fourier_op.adj_op(
+                        xp.array(data[i][None,...], copy=False)
+                        )
 
         pbar_frames = tqdm(total=data_loader.n_frames, position=0)
         pbar_iter = tqdm(total=self.max_iter_per_frame, position=1)
+        x_iter = x_init.copy() 
         for i, traj, data in data_loader.iter_frames():
-            grad_op.fourier_op.samples = traj
+            #grad_op.fourier_op.samples = traj
             spec_rad = grad_op.fourier_op.get_lipschitz_cst(20)
-            grad_op._obs_data = xp.array(data)
+            #grad_op._obs_data = xp.array(data)
             grad_op.spec_rad = spec_rad
             grad_op.inv_spec_rad = 1 / spec_rad
-            x_iter = self._reconstruct_frame(
-                grad_op,
-                x_init,
-                n_iter=self.max_iter_per_frame,
-                progbar=pbar_iter,
-            )
+            # pseudo code
+            if data_loader.slice_2d: 
+                traj = np.reshape(
+                        traj,(data_loader.n_shots, -1, traj.shape[-1])
+                         )[0, :, :2]
+                data = np.reshape(data, ( data_loader.n_shots, -1))
+                grad_op.fourier_op.samples = traj
+                for j in range(data.shape[0]):
+                    grad_op._obs_data = xp.array(data[j][None,...])
+                    x_iter[...,j] = self._reconstruct_frame(
+                        grad_op, x_init[...,j], n_iter=self.max_iter_per_frame
+                        )   
             # Prepare for next iteration and save results
             x_init = (
                 x_iter.copy()
@@ -325,22 +347,28 @@ class SequentialReconstructor(BaseReconstructor):
             pbar_frames.update(1)
         if self.restart_strategy != RestartStrategy.REFINE:
             return final_estimate
-        # else, we do a second pass on the data using the last iteration as a slotion.
+        # else, we do a second pass on the data using the last iteration as a solution.
         pbar_frames.reset()
-        pbar_iter.reset()
+        #pbar_iter.reset()
         x_init = x_iter.copy()  # last iteration results.
         for i, traj, data in data_loader.iter_frames():
-            grad_op.fourier_op.samples = traj
+            #grad_op.fourier_op.samples = traj
             spec_rad = grad_op.fourier_op.get_lipschitz_cst()
-            grad_op._obs_data = xp.array(data)
+            #grad_op._obs_data = xp.array(data)
             grad_op.spec_rad = spec_rad
             grad_op.inv_spec_rad = 1 / spec_rad
-            x_iter = self._reconstruct_frame(
-                grad_op,
-                x_init,
-                n_iter=self.max_iter_per_frame,
-                progbar=pbar_iter,
-            )
+            # pseudo code
+            if data_loader.slice_2d:  
+                traj = np.reshape(
+                        traj,(data_loader.n_shots, -1, traj.shape[-1])
+                         )[0, :, :2]
+                data = np.reshape(data, (data_loader.n_shots, -1))
+                grad_op.fourier_op.samples = traj
+                for i in range(data.shape[0]):
+                    grad_op._obs_data = xp.array(data[i])
+                    x_iter[...,i] = self._reconstruct_frame(
+                        grad_op, x_init[:,:,i], n_iter=self.max_iter_per_frame
+                        )          
             if self.compute_backend == "cupy":
                 final_estimate[i, ...] = abs(x_iter).get()  # type: ignore
             else:
