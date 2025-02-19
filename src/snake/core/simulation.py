@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from typing import Any
 import numpy as np
 from snake._meta import ThreeInts, ThreeFloats
-import nibabel as nib
 from numpy.typing import NDArray
 
 

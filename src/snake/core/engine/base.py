@@ -11,7 +11,7 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from multiprocessing.managers import SharedMemoryManager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, ClassVar
+from typing import Any, ClassVar, overload
 
 
 import ismrmrd as mrd
@@ -70,6 +70,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> Sequence[int]:
         return range(data_loader.n_acquisition)
 
+    @overload
     def _job_trajectories(
         self,
         dataset: mrd.Dataset,
@@ -89,6 +90,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         t = dwell_time_ms * (np.arange(n_samples, dtype=np.float32) - echo_idx)
         return np.exp(-t[None, :] / phantom.props[:, PropTissueEnum.T2s, None])
 
+    @overload
     @staticmethod
     def _job_model_T2s(
         phantom: Phantom,
@@ -100,6 +102,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> NDArray:
         raise NotImplementedError
 
+    @overload
     @staticmethod
     def _job_model_simple(
         phantom: Phantom,
@@ -111,6 +114,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> NDArray:
         raise NotImplementedError
 
+    @overload
     def _write_chunk_data(
         self, dataset: mrd.Dataset, chunk: Sequence[int], chunk_data: NDArray
     ) -> None:

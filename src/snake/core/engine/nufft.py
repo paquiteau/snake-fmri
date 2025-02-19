@@ -97,7 +97,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data with T2s relaxation effect."""
-        chunk_size, n_samples, ndim = trajectories.shape
+        chunk_size, n_samples, _ = trajectories.shape
 
         final_ksp = np.zeros(
             (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
@@ -118,12 +118,14 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         )
         nufft.n_batchs = len(phantom.masks)  # number of tissues.
         for i, traj in enumerate(trajectories):
-            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
+            phantom_state, smaps = get_phantom_state(
+                phantom, dyn_datas, i, sim_conf, aggregate=False
+            )
             if slice_2d:
                 slice_loc = round((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
-                if phantom.smaps is not None:
-                    nufft.smaps = np.ascontiguousarray(phantom.smaps[..., slice_loc])
+                if smaps is not None:
+                    nufft.smaps = smaps[..., slice_loc]
                 phantom_state = phantom_state[:, None, ..., slice_loc]
             else:
                 phantom_state = phantom_state[:, None, ...]
@@ -145,7 +147,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         slice_2d: bool = False,
     ) -> np.ndarray:
         """Acquire k-space data. No T2s decay."""
-        chunk_size, n_samples, ndim = trajectories.shape
+        chunk_size, n_samples, _ = trajectories.shape
 
         final_ksp = np.zeros(
             (chunk_size, sim_conf.hardware.n_coils, n_samples), dtype=np.complex64
@@ -159,14 +161,13 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         )
         # (n_tissues_true, n_samples) Filter the tissues that have NaN Values
         for i, traj in enumerate(trajectories):
-            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
-            phantom_state = np.sum(phantom_state, axis=0)
+            phantom_state, smaps = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             nufft.n_batchs = 1  # number of tissues.
             if slice_2d:
                 slice_loc = int((traj[0, -1] + 0.5) * sim_conf.shape[-1])
                 nufft.samples = traj[:, :2]
-                if phantom.smaps is not None:
-                    nufft.smaps = phantom.smaps[..., slice_loc]
+                if smaps is not None:
+                    nufft.smaps = smaps[..., slice_loc]
                 phantom_state = phantom_state[None, ..., slice_loc]
             else:
                 nufft.samples = traj
