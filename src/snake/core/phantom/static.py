@@ -9,8 +9,6 @@ import logging
 import os
 from collections.abc import Generator
 from dataclasses import dataclass, field
-from enum import IntEnum
-from importlib.resources import files
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 from typing import Literal, TypeVar, Any, TYPE_CHECKING

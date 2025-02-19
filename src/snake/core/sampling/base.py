@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 import logging
-from typing import ClassVar
+from typing import ClassVar, overload
 from typing_extensions import dataclass_transform
 from numpy.typing import NDArray
 
@@ -40,8 +40,9 @@ class BaseSampler(metaclass=MetaSampler):
         """Get a logger."""
         return logging.getLogger(f"simulation.samplers.{self.__class__.__name__}")
 
+    @overload
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
-        """Generate a single frame."""
+        # Generate a single frame
         raise NotImplementedError
 
     def get_next_frame(self, sim_conf: SimConfig) -> NDArray:
@@ -53,6 +54,7 @@ class BaseSampler(metaclass=MetaSampler):
 
         return self._single_frame(sim_conf)
 
+    @overload
     def add_all_acq_mrd(self, dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
-        """Export the Sampling pattern to file."""
+        # Export the Sampling pattern to file
         raise NotImplementedError
