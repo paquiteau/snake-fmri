@@ -207,6 +207,11 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         Specific modeling steps are implemented in the `_job_model_T2s` and
         `_job_model_simple` methods.
         """
+
+        if slice_2d:  # Update the correct TR_eff
+            sim_conf.TR_eff = sampler.TR_vol_ms
+        else:
+            sim_conf.TR_eff = sim_conf.seq.TR
         # Create the base dataset
         make_base_mrd(
             filename,
@@ -264,7 +269,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             ) as tmp_chunk_dir,
         ):
             # data_loader._file.swmr_mode = True
-            phantom_props, shms = phantom.in_shared_memory(smm)
+            phantom_props, _ = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
             futures = {
                 executor.submit(

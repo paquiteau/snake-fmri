@@ -82,11 +82,30 @@ def _repr_html_(obj: Any, vertical: bool = True) -> str:
 class GreConfig:
     """Gradient Recall Echo Sequence parameters."""
 
+    """TR: Repetition Time in ms.
+    This is the time between two consecutive RF pulses."""
     TR: float
+    """TE: Echo Time in ms.
+    This is the time between the RF pulse and the echo."""
     TE: float
+    """FA: Flip Angle in degrees.
+    This is the angle of the RF pulse to the magnetization."""
     FA: float
 
     _repr_html_ = _repr_html_
+
+    def _post_init_(self) -> None:
+        """Validate the parameters. And create a Effective TR."""
+        if self.TE >= self.TR:
+            raise ValueError("TE must be less than TR.")
+        if self.FA < 0 or self.FA > 180:
+            raise ValueError("FA must be between 0 and 180 degrees.")
+        if self.TR < 0 or self.TE < 0:
+            raise ValueError("TR and TE must be positive.")
+
+        self.TR_eff = (
+            self.TR
+        )  # To be updated if needed. this will be used for the contrast calculation
 
 
 @dataclass

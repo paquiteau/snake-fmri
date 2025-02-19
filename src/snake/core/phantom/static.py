@@ -415,13 +415,13 @@ class Phantom:
             The constrast of the tissues.
         """
         if sim_conf is not None:
-            TR = sim_conf.seq.TR
+            TR = sim_conf.seq.TR_eff  # Here we use the effective TR.
             TE = sim_conf.seq.TE
             FA = sim_conf.seq.FA
         if sim_conf is None and TR is None and TE is None and FA is None:
             raise ValueError("Missing either sim_conf or TR,TE,FA")
         if sequence.upper() == "GRE":
-            contrasts = self._contrast_gre(TR=TR, TE=TE, FA=FA)
+            contrasts = _contrast_gre(self.props, TR=TR, TE=TE, FA=FA)
         else:
             raise NotImplementedError("Contrast not implemented.")
         if aggregate:

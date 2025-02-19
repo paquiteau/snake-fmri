@@ -79,6 +79,7 @@ def get_mrd_header(
                 ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
                 ("rng_seed", sim_conf.rng_seed),
                 ("max_sim_time", sim_conf.max_sim_time),
+                ("TR_eff", sim_conf.seq.TR_eff),
             ]
         ],
         userParameterString=[
@@ -207,7 +208,7 @@ def make_base_mrd(
     coil_covar : NDArray, optional
         The coil covariance matrix, by default None
     """
-    # Apply the handlers and get the dynamic data, this might modifies the sim_conf !!
+    # Apply the handlers and get the dynamic data!!
     if handlers is None:
         handlers = []
     for h in handlers:
