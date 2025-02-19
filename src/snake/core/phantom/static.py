@@ -24,36 +24,42 @@ from numpy.typing import NDArray
 from nibabel.nifti1 import Nifti1Image
 
 from ..parallel import ArrayProps, array_from_shm, array_to_shm
-from snake._meta import NoCaseEnum, ThreeFloats
+from snake._meta import ThreeFloats
 from ..simulation import SimConfig
 from snake.core.parallel import run_parallel
 from snake.core.phantom.utils import resize_tissues
 from snake.core.smaps import get_smaps
+from .contrast import _contrast_gre
+from .utils import PropTissueEnum, TissueFile
 
 log = logging.getLogger(__name__)
 
 
-class PropTissueEnum(IntEnum):
-    """Enum for the tissue properties."""
-
-    T1 = 0
-    T2 = 1
-    T2s = 2
-    rho = 3
-    chi = 4
-
-
-class TissueFile(str, NoCaseEnum):
-    """Enum for the tissue properties file."""
-
-    tissue_1T5 = str(files("snake.core.phantom.data") / "tissues_properties_1T5.csv")
-    tissue_7T = str(files("snake.core.phantom.data") / "tissues_properties_7T.csv")
-
-
 @dataclass
 class Phantom:
-    """A Phantom consist of a list of tissue mask and parameters for those tissues."""
+    """A Phantom consist of all spatial maps that are used in the simulation.
 
+    It is a dataclass that contains the tissue masks, properties, labels, and
+    spatial maps of the phantom.
+
+    The tissue masks are a 3D array with the shape (n_tissues, x, y, z), where
+    n_tissues is the number of tissues.
+
+    The properties are a 2D array with the shape (n_tissues, n_properties), where
+    n_properties is the number of properties.
+
+    The labels are a 1D array with the shape (n_tissues,) containing the names
+    of the tissues.
+
+    The sensitivity maps are a 4D array with the shape (n_coils, x, y, z), where
+    n_coils is the number of coils.
+
+    The affine matrix is a 2D array with the shape (4, 4) containing the affine
+    transformation matrix.
+
+    """
+
+    # TODO Add field map inhomogeneity in the phantom
     name: str
     masks: NDArray[np.float32]
     labels: NDArray[np.string_]
@@ -204,7 +210,7 @@ class Phantom:
             )
 
         return cls(
-            "brainweb",
+            "brainweb-{sub_id:02d}",
             tissues_mask,
             labels=np.array([t[0] for t in tissues_list]),
             props=np.array([t[1:] for t in tissues_list]),
@@ -431,19 +437,6 @@ class Phantom:
             return ret
         else:
             return self.masks * contrasts[(..., *([None] * len(self.anat_shape)))]
-
-    def _contrast_gre(self, *, TR: float, TE: float, FA: float) -> NDArray:
-        return (
-            self.props[:, PropTissueEnum.rho]
-            * np.sin(np.deg2rad(FA))
-            * np.exp(-TE / self.props[:, PropTissueEnum.T2s])
-            * (1 - np.exp(-TR / self.props[:, PropTissueEnum.T1]))
-            / (
-                1
-                - np.cos(np.deg2rad(FA))
-                * np.exp(-TR / self.props[:, PropTissueEnum.T1])
-            )
-        )
 
     @property
     def anat_shape(self) -> tuple[int, ...]:
