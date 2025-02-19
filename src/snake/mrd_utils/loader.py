@@ -422,6 +422,7 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         "dwell_time_ms": float,
         "max_sim_time": int,
         "rng_seed": int,
+        "TR_eff": float,
     }
 
     parsed = {
@@ -441,6 +442,8 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         n_coils=n_coils,
         field=field,
     )
+
+    seq.TR_eff = parsed.pop("TR_eff")
 
     fov_mm = header.encoding[0].encodedSpace.fieldOfView_mm
     fov_mm = (fov_mm.x, fov_mm.y, fov_mm.z)
