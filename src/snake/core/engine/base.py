@@ -29,7 +29,7 @@ from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..sampling import BaseSampler
 from ..simulation import SimConfig
-from .utils import get_ideal_phantom, get_noise
+from .utils import get_noise
 
 GenericPath = Path | str
 
@@ -242,7 +242,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             shot_idxs = self._get_chunk_list(data_loader)
 
             chunk_list = list(batched(shot_idxs, worker_chunk_size))
-            ideal_phantom = get_ideal_phantom(phantom, sim_conf)
+            ideal_phantom = phantom.contrast(sim_conf)
 
             coil_cov = data_loader.get_coil_cov() or np.eye(sim_conf.hardware.n_coils)
             if self.snr > 0:

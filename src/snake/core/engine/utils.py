@@ -5,7 +5,7 @@ import scipy as sp
 import numpy as np
 from numpy.typing import NDArray
 
-from ..phantom import Phantom, PropTissueEnum, DynamicData
+from ..phantom import Phantom, DynamicData
 from ..simulation import SimConfig
 
 
@@ -21,7 +21,8 @@ def get_phantom_state(
     for dyn_data in dyn_datas:
         frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
-    return frame_phantom.contrast(sim_conf, aggregate=aggregate), smaps
+    # TODO Apply the FOV selection using the affines ! Use the gpu is possible.
+    return frame_phantom.contrast(sim_conf, aggregate=aggregate), phantom.smaps
 
 
 def fft(image: NDArray, axis: tuple[int, ...] | int = -1) -> NDArray:

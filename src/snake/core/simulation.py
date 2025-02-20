@@ -7,6 +7,7 @@ from typing import Any
 import numpy as np
 from snake._meta import ThreeInts, ThreeFloats
 from numpy.typing import NDArray
+from scipy.spatial.transform import Rotation as R
 
 
 def _repr_html_(obj: Any, vertical: bool = True) -> str:
@@ -93,7 +94,7 @@ class GreConfig:
 
     _repr_html_ = _repr_html_
 
-    def _post_init_(self) -> None:
+    def __post_init__(self) -> None:
         """Validate the parameters. And create a Effective TR."""
         if self.TE >= self.TR:
             raise ValueError("TE must be less than TR.")
@@ -128,36 +129,46 @@ default_gre = GreConfig(TR=50, TE=30, FA=15)
 
 @dataclass
 class FOVConfig:
-    """Field of View configuration."""
+    """Field of View configuration.
 
-    shape: ThreeInts = (192, 192, 128)
-    """Shape of the FOV in voxels."""
-    affine: NDArray = None
-    """Affine matrix of the FOV."""
-    center: ThreeFloats = None
-    """distance of the center of the FOV in mm to the magnet isocenter."""
-    angles: ThreeFloats = None
+    This class is used to define the FOV of the simulation.
+    It uses the RAS convention and mm units.
+    """
+
+    size: ThreeFloats = (192, 192, 128)
+    """Size of the FOV in millimeter."""
+    offset: ThreeFloats = (0, 0, 0)
+    """distance (in mm) of the bottom left left voxel to magnet isocenter."""
+    angles: ThreeFloats = (0, 0, 0)
     """Euler Rotation Angles of the FOV in degrees"""
-    res_mm: ThreeFloats = None
+    res_mm: ThreeFloats = (1, 1, 1)
     """Resolution of the FOV in mm."""
     _repr_html_ = _repr_html_
 
-    def _post_init__(self) -> None:
-        """Check that either affine or center,angles,res_mm are set."""
-        if self.affine is None and (
-            self.center is None or self.angles is None or self.res_mm is None
-        ):
-            raise ValueError("Either affine or center, angles, and res_mm must be set.")
-        elif self.affine is not None:
-            # Get the center and angles from the affine matrix
-            ...
-        elif (
-            self.center is not None
-            and self.angles is not None
-            and self.res_mm is not None
-        ):
-            # Get the affine matrix from the center, angles, and resolution
-            ...
+    @classmethod
+    def from_affine(cls, affine: NDArray, size: ThreeFloats) -> FOVConfig:
+        """Create a FOVConfig from an affine matrix."""
+
+        res_mm = np.sqrt(np.sum(affine[:3, :3] ** 2, axis=0))
+        offset = affine[:3, 3]
+        angles = R.from_matrix(affine[:3, :3] / res_mm).as_euler("xyz", degrees=True)
+        return cls(res_mm=res_mm, offset=offset, angles=angles, size=size)
+
+    @property
+    def affine(self) -> NDArray[np.float32]:
+        """Generate an affine matrix from the FOV configuration."""
+
+        affine = np.eye(4, dtype=np.float32)
+        affine[:3, :3] = np.diag(self.res_mm)
+        affine[:3, 3] = np.array(self.offset)
+        rotation_matrix = R.from_euler("xyz", self.angles, degrees=True).as_matrix()
+        affine[:3, :3] = affine[:3, :3] @ rotation_matrix
+        return affine
+
+    @property
+    def shape(self):
+        """Shape of the associated array in voxels units."""
+        return tuple(round(s / r) for s, r in zip(self.size, self.res_mm))
 
 
 @dataclass
