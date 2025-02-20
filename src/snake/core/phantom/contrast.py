@@ -16,11 +16,11 @@ def _contrast_gre(
 ) -> NDArray:
     """Compute the GRE contrast for each of the tissues."""
     return (
-        props[:, PropTissueEnum.rho],
-        *np.sin(np.deg2rad(FA))
+        props[:, PropTissueEnum.rho]
+        * np.sin(np.deg2rad(FA))
         * np.exp(-TE / props[:, PropTissueEnum.T2s])
         * (1 - np.exp(-TR / props[:, PropTissueEnum.T1]))
-        / (1 - np.cos(np.deg2rad(FA)) * np.exp(-TR / props[:, PropTissueEnum.T1])),
+        / (1 - np.cos(np.deg2rad(FA)) * np.exp(-TR / props[:, PropTissueEnum.T1]))
     )
 
 

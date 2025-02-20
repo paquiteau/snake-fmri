@@ -1,32 +1,34 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
-from copy import deepcopy
 
 import base64
 import contextlib
 import logging
 import os
 from collections.abc import Generator
+from copy import deepcopy
 from dataclasses import dataclass, field
+from functools import partial
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
-from typing import Literal, TypeVar, Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, TypeVar
 
 if TYPE_CHECKING:
     from _typeshed import GenericPath
 
 import ismrmrd as mrd
 import numpy as np
-from numpy.typing import NDArray
 from nibabel.nifti1 import Nifti1Image
+from numpy.typing import NDArray
 
-from ..parallel import ArrayProps, array_from_shm, array_to_shm
-from snake._meta import ThreeFloats
-from ..simulation import SimConfig
+from snake._meta import ThreeFloats, ThreeInts
 from snake.core.parallel import run_parallel
 from snake.core.phantom.utils import resize_tissues
 from snake.core.smaps import get_smaps
+
+from ..parallel import ArrayProps, array_from_shm, array_to_shm
+from ..simulation import SimConfig
 from .contrast import _contrast_gre
 from .utils import PropTissueEnum, TissueFile
 
@@ -397,6 +399,7 @@ class Phantom:
         FA: float | None = None,
         sequence: Literal["GRE"] = "GRE",
         sim_conf: SimConfig | None = None,
+        resample: bool = True,
         aggregate: bool = True,
     ) -> NDArray[np.float32]:
         """Compute the contrast of the phantom for a given sequence.
@@ -418,6 +421,13 @@ class Phantom:
         NDArray
             The constrast of the tissues.
         """
+        if resample:
+            if sim_conf is None:
+                raise ValueError("sim_conf must be provided for resampling.")
+            affine = sim_conf.fov.affine
+            shape = sim_conf.fov.shape
+            self = self.resample(affine, shape)
+
         if sim_conf is not None:
             TR = sim_conf.seq.TR_eff  # Here we use the effective TR.
             TE = sim_conf.seq.TE
@@ -435,6 +445,73 @@ class Phantom:
             return ret
         else:
             return self.masks * contrasts[(..., *([None] * len(self.anat_shape)))]
+
+    def resample(
+        self, new_affine: NDArray, new_shape: ThreeInts, use_gpu: bool = False
+    ) -> Phantom:
+        """Resample the phantom to a new shape and affine matrix.
+
+        Parameters
+        ----------
+        new_affine : NDArray
+            The new affine matrix.
+        new_shape : ThreeInts
+            The new shape of the phantom.
+        use_gpu : bool, optional
+            Use the GPU for the resampling, by default False.
+        """
+        if use_gpu:
+            try:
+                import cupy as xp
+                from cupyx.scipy.ndimage import affine_transform as cu_affine_transform
+
+                try:
+                    use_gpu = xp.cuda.is_available()
+                except Exception:
+                    use_gpu = False
+                    raise ImportError
+
+                affine_transform = partial(cu_affine_transform, texture_memory=True)
+            except ImportError:
+                use_gpu = False
+        if not use_gpu:
+            import numpy as xp
+
+            log.warning("Cupy not available, using CPU.")
+            from scipy.ndimage import affine_transform
+
+        new_affine = xp.asarray(new_affine, dtype=xp.float32)
+        old_affine = xp.asarray(self.affine, dtype=xp.float32)
+        effective_affine = xp.linalg.inv(new_affine) @ old_affine
+
+        new_masks = xp.zeros((self.n_tissues, *new_shape), dtype=xp.float32)
+
+        for i, mask in enumerate(self.masks):  # TODO use run_parallel ?
+            new_masks[i] = affine_transform(
+                mask, effective_affine, output_shape=new_shape, order=3
+            )
+
+        new_smaps = None
+        if self.smaps is not None:
+            new_smaps = xp.zeros((self.smaps.shape[0], *new_shape), dtype=xp.complex64)
+            for i, smap in enumerate(self.smaps):
+                new_smaps[i] = affine_transform(
+                    smap, effective_affine, output_shape=new_shape, order=3
+                )
+        if use_gpu:
+            # Copy the data to the CPU
+            new_masks = new_masks.get()
+            if self.smaps is not None:
+                new_smaps = new_smaps.get()
+
+        return Phantom(
+            self.name,
+            new_masks,
+            self.labels,
+            self.props,
+            smaps=new_smaps,
+            affine=new_affine,
+        )
 
     @property
     def anat_shape(self) -> tuple[int, ...]:
