@@ -150,7 +150,6 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         for i, epi_2d in enumerate(trajectories):
             phantom_state, smaps = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             flat_epi = epi_2d.reshape(-1, 3)
-            print(flat_epi[0])
             if slice_2d:
                 slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
                 flat_epi = flat_epi[:, 1:]  # Reduced to 2D.

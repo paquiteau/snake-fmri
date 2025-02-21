@@ -245,7 +245,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             shot_idxs = self._get_chunk_list(data_loader)
 
             chunk_list = list(batched(shot_idxs, worker_chunk_size))
-            ideal_phantom = phantom.contrast(sim_conf)
+            ideal_phantom = phantom.contrast(sim_conf=sim_conf, aggregate=True)
 
             coil_cov = data_loader.get_coil_cov() or np.eye(sim_conf.hardware.n_coils)
             if self.snr > 0:
