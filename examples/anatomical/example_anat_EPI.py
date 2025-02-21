@@ -26,13 +26,11 @@ from snake.mrd_utils import make_base_mrd
 
 sim_conf = SimConfig(
     max_sim_time=6,
-    seq=GreConfig(TR=100, TE=30, FA=3),
+    seq=GreConfig(TR=50, TE=30, FA=3),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 8
-
+sim_conf.fov.res_mm = (3,3,3)
 sim_conf
 
 # %%
@@ -46,10 +44,10 @@ sim_conf
 #
 # Here we use Brainweb reference mask and values for convenience.
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf)
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, output_res=1, tissue_file="tissue_7T")
 
 # Here are the tissue availables and their parameters
-phantom
+phantom.affine
 
 
 # %%
@@ -65,13 +63,6 @@ sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
 smaps = None
 if sim_conf.hardware.n_coils > 1:
     smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
-
-# %%
-# SNAKE Uses the standardized ``.mrd`` file format as it output and exchange format.
-# More information are available at XXXX
-
-make_base_mrd("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
-
 
 # %%
 # Acquisition with Cartesian Engine
@@ -109,9 +100,8 @@ engine(
     sampler=sampler,
     phantom=phantom,
     sim_conf=sim_conf,
-    smaps=smaps,
-    worker_chunk_size=20,
-    n_workers=2,
+    worker_chunk_size=16,
+    n_workers=4,
 )
 
 # %%
@@ -154,5 +144,10 @@ from snake.toolkit.plotting import axis3dcut
 
 fig, ax = plt.subplots()
 
-axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(40, 60, 40), ax=ax)
+axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5,0.5, 0.5), ax=ax)
 plt.show()
+
+# %%
+plt.imshow(image_data[32])
+
+# %%
