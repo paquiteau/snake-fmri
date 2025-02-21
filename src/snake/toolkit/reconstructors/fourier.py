@@ -2,7 +2,8 @@
 
 from numpy.typing import NDArray
 import scipy as sp
-from snake.mrd_utils.loader import CartesianFrameDataLoader, NonCartesianFrameDataLoader
+from snake.mrd_utils.loader import NonCartesianFrameDataLoader
+from mrinufft.operators import FourierOperatorBase
 
 
 def fft(image: NDArray, axis: int | tuple[int] = -1) -> NDArray:
@@ -51,7 +52,8 @@ def init_nufft(
     data_loader: NonCartesianFrameDataLoader,
     nufft_backend: str,
     density_compensation: bool = False,
-):
+) -> FourierOperatorBase:
+    """Initialize the NUFFT operator from the data_loader."""
     from mrinufft import get_operator
 
     smaps = data_loader.get_smaps()
