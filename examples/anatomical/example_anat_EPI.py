@@ -14,11 +14,11 @@ alternative is to use the CLI ``snake-main``
 
 # Imports
 import numpy as np
-from snake.core.simulation import SimConfig, default_hardware, GreConfig
+
 from snake.core.phantom import Phantom
-from snake.core.smaps import get_smaps
 from snake.core.sampling import EPI3dAcquisitionSampler
-from snake.mrd_utils import make_base_mrd
+from snake.core.simulation import GreConfig, SimConfig, default_hardware
+from snake.core.smaps import get_smaps
 
 # %%
 # Setting up the base simulation Config.  This configuration holds all key
@@ -30,7 +30,7 @@ sim_conf = SimConfig(
     hardware=default_hardware,
 )
 sim_conf.hardware.n_coils = 8
-sim_conf.fov.res_mm = (3,3,3)
+sim_conf.fov.res_mm = (3, 3, 3)
 sim_conf
 
 # %%
@@ -44,7 +44,9 @@ sim_conf
 #
 # Here we use Brainweb reference mask and values for convenience.
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, output_res=1, tissue_file="tissue_7T")
+phantom = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, output_res=1, tissue_file="tissue_7T"
+)
 
 # Here are the tissue availables and their parameters
 phantom.affine
@@ -127,7 +129,7 @@ with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
 # %%
 # Reconstructing a Single Frame of fully sampled EPI boils down to performing a 3D IFFT:
 
-from scipy.fft import ifftn, ifftshift, fftshift
+from scipy.fft import fftshift, ifftn, ifftshift
 
 axes = (-3, -2, -1)
 image_data = ifftshift(
@@ -140,11 +142,12 @@ image_data = np.sqrt(np.sum(np.abs(image_data) ** 2, axis=0))
 # %% plotting the result
 
 import matplotlib.pyplot as plt
+
 from snake.toolkit.plotting import axis3dcut
 
 fig, ax = plt.subplots()
 
-axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5,0.5, 0.5), ax=ax)
+axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=ax)
 plt.show()
 
 # %%

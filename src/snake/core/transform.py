@@ -3,8 +3,8 @@
 import base64
 import logging
 from collections.abc import Callable
-from functools import partial
 from types import ModuleType
+from typing import Any
 
 import numpy as np
 from numpy.typing import NDArray
@@ -36,9 +36,17 @@ def _validate_gpu_affine(use_gpu: bool = True) -> tuple[bool, Callable, ModuleTy
                 use_gpu = False
                 raise ImportError from exc
 
-            affine_transform = lambda x, *args, **kwargs: cu_affine_transform(
-                x, *args, **kwargs, texture_memory=x.dtype == xp.float32
-            )
+            def affine_transform(
+                x: NDArray, *, output_shape: ThreeInts, **kwargs: Any
+            ) -> NDArray:
+                output = xp.zeros(output_shape, dtype=np.float32)
+                return cu_affine_transform(
+                    x,
+                    output_shape=output_shape,
+                    output=output,
+                    **kwargs,
+                    texture_memory=x.dtype == xp.float32,
+                ).get()
         except ImportError:
             use_gpu = False
     if not use_gpu:
@@ -83,12 +91,7 @@ def apply_affine(
         transform_affine = effective_affine(new_affine, old_affine)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
     data = xp.asarray(data)
-    new_data = xp.zeros(new_shape, dtype=data.dtype)
-    new_data = affine_transform(
-        data, transform_affine, output_shape=new_shape, output=new_data
-    )
-    if use_gpu:
-        new_data = new_data.get()
+    new_data = affine_transform(data, transform_affine, output_shape=new_shape)
 
     return new_data
 

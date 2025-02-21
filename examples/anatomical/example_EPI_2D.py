@@ -24,14 +24,13 @@ from snake.core.sampling import EPI3dAcquisitionSampler
 # parameters for the simulation, describing the scanner parameters.
 
 sim_conf = SimConfig(
-    max_sim_time=6,
-    seq=GreConfig(TR=25, TE=30, FA=3),
+    max_sim_time=3,
+    seq=GreConfig(TR=50, TE=30, FA=3),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 71, 60),
 )
 sim_conf.hardware.n_coils = 8
 
+sim_conf.fov.res_mm = (3,3,3)
 sim_conf
 
 # %%
@@ -45,7 +44,7 @@ sim_conf
 #
 # Here we use Brainweb reference mask and values for convenience.
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf)
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, output_res=1)
 
 # Here are the tissue availables and their parameters
 phantom
@@ -86,9 +85,8 @@ engine(
     sampler=sampler,
     phantom=phantom,
     sim_conf=sim_conf,
-    smaps=smaps,
-    # worker_chunk_size=20,
-    n_workers=1,
+    worker_chunk_size=20,
+    n_workers=2,
 )
 
 # %%

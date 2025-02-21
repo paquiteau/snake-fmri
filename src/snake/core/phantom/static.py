@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import base64
 import contextlib
 import logging
 import os
@@ -11,7 +10,7 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
-from typing import TYPE_CHECKING, Any, Literal, TypeVar
+from typing import TYPE_CHECKING, Any, Literal
 
 if TYPE_CHECKING:
     from _typeshed import GenericPath
@@ -184,7 +183,7 @@ class Phantom:
         #
         # TODO: Use the sim shape properly.
         if output_res != 0.5:
-            if isinstance(output_res, (int, float)):
+            if isinstance(output_res, int | float):
                 output_res = [output_res] * 3
             z = np.array([0.5, 0.5, 0.5]) / np.array(output_res)
             new_shape = (shape[0], *np.round(np.array(shape[1:]) * z).astype(int))

@@ -215,7 +215,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         """
         if self.slice_2d:  # Update the correct TR_eff
             sim_conf.TR_eff = sampler.TR_vol_ms
-            self.log("Using 2D acquisition, the TR_eff is updated to TR_vol")
+            self.log.warning("Using 2D acquisition, the TR_eff is updated to TR_vol")
         else:
             sim_conf.TR_eff = sim_conf.seq.TR
 
