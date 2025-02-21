@@ -1,21 +1,25 @@
 """Export data to mrd format."""
 
 from __future__ import annotations
+
+import dataclasses
 import logging
 import os
 from typing import TYPE_CHECKING
+
 import ismrmrd as mrd
 import numpy as np
-from numpy.typing import NDArray
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
+from numpy.typing import NDArray
+
 from snake._version import __version__ as version
 
 from .utils import get_waveform_id, obj2b64encode
 
 if TYPE_CHECKING:
-    from snake.core.phantom import DynamicData, Phantom
     from snake.core.handlers import AbstractHandler, HandlerList
+    from snake.core.phantom import DynamicData, Phantom
     from snake.core.sampling import BaseSampler
     from snake.core.simulation import SimConfig
 
@@ -44,10 +48,10 @@ def get_mrd_header(
 
     # Encoding
     # FOV computation
-    input_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
+    input_fov = mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm)
     input_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
-    output_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
+    output_fov = mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm)
     output_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
     # FIXME: update the encoding in acquisition writer.
@@ -87,6 +91,8 @@ def get_mrd_header(
             for name, value in [
                 ("engine_model", model),
                 ("slice_2d", str(slice_2d)),
+                # FIXME: better erialization ?
+                ("fov_config", str(sim_conf.fov.__repr__())),
             ]
         ],
     )
