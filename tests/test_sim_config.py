@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 
-import pytest
-from pytest_cases import parametrize_with_cases, parametrize, fixture
-import numpy as np
+from pytest_cases import parametrize_with_cases, parametrize
 import numpy.testing as npt
 from snake.core import FOVConfig
 
@@ -26,7 +24,7 @@ class CasesFOVConfig:
         )
 
     @parametrize(offset=[(1, 1, 1), (2, 2, 2), (0.5, 0.5, 0.5), (1, 2, 3)])
-    def case_scaling(self, offset):
+    def case_offset(self, offset):
         return FOVConfig(
             angles=(0, 0, 0), offset=offset, res_mm=(1, 1, 1), size=(192, 192, 128)
         )
