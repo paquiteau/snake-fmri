@@ -5,8 +5,6 @@ import base64
 import pickle
 from enum import IntFlag
 from typing import Any
-import numpy as np
-from numpy.typing import NDArray
 
 
 def get_waveform_id(input_string: str) -> int:

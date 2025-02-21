@@ -10,7 +10,7 @@ import ismrmrd as mrd
 import h5py
 import numpy as np
 from numpy.typing import NDArray
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, overload
 from collections.abc import Generator
 from .._meta import LogMixin
 
@@ -122,10 +122,11 @@ class MRDLoader(LogMixin):
             for i in np.arange(start, stop, step):
                 yield i, *self.get_kspace_frame(i, shot_dim=shot_dim)
 
+    @overload
     def get_kspace_frame(
         self, idx: int
     ) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
-        """Get k-space frame trajectory/mask and data."""
+        # Get k-space frame trajectory/mask and data.
         raise NotImplementedError()
 
     ###########################
@@ -313,7 +314,7 @@ class MRDLoader(LogMixin):
         """Load the sensitivity maps from the dataset."""
         return self._get_image_data("smaps")
 
-    def get_coil_cov(self, default: NDArray | None = None) -> NDArray | None:
+    def get_coil_cov(self) -> NDArray | None:
         """Load the coil covariance from the dataset."""
         return self._get_image_data("coil_cov")
 
@@ -469,7 +470,7 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         hardware=hardware,
         rng_seed=parsed.pop("rng_seed"),
     )
-    sim_conf.fov = eval(parsed_str.pop("fov_config"))
+    sim_conf.fov: FOVConfig = eval(parsed_str.pop("fov_config"))
 
     return sim_conf
 

@@ -87,11 +87,14 @@ class FOVConfig:
             raise ValueError("resolution and size must be positive.")
         if any(abs(a) > 180 for a in self.angles):
             raise ValueError("Angles must be between -180 and 180 degrees.")
-        if any(r > s for r, s in zip(self.res_mm, self.size)):
+        if any(r > s for r, s in zip(self.res_mm, self.size, strict=False)):
             log.warning(
-                "Resolution is higher than the size of the FOV, setting to 1voxel thickness."
+                "Resolution is higher than the size of the FOV,"
+                " setting to 1voxel thickness."
             )
-            self.size = tuple(max(r, s) for r, s in zip(self.res_mm, self.size))
+            self.size = tuple(
+                max(r, s) for r, s in zip(self.res_mm, self.size, strict=False)
+            )
 
     @classmethod
     def from_affine(cls, affine: NDArray, size: ThreeFloats) -> FOVConfig:
