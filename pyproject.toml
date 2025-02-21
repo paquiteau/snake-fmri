@@ -110,8 +110,6 @@ include = ["src/**/*.py", "tests/**/*.py", "examples/*.py"]
 [tool.ruff.lint]
 select = ["E", "F", "B", "Q", "D", "UP", "ANN"]
 ignore = [
-    "ANN101", # missing type annotation for self
-    "ANN102", # missing type annotation for cls in classmethod.
     "ANN204", # missing return type for __init__
     "ANN401",
     "D105", # missing docstring in magic method
