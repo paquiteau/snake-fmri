@@ -388,6 +388,27 @@ class Phantom:
         else:
             raise ValueError("No Smaps to convert.")
 
+    @classmethod
+    def from_nifti(
+        cls,
+        mask_nifti: Nifti1Image | GenericPath,
+        smaps_nifti: Nifti1Image | GenericPath | None = None,
+    ) -> Phantom:
+        """Create a phantom from nifti files."""
+        if not isinstance(mask_nifti, Nifti1Image):
+            mask_nifti = Nifti1Image.from_filename(mask_nifti)
+        if smaps_nifti and not isinstance(smaps_nifti, Nifti1Image):
+            smaps_nifti = Nifti1Image.from_filename(smaps_nifti)
+
+        affine = mask_nifti.affine
+        props = mask_nifti.extra["props"]
+        labels = mask_nifti.extra["labels"]
+        masks = mask_nifti.get_fdata().astype(np.float32)
+        smaps = None
+        if smaps_nifti:
+            smaps = smaps_nifti.get_fdata().astype(np.complex64)
+        return cls("nifti", masks, labels, props, smaps=smaps, affine=affine)
+
     def contrast(
         self,
         *,
