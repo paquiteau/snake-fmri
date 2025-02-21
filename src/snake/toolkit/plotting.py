@@ -75,8 +75,12 @@ def _get_axis_properties(
             mask = cut
         rows = np.any(mask, axis=1)
         cols = np.any(mask, axis=0)
-        rmin, rmax = np.where(rows)[0][[0, -1]]
-        cmin, cmax = np.where(cols)[0][[0, -1]]
+        try:
+            rmin, rmax = np.where(rows)[0][[0, -1]]
+            cmin, cmax = np.where(cols)[0][[0, -1]]
+        except IndexError:
+            rmin, rmax = 0, mask.shape[0]
+            cmin, cmax = 0, mask.shape[1]
         if tight_crop:
             rmin = max(0, rmin - arr_pad)
             rmax = min(rmax + arr_pad, mask.shape[0])
@@ -214,7 +218,7 @@ def axis3dcut(
     vmin_vmax: tuple[float] = None,
     z_thresh: float = 3,
     z_max: float = 11,
-    tight_crop: bool = True,
+    tight_crop: bool = False,
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI.
 

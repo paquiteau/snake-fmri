@@ -69,7 +69,6 @@ def init_nufft(
         n_coils=data_loader.n_coils,
         smaps=smaps,
     )
-    print(density_compensation, type(density_compensation))
     if density_compensation is False:
         kwargs["density"] = None
     else:
