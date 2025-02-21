@@ -15,7 +15,7 @@ alternative is to use the CLI ``snake-main``
 # .. colab-link::
 #    :needs_gpu: 1
 #
-#    !pip install mri-nufft[gpunufft] scikit-image
+#    !pip install mri-nufft[cufinufft] scikit-image
 
 # Imports
 import matplotlib.pyplot as plt
@@ -30,7 +30,7 @@ from mrinufft import get_operator
 
 # For faster computation, try to use the GPU
 
-NUFFT_BACKEND = "stacked-gpunufft"
+NUFFT_BACKEND = "stacked-cufinufft"
 COMPUTE_BACKEND = "cupy"
 
 try:
@@ -39,7 +39,7 @@ try:
     if not cp.cupy.cuda.runtime.getDeviceCount():
         raise ValueError("No CUDA Device found")
 
-    get_operator("gpunufft")
+    get_operator("cufinufft")
 except Exception:
     try:
         get_operator("finufft")

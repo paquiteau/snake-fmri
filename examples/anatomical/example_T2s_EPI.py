@@ -25,10 +25,9 @@ sim_conf = SimConfig(
     max_sim_time=6,
     seq=GreConfig(TR=100, TE=30, FA=3),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 8
+sim_conf.fov.res_mm = (3, 3, 3)
 
 phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
 
@@ -122,7 +121,7 @@ from scipy.fft import ifftn, ifftshift, fftshift
 
 def reconstruct_frame(filename):
     with CartesianFrameDataLoader(filename) as data_loader:
-        mask, kspace_data = data_loader.get_kspace_frame(0)
+        _, kspace_data = data_loader.get_kspace_frame(0)
     axes = (-3, -2, -1)
     image_data = ifftshift(
         ifftn(fftshift(kspace_data, axes=axes), axes=axes, norm="ortho"), axes=axes

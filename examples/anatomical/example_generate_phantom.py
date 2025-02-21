@@ -6,7 +6,6 @@ Example for generating a phantom and visualizing the contrast at different TE va
 """
 
 from snake.core.phantom import Phantom
-from snake.core.engine.utils import get_ideal_phantom
 from snake.core.simulation import SimConfig, GreConfig
 
 
@@ -16,24 +15,23 @@ from snake.core.simulation import SimConfig, GreConfig
 #
 
 # %%
-shape = (181, 217, 181)
 TR = 100
 TE = 25
 FA = 3
 field = "7T"  # "1T5"
 
-sim_conf = SimConfig(shape, seq=GreConfig(TR=TR, TE=TE, FA=FA))
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf)
+sim_conf = SimConfig(seq=GreConfig(TR=TR, TE=TE, FA=FA))
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, output_res=1)
 
 phantom
 
-contrast_at_TE = get_ideal_phantom(phantom, sim_conf)
+contrast_at_TE = phantom.contrast(resample=True, sim_conf=sim_conf)
 
 from snake.toolkit.plotting import axis3dcut
 import matplotlib.pyplot as plt
 
 fig, ax = plt.subplots()
-axis3dcut(contrast_at_TE.T, None, None, cuts=(60, 60, 60), ax=ax, width_inches=5)
+axis3dcut(contrast_at_TE.T, None, None, cuts=(0.5, 0.5, 0.5), ax=ax, width_inches=5)
 fig
 
 from ipywidgets import interact
@@ -41,7 +39,7 @@ from ipywidgets import interact
 
 # %%
 fig = plt.figure()
-sim_conf = SimConfig(shape, seq=GreConfig(TR=TR, TE=TE, FA=FA))
+sim_conf = SimConfig(seq=GreConfig(TR=TR, TE=TE, FA=FA))
 
 phantom1T5 = Phantom.from_brainweb(
     sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5"
@@ -59,8 +57,10 @@ def live_contrast(TE: float = 10, TR: float = 100, FA: float = 3, tissue_field="
         phantom = phantom1T5
     elif tissue_field == "7T":
         phantom = phantom7T
-    contrast_at_TE = get_ideal_phantom(phantom, sim_conf)
-    axis3dcut(fig, ax, contrast_at_TE.T, None, None, cuts=(60, 60, 60), width_inches=5)
+    contrast_at_TE = phantom.contrast(sim_conf=sim_conf, resample=True)
+    axis3dcut(
+        fig, ax, contrast_at_TE.T, None, None, cuts=(0.5, 0.5, 0.5), width_inches=5
+    )
     fig.canvas.draw_idle()
     # if len(fig.get_axes()) >=5:
     #     fig.get_axes()[-1].remove()

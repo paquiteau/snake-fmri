@@ -37,11 +37,12 @@ def _validate_gpu_affine(use_gpu: bool = True) -> tuple[bool, Callable, ModuleTy
                 raise ImportError from exc
 
             def affine_transform(
-                x: NDArray, *, output_shape: ThreeInts, **kwargs: Any
+                x: NDArray, *args: Any, output_shape: ThreeInts, **kwargs: Any
             ) -> NDArray:
-                output = xp.zeros(output_shape, dtype=np.float32)
+                output = xp.zeros(output_shape, dtype=x.dtype)
                 return cu_affine_transform(
                     x,
+                    *args,
                     output_shape=output_shape,
                     output=output,
                     **kwargs,
