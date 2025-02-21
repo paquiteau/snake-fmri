@@ -96,9 +96,9 @@ class FOVConfig:
         return affine
 
     @property
-    def shape(self):
+    def shape(self) -> ThreeInts:
         """Shape of the associated array in voxels units."""
-        return tuple(round(s / r) for s, r in zip(self.size, self.res_mm))
+        return tuple(round(s / r) for s, r in zip(self.size, self.res_mm, strict=False))
 
 
 @dataclass
@@ -126,7 +126,7 @@ class SimConfig:
         return int(self.max_sim_time * 1000 / self.sim_tr_ms)
 
     @property
-    def res_mm(self) -> tuple[float, ...]:
+    def res_mm(self) -> ThreeFloats:
         """Voxel resolution in mm."""
         return self.fov.res_mm
 
@@ -134,3 +134,13 @@ class SimConfig:
     def sim_tr_ms(self) -> float:
         """Simulation resolution in ms."""
         return self.seq.TR
+
+    @property
+    def shape(self) -> ThreeInts:
+        """Shape of the simulation."""
+        return self.fov.shape
+
+    @property
+    def fov_mm(self) -> ThreeFloats:
+        """Size of the FOV in mm."""
+        return self.fov.size

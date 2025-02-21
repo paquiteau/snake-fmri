@@ -199,6 +199,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             The number of workers to use, by default 0 (auto). Half of CPU count will
             be used (This usually corresponds to the number of physical cores on the
             machine).
+        resample_early:bool, optional
+            Whether to resample the phantom early, by default False
         kwargs : Any
             Additional keyword arguments, passed down to internal implementation.
 
@@ -208,14 +210,15 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         This function is the main entry point for the acquisition engine.
         It will create the base dataset, and then dispatch the work to the workers.
 
-        Specific modeling steps are implemented in the `_job_model_T2s` and
-        `_job_model_simple` methods.
+        Specific modeling steps are implemented in subclasses' methods `_job_model_T2s`
+        and `_job_model_simple`.
         """
-
-        if slice_2d:  # Update the correct TR_eff
+        if self.slice_2d:  # Update the correct TR_eff
             sim_conf.TR_eff = sampler.TR_vol_ms
+            self.log("Using 2D acquisition, the TR_eff is updated to TR_vol")
         else:
             sim_conf.TR_eff = sim_conf.seq.TR
+
         # Create the base dataset
         make_base_mrd(
             filename,
