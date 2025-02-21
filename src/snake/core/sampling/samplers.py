@@ -43,6 +43,11 @@ class NonCartesianAcquisitionSampler(BaseSampler):
     in_out: bool = True
     obs_time_ms: int = 30
 
+    def TR_vol_ms(self, sim_conf: SimConfig) -> float:
+        """Return the volumic TR in ms."""
+        single_frame = self.get_next_frame(sim_conf)
+        return sim_conf.seq.TR * single_frame.shape[0]
+
     def add_all_acq_mrd(
         self,
         dataset: mrd.Dataset,
@@ -342,6 +347,12 @@ class EPI3dAcquisitionSampler(BaseSampler):
             pdfz=self.pdfz,
             rng=sim_conf.rng,
         )
+
+    def TR_vol_ms(self, sim_conf: SimConfig) -> float:
+        """Return the volumic TR in ms."""
+        single_frame = self._single_frame(sim_conf)
+        n_shots_frame = single_frame.shape[0]
+        return sim_conf.seq.TR * n_shots_frame
 
     def add_all_acq_mrd(
         self,
