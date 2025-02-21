@@ -94,13 +94,6 @@ def get_mrd_header(
     return H
 
 
-def add_phantom_mrd(
-    dataset: mrd.Dataset, phantom: Phantom, sim_conf: SimConfig
-) -> mrd.Dataset:
-    """Add the phantom to the dataset."""
-    return phantom.to_mrd_dataset(dataset, sim_conf)
-
-
 def add_dynamic_mrd(
     dataset: mrd.Dataset, dynamic: DynamicData, sim_conf: SimConfig
 ) -> mrd.Dataset:
@@ -229,7 +222,7 @@ def make_base_mrd(
         sampler.add_all_acq_mrd(dataset, sim_conf)
 
     with PerfLogger(logger=log, name="phantom"):
-        add_phantom_mrd(dataset, phantom, sim_conf)
+        phantom.to_mrd_dataset(dataset)
 
     with PerfLogger(logger=log, name="dynamic"):
         if dynamic_data is not None:
