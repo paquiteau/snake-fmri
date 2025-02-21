@@ -184,12 +184,13 @@ class Phantom:
         #
         # TODO: Use the sim shape properly.
         if output_res != 0.5:
-            if isinstance(output_res, float):
+            if isinstance(output_res, (int, float)):
                 output_res = [output_res] * 3
             z = np.array([0.5, 0.5, 0.5]) / np.array(output_res)
             new_shape = (shape[0], *np.round(np.array(shape[1:]) * z).astype(int))
             tissue_resized = np.zeros(new_shape, dtype=np.float32)
-
+            for i in range(3):
+                affine[i, i] = output_res[i]
             run_parallel(
                 resize_tissues,
                 tissues_mask,
@@ -234,7 +235,6 @@ class Phantom:
         slice_dir = image._head.slice_dir
         affine = np.eye(4, dtype=np.float32)
         res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size)
-        print("res", tuple(image._head.field_of_view))
         affine[:3, 3] = -position[0], -position[1], position[2]
         affine[:3, 0] = (
             -read_dir[0] * res[0],
@@ -483,11 +483,23 @@ class Phantom:
             Use the GPU for the resampling, by default False.
         """
         new_masks = apply_affine4d(
-            self.masks, self.affine, new_affine, new_shape, use_gpu=use_gpu, **kwargs
+            self.masks,
+            self.affine,
+            new_affine,
+            new_shape,
+            use_gpu=use_gpu,
+            **kwargs,
         )
         new_smaps = None
         if self.smaps is not None:
-            new_smaps = apply_affine4d(self.smaps)
+            new_smaps = apply_affine4d(
+                self.smaps,
+                self.affine,
+                new_affine,
+                new_shape,
+                use_gpu=use_gpu,
+                **kwargs,
+            )
         return Phantom(
             self.name,
             new_masks,
