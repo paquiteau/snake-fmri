@@ -21,8 +21,19 @@ def get_phantom_state(
     for dyn_data in dyn_datas:
         frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
-    # TODO Apply the FOV selection using the affines ! Use the gpu is possible.
-    return frame_phantom.contrast(sim_conf, aggregate=aggregate), phantom.smaps
+    frame_phantom = frame_phantom.resample(
+        sim_conf.fov.affine,
+        sim_conf.shape,
+        use_gpu=True,
+    )
+    return (
+        frame_phantom.contrast(
+            sim_conf=sim_conf,
+            resample=False,
+            aggregate=aggregate,
+        ),
+        frame_phantom.smaps,
+    )
 
 
 def fft(image: NDArray, axis: tuple[int, ...] | int = -1) -> NDArray:
