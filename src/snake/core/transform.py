@@ -1,5 +1,6 @@
 """Mathematical transformations of data."""
 
+import base64
 import logging
 from collections.abc import Callable
 from functools import partial
@@ -35,7 +36,9 @@ def _validate_gpu_affine(use_gpu: bool = True) -> tuple[bool, Callable, ModuleTy
                 use_gpu = False
                 raise ImportError from exc
 
-            affine_transform = partial(cu_affine_transform, texture_memory=True)
+            affine_transform = lambda x, *args, **kwargs: cu_affine_transform(
+                x, *args, **kwargs, texture_memory=x.dtype == xp.float32
+            )
         except ImportError:
             use_gpu = False
     if not use_gpu:
@@ -79,9 +82,11 @@ def apply_affine(
     if transform_affine is None:
         transform_affine = effective_affine(new_affine, old_affine)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
-
-    new_data = xp.zeros(new_shape, dtype=xp.float32)
-    affine_transform(data, transform_affine, output_shape=new_shape, output=new_data)
+    data = xp.asarray(data)
+    new_data = xp.zeros(new_shape, dtype=data.dtype)
+    new_data = affine_transform(
+        data, transform_affine, output_shape=new_shape, output=new_data
+    )
     if use_gpu:
         new_data = new_data.get()
 
@@ -125,21 +130,34 @@ def apply_affine4d(
     """
     n_frames = data.shape[axis]
 
-    new_array = np.zeros((n_frames, *new_shape), dtype=np.float32)
+    new_array = np.zeros((n_frames, *new_shape), dtype=data.dtype)
 
     transform_affine = effective_affine(new_affine, old_affine)
     use_gpu = _validate_gpu_affine(use_gpu)[0]
 
-    run_parallel(
-        apply_affine,
-        data,
-        new_array,
-        use_gpu=use_gpu,
-        transform_affine=transform_affine,
-        new_shape=new_shape,
-        n_jobs=n_jobs,
-        parallel_axis=axis,
-    )
+    if not use_gpu:
+        run_parallel(
+            apply_affine,
+            data,
+            new_array,
+            old_affine=old_affine,
+            new_affine=new_affine,
+            use_gpu=use_gpu,
+            transform_affine=transform_affine,
+            new_shape=new_shape,
+            n_jobs=n_jobs,
+            parallel_axis=axis,
+        )
+    else:
+        for i in range(n_frames):
+            new_array[i] = apply_affine(
+                data[i],
+                old_affine=old_affine,
+                new_affine=new_affine,
+                use_gpu=use_gpu,
+                transform_affine=transform_affine,
+                new_shape=new_shape,
+            )
 
     return new_array
 
