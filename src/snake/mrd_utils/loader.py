@@ -19,7 +19,7 @@ if TYPE_CHECKING:
     from ..core import SimConfig
 
 from .utils import b64encode2obj
-from ..transform import unserialize_array
+from ..core.transform import unserialize_array
 
 log = logging.getLogger(__name__)
 
@@ -407,7 +407,7 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
 def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
     """Parse the header to populate SimConfig from an MRD Header."""
-    from ..core import GreConfig, HardwareConfig, SimConfig
+    from ..core import GreConfig, HardwareConfig, SimConfig, FOVConfig
 
     n_coils = header.acquisitionSystemInformation.receiverChannels
     field = header.acquisitionSystemInformation.systemFieldStrength_T
@@ -435,6 +435,18 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         raise ValueError(
             f"Missing parameters {set(caster.keys()) - set(parsed.keys())}"
         )
+    caster_str = {
+        "fov_config": str,
+    }
+    parsed_str = {
+        up.name: caster_str[up.name](up.value)
+        for up in header.userParameters.userParameterString
+        if up.name in caster_str.keys()
+    }
+    if set(caster_str.keys()) != set(parsed_str.keys()):
+        raise ValueError(
+            f"Missing parameters {set(caster_str.keys()) - set(parsed_str.keys())}"
+        )
 
     hardware = HardwareConfig(
         gmax=parsed.pop("gmax"),
@@ -451,14 +463,15 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
     shape = header.encoding[0].encodedSpace.matrixSize
     shape = (shape.x, shape.y, shape.z)
 
-    return SimConfig(
+    sim_conf = SimConfig(
         max_sim_time=parsed.pop("max_sim_time"),
         seq=seq,
         hardware=hardware,
-        fov_mm=fov_mm,
-        shape=shape,
         rng_seed=parsed.pop("rng_seed"),
     )
+    sim_conf.fov = eval(parsed_str.pop("fov_config"))
+
+    return sim_conf
 
 
 def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
