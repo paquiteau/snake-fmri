@@ -9,7 +9,6 @@ import os
 from collections.abc import Generator
 from copy import deepcopy
 from dataclasses import dataclass, field
-from functools import partial
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 from typing import TYPE_CHECKING, Any, Literal, TypeVar
@@ -23,14 +22,12 @@ from nibabel.nifti1 import Nifti1Image
 from numpy.typing import NDArray
 
 from snake._meta import ThreeFloats, ThreeInts
-from snake.core.parallel import run_parallel
-from snake.core.phantom.utils import resize_tissues
-from snake.core.smaps import get_smaps
-
-from ..parallel import ArrayProps, array_from_shm, array_to_shm
+from ..smaps import get_smaps
+from ..parallel import ArrayProps, array_from_shm, array_to_shm, run_parallel
 from ..simulation import SimConfig
 from .contrast import _contrast_gre
-from .utils import PropTissueEnum, TissueFile
+from .utils import PropTissueEnum, TissueFile, resize_tissues
+from ..transform import apply_affine4d, serialize_array, unserialize_array
 
 log = logging.getLogger(__name__)
 
@@ -426,7 +423,7 @@ class Phantom:
                 raise ValueError("sim_conf must be provided for resampling.")
             affine = sim_conf.fov.affine
             shape = sim_conf.fov.shape
-            self = self.resample(affine, shape)
+            self = self.resample(affine, shape, use_gpu=True)
 
         if sim_conf is not None:
             TR = sim_conf.seq.TR_eff  # Here we use the effective TR.
@@ -447,7 +444,11 @@ class Phantom:
             return self.masks * contrasts[(..., *([None] * len(self.anat_shape)))]
 
     def resample(
-        self, new_affine: NDArray, new_shape: ThreeInts, use_gpu: bool = False
+        self,
+        new_affine: NDArray,
+        new_shape: ThreeInts,
+        use_gpu: bool = False,
+        **kwargs: Any,
     ) -> Phantom:
         """Resample the phantom to a new shape and affine matrix.
 
@@ -460,50 +461,12 @@ class Phantom:
         use_gpu : bool, optional
             Use the GPU for the resampling, by default False.
         """
-        if use_gpu:
-            try:
-                import cupy as xp
-                from cupyx.scipy.ndimage import affine_transform as cu_affine_transform
-
-                try:
-                    use_gpu = xp.cuda.is_available()
-                except Exception:
-                    use_gpu = False
-                    raise ImportError
-
-                affine_transform = partial(cu_affine_transform, texture_memory=True)
-            except ImportError:
-                use_gpu = False
-        if not use_gpu:
-            import numpy as xp
-
-            log.warning("Cupy not available, using CPU.")
-            from scipy.ndimage import affine_transform
-
-        new_affine = xp.asarray(new_affine, dtype=xp.float32)
-        old_affine = xp.asarray(self.affine, dtype=xp.float32)
-        effective_affine = xp.linalg.inv(new_affine) @ old_affine
-
-        new_masks = xp.zeros((self.n_tissues, *new_shape), dtype=xp.float32)
-
-        for i, mask in enumerate(self.masks):  # TODO use run_parallel ?
-            new_masks[i] = affine_transform(
-                mask, effective_affine, output_shape=new_shape, order=3
-            )
-
+        new_masks = apply_affine4d(
+            self.masks, self.affine, new_affine, new_shape, use_gpu=use_gpu, **kwargs
+        )
         new_smaps = None
         if self.smaps is not None:
-            new_smaps = xp.zeros((self.smaps.shape[0], *new_shape), dtype=xp.complex64)
-            for i, smap in enumerate(self.smaps):
-                new_smaps[i] = affine_transform(
-                    smap, effective_affine, output_shape=new_shape, order=3
-                )
-        if use_gpu:
-            # Copy the data to the CPU
-            new_masks = new_masks.get()
-            if self.smaps is not None:
-                new_smaps = new_smaps.get()
-
+            new_smaps = apply_affine4d(self.smaps)
         return Phantom(
             self.name,
             new_masks,
@@ -551,24 +514,3 @@ class Phantom:
     def copy(self) -> Phantom:
         """Return deep copy of the Phantom."""
         return deepcopy(self)
-
-
-T = TypeVar("T")
-
-
-def serialize_array(arr: NDArray) -> str:
-    """Serialize the array for mrd compatible format."""
-    return "__".join(
-        [
-            base64.b64encode(arr.tobytes()).decode(),
-            str(arr.shape),
-            str(arr.dtype),
-        ]
-    )
-
-
-def unserialize_array(s: str) -> NDArray:
-    """Unserialize the array for mrd compatible format."""
-    data, shape, dtype = s.split("__")
-    shape = eval(shape)  # FIXME
-    return np.frombuffer(base64.b64decode(data.encode()), dtype=dtype).reshape(*shape)
