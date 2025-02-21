@@ -52,24 +52,6 @@ def b64encode2obj(s: str) -> Any:
     return pickle.loads(base64.b64decode(s))
 
 
-def serialize_array(arr: NDArray) -> str:
-    """Serialize the array for mrd compatible format."""
-    return "__".join(
-        [
-            base64.b64encode(arr.tobytes()).decode(),
-            str(arr.shape),
-            str(arr.dtype),
-        ]
-    )
-
-
-def unserialize_array(s: str) -> NDArray:
-    """Unserialize the array for mrd compatible format."""
-    data, shape, dtype = s.split("__")
-    shape = eval(shape)  # FIXME
-    return np.frombuffer(base64.b64decode(data.encode()), dtype=dtype).reshape(*shape)
-
-
 # fmt: off
 class ACQ(IntFlag):
     """Acquisition flags of MRD as an IntFlags."""

@@ -18,7 +18,8 @@ if TYPE_CHECKING:
     from ..core import Phantom, DynamicData
     from ..core import SimConfig
 
-from .utils import b64encode2obj, unserialize_array
+from .utils import b64encode2obj
+from ..transform import unserialize_array
 
 log = logging.getLogger(__name__)
 
