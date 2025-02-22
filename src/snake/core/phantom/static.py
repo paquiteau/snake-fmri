@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import logging
 import os
+from pathlib import Path
 from collections.abc import Generator
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -382,31 +383,64 @@ class Phantom:
 
     def smaps2nifti(self) -> Nifti1Image:
         """Return the smaps as a Nifti object."""
-        if self.smaps:
+        if self.smaps is not None:
             return Nifti1Image(self.smaps, affine=self.affine)
         else:
             raise ValueError("No Smaps to convert.")
+
+    def to_nifti(
+        self, filename: str | GenericPath = None
+    ) -> tuple[GenericPath, GenericPath | None]:
+        """Save the phantom as a pair of niftis file."""
+
+        mask_nifti = self.masks2nifti()
+        smaps_nifti = None
+        smaps_filename = None
+        if self.smaps is not None:
+            smaps_nifti = self.smaps2nifti()
+            smaps_filename = Path(str(filename).replace(".nii", "_smaps.nii"))
+        if not filename:
+            return filename, smaps_nifti
+        mask_nifti.to_filename(filename)
+        if self.smaps is not None:
+            smaps_nifti.to_filename(smaps_filename)
+        return filename, smaps_filename
 
     @classmethod
     def from_nifti(
         cls,
         mask_nifti: Nifti1Image | GenericPath,
-        smaps_nifti: Nifti1Image | GenericPath | None = None,
+        props: NDArray[np.float32] = None,
+        labels: NDArray[np.string_] = None,
+        smaps: Nifti1Image | GenericPath | None = None,
     ) -> Phantom:
         """Create a phantom from nifti files."""
         if not isinstance(mask_nifti, Nifti1Image):
+            mask_nifti_name = mask_nifti
             mask_nifti = Nifti1Image.from_filename(mask_nifti)
-        if smaps_nifti and not isinstance(smaps_nifti, Nifti1Image):
-            smaps_nifti = Nifti1Image.from_filename(smaps_nifti)
-
+        else:
+            mask_nifti_name = mask_nifti.get_filename() or "from_nifti"
+        if smaps and not isinstance(smaps, Nifti1Image):
+            smaps_nifti = Nifti1Image.from_filename(smaps)
+        else:
+            smaps_nifti = smaps
         affine = mask_nifti.affine
-        props = mask_nifti.extra["props"]
-        labels = mask_nifti.extra["labels"]
-        masks = mask_nifti.get_fdata().astype(np.float32)
+        if props is None:
+            props = mask_nifti.extra["props"]
+        if labels is None:
+            labels = mask_nifti.extra["labels"]
+        masks = np.asarray(mask_nifti.get_fdata()).astype(np.float32)
         smaps = None
         if smaps_nifti:
-            smaps = smaps_nifti.get_fdata().astype(np.complex64)
-        return cls("nifti", masks, labels, props, smaps=smaps, affine=affine)
+            smaps = np.asarray(smaps_nifti.get_fdata()).astype(np.complex64)
+        return cls(
+            name=mask_nifti_name,
+            masks=masks,
+            labels=labels,
+            props=props,
+            smaps=smaps,
+            affine=affine,
+        )
 
     def contrast(
         self,

@@ -112,6 +112,10 @@ def apply_affine(
     return new_data
 
 
+def __apply_affine(x, output, *args, **kwargs):
+    return apply_affine(x, *args, output=output, **kwargs)
+
+
 def apply_affine4d(
     data: NDArray,
     old_affine: NDArray,
@@ -156,9 +160,7 @@ def apply_affine4d(
 
     if not use_gpu:
         run_parallel(
-            lambda x, out, *args, **kwargs: apply_affine(
-                x, *args, output=out, **kwargs
-            ),
+            __apply_affine,
             data,
             new_array,
             old_affine=old_affine,
