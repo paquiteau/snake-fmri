@@ -4,6 +4,7 @@ from pathlib import Path
 from multiprocessing.managers import SharedMemoryManager
 from pytest_cases import parametrize_with_cases, parametrize, fixture
 import numpy as np
+from numpy.testing import assert_allclose, assert_array_equal
 from snake.core import Phantom, SimConfig
 
 
@@ -42,11 +43,14 @@ def test_multiprocessing(phantom: Phantom):
         array_props, _ = phantom.in_shared_memory(smm)
         with Phantom.from_shared_memory(*array_props) as phantom2:
             assert phantom.name == phantom2.name
-            assert np.all(phantom.masks == phantom2.masks)
-            assert np.all(phantom.labels == phantom2.labels)
-            assert np.all(phantom.props == phantom2.props)
-            assert np.all(phantom.smaps == phantom2.smaps)
-            assert np.all(phantom.affine == phantom2.affine)
+            assert_array_equal(phantom.masks, phantom2.masks)
+            assert_array_equal(phantom.labels, phantom2.labels)
+            assert_array_equal(phantom.props, phantom2.props)
+            if phantom.smaps is not None:
+                assert_allclose(phantom.smaps, phantom2.smaps)
+            else:
+                assert phantom2.smaps is None
+            assert_array_equal(phantom.affine, phantom2.affine)
 
 
 @parametrize_with_cases(
@@ -60,14 +64,38 @@ def test_mrd(phantom: Phantom, tmpdir: Path):
 
     phantom.to_mrd_dataset(dataset)
     phantom2 = Phantom.from_mrd_dataset(dataset)
-    print(phantom2.affine)
-    print(phantom.affine)
     assert phantom.name == phantom2.name
-    assert np.all(phantom.masks == phantom2.masks)
-    assert np.all(phantom.labels == phantom2.labels)
-    assert np.all(phantom.props == phantom2.props)
-    assert np.all(phantom.smaps == phantom2.smaps)
-    assert np.allclose(phantom.affine, phantom2.affine)
+    assert_array_equal(phantom.masks, phantom2.masks)
+    assert_array_equal(phantom.labels, phantom2.labels)
+    assert_array_equal(phantom.props, phantom2.props)
+    if phantom.smaps is not None:
+        assert_allclose(phantom.smaps, phantom2.smaps)
+    else:
+        assert phantom2.smaps is None
+    assert_allclose(phantom.affine, phantom2.affine, rtol=1e-6)
+
+
+@parametrize_with_cases(
+    "phantom",
+    cases=CasesPhantom,
+)
+def test_nifti(phantom: Phantom, tmpdir: Path):
+    """Test that the phantom is correctly written and red back"""
+
+    base_file = tmpdir / "phantom.nii"
+
+    base_file, smaps = phantom.to_nifti(base_file)
+    phantom2 = Phantom.from_nifti(
+        base_file, smaps=smaps, props=phantom.props, labels=phantom.labels
+    )
+    assert_allclose(phantom.masks, phantom2.masks)
+    assert_array_equal(phantom.labels, phantom2.labels)
+    assert_allclose(phantom.props, phantom2.props)
+    if phantom.smaps is not None:
+        assert_allclose(phantom.smaps, phantom2.smaps)
+    else:
+        assert phantom2.smaps is None
+    assert_allclose(phantom.affine, phantom2.affine)
 
 
 @parametrize_with_cases("phantom", cases=CasesPhantom)
