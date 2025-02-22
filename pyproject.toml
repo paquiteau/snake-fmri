@@ -140,6 +140,7 @@ skip = ["docs/generated", "*.ipynb"]
 
 [dependency-groups]
 dev = [
+    "codespell>=2.4.1",
     "ipykernel>=6.29.5",
     "ipympl>=0.9.6",
     "ipython>=8.32.0",

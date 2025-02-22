@@ -436,7 +436,7 @@ class Phantom:
         Results
         -------
         NDArray
-            The constrast of the tissues.
+            The contrast of the tissues.
         """
         if resample:
             if sim_conf is None:
