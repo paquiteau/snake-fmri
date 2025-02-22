@@ -37,17 +37,26 @@ def _validate_gpu_affine(use_gpu: bool = True) -> tuple[bool, Callable, ModuleTy
                 raise ImportError from exc
 
             def affine_transform(
-                x: NDArray, *args: Any, output_shape: ThreeInts, **kwargs: Any
+                x: NDArray,
+                *args: Any,
+                output_shape: ThreeInts,
+                output: NDArray[np.float32] = None,
+                **kwargs: Any,
             ) -> NDArray:
-                output = xp.zeros(output_shape, dtype=x.dtype)
-                return cu_affine_transform(
+                output_gpu = xp.zeros(output_shape, dtype=x.dtype)
+                cu_affine_transform(
                     x,
                     *args,
                     output_shape=output_shape,
-                    output=output,
+                    output=output_gpu,
                     **kwargs,
                     texture_memory=x.dtype == xp.float32,
-                ).get()
+                )
+                if output is not None:
+                    xp.copyto(output, output_gpu)
+                    return output
+                else:
+                    return output_gpu.get()
         except ImportError:
             use_gpu = False
     if not use_gpu:
@@ -63,6 +72,7 @@ def apply_affine(
     old_affine: NDArray[np.float32],
     new_affine: NDArray[np.float32],
     new_shape: ThreeInts,
+    output: NDArray[np.float32] = None,
     transform_affine: NDArray[np.float32] = None,
     use_gpu: bool = True,
 ) -> NDArray[np.float32]:
@@ -81,6 +91,9 @@ def apply_affine(
     transform_affine : NDArray, optional
         Transformation affine, by default None
     use_gpu : bool, optional
+        Try to use GPU, by default True
+    output: NDArray, optional
+        Output array, by default None
 
     Returns
     -------
@@ -92,7 +105,9 @@ def apply_affine(
         transform_affine = effective_affine(new_affine, old_affine)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
     data = xp.asarray(data)
-    new_data = affine_transform(data, transform_affine, output_shape=new_shape)
+    new_data = affine_transform(
+        data, transform_affine, output_shape=new_shape, output=output
+    )
 
     return new_data
 
@@ -141,7 +156,9 @@ def apply_affine4d(
 
     if not use_gpu:
         run_parallel(
-            apply_affine,
+            lambda x, out, *args, **kwargs: apply_affine(
+                x, *args, output=out, **kwargs
+            ),
             data,
             new_array,
             old_affine=old_affine,

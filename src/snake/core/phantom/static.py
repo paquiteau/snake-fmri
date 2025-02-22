@@ -418,6 +418,7 @@ class Phantom:
         sim_conf: SimConfig | None = None,
         resample: bool = True,
         aggregate: bool = True,
+        use_gpu: bool = True,
     ) -> NDArray[np.float32]:
         """Compute the contrast of the phantom for a given sequence.
 
@@ -443,7 +444,7 @@ class Phantom:
                 raise ValueError("sim_conf must be provided for resampling.")
             affine = sim_conf.fov.affine
             shape = sim_conf.fov.shape
-            self = self.resample(affine, shape, use_gpu=True)
+            self = self.resample(affine, shape, use_gpu=use_gpu)
 
         if sim_conf is not None:
             TR = sim_conf.seq.TR_eff  # Here we use the effective TR.

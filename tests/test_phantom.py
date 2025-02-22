@@ -71,8 +71,11 @@ def test_mrd(phantom: Phantom, tmpdir: Path):
 
 
 @parametrize_with_cases("phantom", cases=CasesPhantom)
-def test_contrast(phantom, sim_config):
+@parametrize("use_gpu", [True, False])
+def test_contrast(phantom, sim_config, use_gpu):
     """Test that the phantom can be used in a simulation."""
-    contrast = phantom.contrast(sim_conf=sim_config)
+    contrast = phantom.contrast(
+        sim_conf=sim_config,
+    )
     # FIXME: This is not the correct way to test the contrast
     assert contrast.shape == sim_config.fov.shape
