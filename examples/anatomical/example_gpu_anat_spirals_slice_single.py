@@ -67,7 +67,7 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # Create a FOV of 192x192x3mm with a resolution of 3x3x3 mm
 sim_conf.fov.size = (192, 192, 3)
 sim_conf.fov.res_mm = (3, 3, 3)
-sim_conf.fov.offset[-1] = (-90, -110, 0)  # Set the z-offset to 0 in MNIspace
+sim_conf.fov.offset = (-90, -110, 0)  # Set the z-offset to 0 in MNIspace
 
 
 # %%

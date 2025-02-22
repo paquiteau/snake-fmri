@@ -16,7 +16,6 @@ alternative is to use the CLI ``snake-main``
 import numpy as np
 from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
-from snake.core.smaps import get_smaps
 from snake.core.sampling import EPI3dAcquisitionSampler
 
 # %%
@@ -43,10 +42,6 @@ phantom = Phantom.from_brainweb(
 # k-space (this akin to the 3D EPI sequence of XXXX)
 
 sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
-
-smaps = None
-if sim_conf.hardware.n_coils > 1:
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
 
 
 # %%
@@ -79,8 +74,6 @@ if sim_conf.hardware.n_coils > 1:
 from snake.core.engine import EPIAcquisitionEngine
 
 engine = EPIAcquisitionEngine(model="simple")
-
-engine("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
 
 engine(
     "example_EPI.mrd",
