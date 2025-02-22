@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-
+import functools
 from functools import cached_property
 import ismrmrd as mrd
 import h5py
@@ -193,7 +193,7 @@ class MRDLoader(LogMixin):
             return self._file[self._dataset_name]
         else:
             raise FileNotFoundError(
-                "Dataset not opened. use the dataloader as a context manager."
+                "Dataset not opened. Use the dataloader as a context manager."
             )
 
     @property
@@ -252,22 +252,12 @@ class MRDLoader(LogMixin):
     #############
     # Get data  #
     #############
+    @functools.lru_cache
     def get_phantom(self, imnum: int = 0) -> Phantom:
         """Load the phantom from the dataset."""
         from ..core import Phantom
 
-        image = self._read_image("phantom", imnum)
-        name = image.meta.pop("name")
-        labels = np.array(image.meta["labels"].split(","))
-        props = unserialize_array(image.meta["props"])
-        smaps = self.get_smaps()
-        return Phantom(
-            masks=image.data,
-            labels=labels,
-            props=props,
-            name=name,
-            smaps=smaps,
-        )
+        return Phantom.from_mrd_dataset(self, imnum)
 
     @cached_property
     def _all_waveform_infos(self) -> dict[int, dict]:
@@ -275,7 +265,7 @@ class MRDLoader(LogMixin):
 
     def get_dynamic(self, waveform_num: int) -> DynamicData:
         """Get dynamic data."""
-        waveform = self._dataset.read_waveform(waveform_num)
+        waveform = self._dataset._read_waveform(waveform_num)
         wave_info = self._all_waveform_infos[waveform.waveform_id]
         from ..core import DynamicData
 
@@ -298,6 +288,7 @@ class MRDLoader(LogMixin):
             all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
         return all_dyn_data
 
+    @functools.lru_cache
     def get_sim_conf(self) -> SimConfig:
         """Parse the sim config."""
         return parse_sim_conf(self.header)
@@ -310,9 +301,29 @@ class MRDLoader(LogMixin):
             return None
         return image
 
-    def get_smaps(self) -> NDArray[np.complex64] | None:
-        """Load the sensitivity maps from the dataset."""
-        return self._get_image_data("smaps")
+    def get_smaps(self, resample=True) -> NDArray[np.complex64] | None:
+        """Load the sensitivity maps from the dataset.
+
+        If resample is True, the sensitivity maps are resampled using the affine transformation
+        describe in the phantom and sim_conf.
+        """
+
+        sim_conf = self.get_sim_conf()
+        smaps_im = self._read_image("smaps")
+        smaps_affine = get_affine_from_image(smaps_im)
+        smaps = smaps_im.data
+        sim_conf = self.get_sim_conf()
+        if resample:
+            from snake.core.transform import apply_affine4d
+
+            smaps = apply_affine4d(
+                smaps,
+                smaps_affine,
+                sim_conf.fov.affine,
+                new_shape=sim_conf.fov.shape,
+                use_gpu=True,
+            )
+        return smaps
 
     def get_coil_cov(self) -> NDArray | None:
         """Load the coil covariance from the dataset."""
@@ -502,3 +513,30 @@ def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
         waveform_info[int(wi.waveformType)] = infos
 
     return waveform_info
+
+
+def get_affine_from_image(image: mrd.Image) -> np.ndarray:
+    # Affine matrix from the header
+    position = image._head.position
+    read_dir = image._head.read_dir
+    phase_dir = image._head.phase_dir
+    slice_dir = image._head.slice_dir
+    affine = np.eye(4, dtype=np.float32)
+    res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size)
+    affine[:3, 3] = -position[0], -position[1], position[2]
+    affine[:3, 0] = (
+        -read_dir[0] * res[0],
+        -read_dir[1] * res[0],
+        read_dir[2] * res[0],
+    )
+    affine[:3, 1] = (
+        -phase_dir[0] * res[1],
+        -phase_dir[1] * res[1],
+        phase_dir[2] * res[1],
+    )
+    affine[:3, 2] = (
+        -slice_dir[0] * res[2],
+        -slice_dir[1] * res[2],
+        slice_dir[2] * res[2],
+    )
+    return affine

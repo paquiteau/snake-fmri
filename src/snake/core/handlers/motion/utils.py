@@ -163,7 +163,6 @@ def translation(
 def add_motion_to_affine(
     affine: NDArray[np.floating],
     motion_params: NDArray[np.floating],
-    idx: int = 0,
 ) -> np.ndarray:
     """Add motion to a base array.
 

@@ -62,10 +62,6 @@ phantom.affine
 
 sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
 
-smaps = None
-if sim_conf.hardware.n_coils > 1:
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
-
 # %%
 # Acquisition with Cartesian Engine
 # ---------------------------------

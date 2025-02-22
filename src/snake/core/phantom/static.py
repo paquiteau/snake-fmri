@@ -13,8 +13,10 @@ from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 from typing import TYPE_CHECKING, Any, Literal
 
+
 if TYPE_CHECKING:
     from _typeshed import GenericPath
+    from snake.mrd_utils.loader import MRDLoader
 
 import ismrmrd as mrd
 import numpy as np
@@ -218,43 +220,23 @@ class Phantom:
 
     @classmethod
     def from_mrd_dataset(
-        cls, dataset: mrd.Dataset | os.PathLike, imnum: int = 0
+        cls, dataset: MRDLoader | os.PathLike, imnum: int = 0
     ) -> Phantom:
         """Load the phantom from a mrd dataset."""
-        if not isinstance(dataset, mrd.Dataset):
-            dataset = mrd.Dataset(dataset, create_if_needed=False)
-        image = dataset.read_image("phantom", imnum)
+        from snake.mrd_utils.loader import get_affine_from_image, MRDLoader
+
+        if not isinstance(dataset, MRDLoader):
+            dataset = MRDLoader(dataset)
+
+        image = dataset._read_image("phantom", imnum)
         name = image.meta.pop("name")
         labels = np.array(image.meta["labels"].split(","))
         props = unserialize_array(image.meta["props"])
 
-        # Affine matrix from the header
-        position = image._head.position
-        read_dir = image._head.read_dir
-        phase_dir = image._head.phase_dir
-        slice_dir = image._head.slice_dir
-        affine = np.eye(4, dtype=np.float32)
-        res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size)
-        affine[:3, 3] = -position[0], -position[1], position[2]
-        affine[:3, 0] = (
-            -read_dir[0] * res[0],
-            -read_dir[1] * res[0],
-            read_dir[2] * res[0],
-        )
-        affine[:3, 1] = (
-            -phase_dir[0] * res[1],
-            -phase_dir[1] * res[1],
-            phase_dir[2] * res[1],
-        )
-        affine[:3, 2] = (
-            -slice_dir[0] * res[2],
-            -slice_dir[1] * res[2],
-            slice_dir[2] * res[2],
-        )
-
+        affine = get_affine_from_image(image)
         # smaps
         try:
-            smaps = dataset.read_image("smaps", imnum).data
+            smaps = dataset._read_image("smaps", imnum).data
         except LookupError:
             smaps = None
 
