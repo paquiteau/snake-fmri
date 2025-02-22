@@ -112,7 +112,7 @@ def apply_affine(
     return new_data
 
 
-def __apply_affine(x, output, *args, **kwargs):
+def __apply_affine(x: NDArray, output: NDArray, *args: Any, **kwargs: Any) -> NDArray:
     return apply_affine(x, *args, output=output, **kwargs)
 
 

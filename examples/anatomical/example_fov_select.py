@@ -51,7 +51,6 @@ axis3dcut(contrast_resampled.T, z_score=None, cuts=(0.5, 0.6, 0.5))
 import matplotlib.pyplot as plt
 from snake.core.transform import apply_affine
 from snake.core.simulation import FOVConfig
-import numpy as np
 import ipywidgets as widgets
 from IPython.display import display
 from ipywidgets import HBox, VBox

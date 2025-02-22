@@ -5,7 +5,6 @@ from enum import IntEnum
 from snake._meta import NoCaseEnum
 from importlib.resources import files
 from scipy.ndimage import zoom
-from nibabel.nifti1 import Nifti1Extension
 
 
 def resize_tissues(

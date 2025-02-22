@@ -392,7 +392,6 @@ class Phantom:
         self, filename: str | GenericPath = None
     ) -> tuple[GenericPath, GenericPath | None]:
         """Save the phantom as a pair of niftis file."""
-
         mask_nifti = self.masks2nifti()
         smaps_nifti = None
         smaps_filename = None
