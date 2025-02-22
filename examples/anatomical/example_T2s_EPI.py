@@ -29,7 +29,9 @@ sim_conf = SimConfig(
 sim_conf.hardware.n_coils = 8
 sim_conf.fov.res_mm = (3, 3, 3)
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+phantom = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
+)
 
 
 # %%
@@ -85,7 +87,6 @@ engine(
     sampler,
     phantom,
     sim_conf,
-    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
 )
@@ -96,7 +97,6 @@ engine_t2s(
     sampler,
     phantom,
     sim_conf,
-    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
 )
