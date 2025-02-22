@@ -104,16 +104,23 @@ def apply_affine(
     if transform_affine is None:
         transform_affine = effective_affine(new_affine, old_affine)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
+    if not use_gpu:
+        print(output.shape, transform_affine.shape, new_shape)
     data = xp.asarray(data)
     new_data = affine_transform(
-        data, transform_affine, output_shape=new_shape, output=output
+        data,
+        matrix=transform_affine,
+        output_shape=new_shape,
+        output=output,
     )
 
     return new_data
 
 
-def __apply_affine(x: NDArray, output: NDArray, *args: Any, **kwargs: Any) -> NDArray:
-    return apply_affine(x, *args, output=output, **kwargs)
+def __apply_affine(
+    x: NDArray, output: NDArray, i: int, *args: Any, **kwargs: Any
+) -> NDArray:
+    return apply_affine(x[i], *args, output=output[i], **kwargs)
 
 
 def apply_affine4d(
@@ -165,7 +172,7 @@ def apply_affine4d(
             new_array,
             old_affine=old_affine,
             new_affine=new_affine,
-            use_gpu=use_gpu,
+            use_gpu=False,
             transform_affine=transform_affine,
             new_shape=new_shape,
             n_jobs=n_jobs,

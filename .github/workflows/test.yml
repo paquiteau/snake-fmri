@@ -41,7 +41,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install finufft ipywidgets
-          pip install -e .[toolkit]
+          pip install -e .[test,toolkit]
       - name: Test
         run: |
           pytest examples/anatomical

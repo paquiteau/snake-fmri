@@ -26,7 +26,7 @@ class CasesPhantom:
             "dummy",
             masks=np.random.uniform(0, 1, (5, 10, 10, 10)),
             labels=np.array(["A", "B", "C", "D", "E"]),
-            props=np.random.rand(5, 5),
+            props=np.random.uniform(10, 100, (5, 5)),
             smaps=None if n_coils == 1 else np.random.rand(n_coils, 10, 10, 10),
             affine=affine,
         )
@@ -104,6 +104,8 @@ def test_contrast(phantom, sim_config, use_gpu):
     """Test that the phantom can be used in a simulation."""
     contrast = phantom.contrast(
         sim_conf=sim_config,
+        use_gpu=use_gpu,
     )
     # FIXME: This is not the correct way to test the contrast
+    assert np.sum(abs(contrast)) > 0
     assert contrast.shape == sim_config.fov.shape
