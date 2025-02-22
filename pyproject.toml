@@ -53,8 +53,7 @@ dependencies = [ # Optional
 ]
 
 [project.optional-dependencies] # Optional
-dev = ["black", "ruff", "isort"]
-test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist"]
+test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist", "pytest-cases"]
 doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery", "myst-sphinx-gallery", "sphinx-book-theme","matplotlib", "pysap-fmri", "ipywidgets", "myst-nb", "sphinx-autodoc2", "sphinx-design", "sphinx-tippy", "linkify-it-py"]
 toolkit = [ "matplotlib", "pysap-fmri"]
 # List URLs that are relevant to your project
@@ -140,6 +139,7 @@ skip = ["docs/generated", "*.ipynb"]
 
 [dependency-groups]
 dev = [
+    "ruff",
     "codespell>=2.4.1",
     "ipykernel>=6.29.5",
     "ipympl>=0.9.6",
