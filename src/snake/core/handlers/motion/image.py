@@ -96,5 +96,5 @@ def apply_motion_to_phantom(
 ) -> Phantom:
     """Apply motion to the phantom."""
     new_phantom = deepcopy(phantom)
-    new_phantom.affine = add_motion_to_affine(new_phantom.affine, motions[time_idx])
+    new_phantom.affine = add_motion_to_affine(new_phantom.affine, motions[:, time_idx])
     return new_phantom
