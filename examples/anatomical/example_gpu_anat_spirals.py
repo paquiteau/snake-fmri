@@ -23,7 +23,7 @@ from mrinufft import get_operator
 
 # For faster computation, try to use the GPU
 
-NUFFT_BACKEND = "stacked-gpunufft"
+NUFFT_BACKEND = "stacked-cufinufft"
 COMPUTE_BACKEND = "cupy"
 
 try:
@@ -32,7 +32,7 @@ try:
     if not cp.cupy.cuda.runtime.getDeviceCount():
         raise ValueError("No CUDA Device found")
 
-    get_operator("stacked-gpunufft")
+    get_operator("stacked-cufinufft")
 except Exception:
     try:
         get_operator("stacked-finufft")
@@ -51,11 +51,10 @@ sim_conf = SimConfig(
     max_sim_time=3,
     seq=GreConfig(TR=50, TE=22, FA=12),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 1  # Update to get multi coil results.
 sim_conf.hardware.field_strength = 7
+sim_conf.fov.res_mm = (3, 3, 3)
 phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
 
 
@@ -68,7 +67,7 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space, with an acceleration factor AF=4 on the z-axis.
 
 sampler = StackOfSpiralSampler(
-    accelz=2,
+    accelz=4,
     acsz=0.1,
     orderz="top-down",
     nb_revolutions=12,
@@ -136,7 +135,6 @@ engine(
     phantom,
     sim_conf,
     handlers=[noise_handler],
-    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
     nufft_backend=NUFFT_BACKEND,
@@ -189,13 +187,13 @@ with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
     adjoint_spiral = abs(zer_rec.reconstruct(data_loader)[0])
     cs_spiral = abs(seq_rec.reconstruct(data_loader)[0])
 with NonCartesianFrameDataLoader("example_spiral_t2s.mrd") as data_loader:
-    adjoint_spiral_T2s = abs(zer_rec.reconstruct(data_loader,sim_conf)[0])
+    adjoint_spiral_T2s = abs(zer_rec.reconstruct(data_loader, sim_conf)[0])
     cs_spiral_T2s = abs(seq_rec.reconstruct(data_loader)[0])
 
 
 # %%
 with NonCartesianFrameDataLoader("example_spiral.mrd") as data_loader:
-    traj,data = data_loader.get_kspace_frame(0)
+    traj, data = data_loader.get_kspace_frame(0)
 
 # %%
 data.shape
@@ -222,7 +220,7 @@ for ax, img, title in zip(
     (adjoint_spiral, adjoint_spiral_T2s, abs(adjoint_spiral - adjoint_spiral_T2s)),
     ("simple", "T2s", "diff"),
 ):
-    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax,width_inches=4)
+    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax, width_inches=4)
     ax.set_title(title)
 
 
@@ -231,7 +229,7 @@ for ax, img, title in zip(
     (cs_spiral, cs_spiral_T2s, abs(cs_spiral - cs_spiral_T2s)),
     ("simple", "T2s", "diff"),
 ):
-    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax,width_inches=4)
+    axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax, width_inches=4)
     ax.set_title(title + " CS")
 
 

@@ -58,12 +58,13 @@ sim_conf = SimConfig(
     max_sim_time=3,
     seq=GreConfig(TR=50, TE=22, FA=12),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 1  # Update to get multi coil results.
 sim_conf.hardware.field_strength = 7
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+sim_conf.fov.res_mm = (3, 3, 3)
+phantom = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
+)
 
 
 # %%
