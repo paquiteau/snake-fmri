@@ -39,19 +39,21 @@ class SHM_Wrapper:
         self,
         input_props: ArrayProps,
         output_props: ArrayProps,
+        i: int,
         *args: Any,
         **kwargs: Any,
     ) -> None:
         """Run in parallel with shared memory."""
         with array_from_shm(input_props, output_props) as (input, output):
-            self.func(input, output, *args, **kwargs)
+            self.func(input, output, i, *args, **kwargs)
 
 
 def run_parallel(
     func: Callable,
     input_array: NDArray,
     output_array: NDArray,
-    n_jobs: int = -1,
+    # n_jobs: int = -1,
+    n_jobs: int = 1,
     parallel_axis: int = 0,
     *args: Any,
     **kwargs: Any,
