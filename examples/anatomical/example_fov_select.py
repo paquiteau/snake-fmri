@@ -25,7 +25,7 @@ sim_conf.fov.res_mm = (3, 3, 3)
 
 # %%
 phantom = Phantom.from_brainweb(
-    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5", output_res=1
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
 )
 
 # %%
@@ -40,7 +40,7 @@ sim_conf.fov.res_mm = (3, 3, 3)
 sim_conf.fov.size = (192, 192, 128)
 sim_conf.fov.offset = (-90, -110, -20)
 sim_conf.fov.angles = (-5, 0, 0)
-contrast_resampled = phantom.contrast(sim_conf=sim_conf, resample=True, aggregate=True)
+contrast_resampled = phantom.contrast(sim_conf=sim_conf, resample=True, aggregate=True,use_gpu=False)
 
 
 # %%
@@ -78,6 +78,7 @@ def resample_and_display(vx, vy, vz, sx, sy, sz, ox, oy, oz, rx, ry, rz):
         use_gpu=True,
     ).squeeze()
     # cleanup previous axes
+    print(new_contrast.shape, fov_conf.shape)
     fig, ax = plt.subplots()
 
     if new_contrast.ndim == 2:
