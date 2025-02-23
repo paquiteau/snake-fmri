@@ -1,12 +1,10 @@
 # %%
 """
-Single anatomical EPI with SNAKE-fMRI
-=====================================
+Creating motion artifacts on an anatomical EPI with SNAKE-fMRI
+==============================================================
 
-This examples walks through the elementary components of SNAKE.
-
-Here we proceed step by step and use the Python interface. A more integrated
-alternative is to use the CLI ``snake-main``
+This examples walks through the elementary components of SNAKE and demonstrates how
+to add motion artifacts to the simulation.
 
 """
 
@@ -31,7 +29,7 @@ sim_conf = SimConfig(
 )
 sim_conf.hardware.n_coils = 8
 sim_conf.fov.res_mm = (3, 3, 3)
-sim_conf.shape
+sim_conf
 
 # %%
 # Creating the base Phantom
@@ -53,6 +51,24 @@ phantom.affine
 
 
 # %%
+# Adding motion to the Phantom
+# ----------------------------
+# The motion is added to the phantom by applying a transformation to the simulation's FOV configuration
+# (as if the phantom was moving in the scanner).
+
+from snake.core.handlers import RandomMotionImageHandler
+
+motion = RandomMotionImageHandler(
+    ts_std_mms=[3, 3, 3],
+    rs_std_degs=[0.5, 0.5, 0.5],
+)
+
+motion2 = RandomMotionImageHandler(
+    ts_std_mms=[10, 10, 10], # 1cm.s^-1 of random speed.
+    rs_std_degs=[2, 2, 2],
+)
+
+# %%
 # Setting up Acquisition Pattern and Initializing Result file.
 # ------------------------------------------------------------
 
@@ -61,6 +77,7 @@ phantom.affine
 # k-space (this akin to the 3D EPI sequence of XXXX)
 
 sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
+
 
 # %%
 # Acquisition with Cartesian Engine
@@ -90,15 +107,34 @@ sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
 # a single worker will do.
 
 from snake.core.engine import EPIAcquisitionEngine
-from snake.toolkit.plotting import axis3dcut
-
 
 engine = EPIAcquisitionEngine(model="simple")
 
 engine(
-    "example_EPI.mrd",
+    "example_nomotion.mrd",
     sampler=sampler,
     phantom=phantom,
+    handlers=[],
+    sim_conf=sim_conf,
+    worker_chunk_size=16,
+    n_workers=4,
+)
+
+engine(
+    "example_motion.mrd",
+    sampler=sampler,
+    phantom=phantom,
+    handlers=[motion],
+    sim_conf=sim_conf,
+    worker_chunk_size=16,
+    n_workers=4,
+)
+
+engine(
+    "example_motion2.mrd",
+    sampler=sampler,
+    phantom=phantom,
+    handlers=[motion2],
     sim_conf=sim_conf,
     worker_chunk_size=16,
     n_workers=4,
@@ -107,60 +143,63 @@ engine(
 # %%
 # Simple reconstruction
 # ---------------------
-#
-# Getting k-space data is nice, but
-# SNAKE also provides rudimentary reconstruction tools to get images (and check
-# that we didn't mess up the acquisition process).
-# This is available in the companion package ``snake.toolkit``.
-#
-# Loading the ``.mrd`` file to retrieve all information can be done using the
-# ``ismrmd`` python package, but SNAKE provides convenient dataloaders, which are
-# more efficient, and take cares of managing underlying files access. As we are
-# showcasing the API, we will do things manually here, and use only core SNAKE.
 
 from snake.mrd_utils import CartesianFrameDataLoader
+from snake.toolkit.reconstructors import ZeroFilledReconstructor
 
-with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
-    mask, kspace_data = data_loader.get_kspace_frame(0)
+
+with CartesianFrameDataLoader("example_nomotion.mrd") as data_loader:
+    rec = ZeroFilledReconstructor(n_jobs=1)
+    rec_nomotion = rec.reconstruct(data_loader).squeeze()
+    
+with CartesianFrameDataLoader("example_motion.mrd") as data_loader:
+    rec = ZeroFilledReconstructor(n_jobs=1)
+    rec_motion = rec.reconstruct(data_loader).squeeze()
+    motion = data_loader.get_dynamic(0) 
+
+with CartesianFrameDataLoader("example_motion2.mrd") as data_loader:
+    rec = ZeroFilledReconstructor(n_jobs=1)
+    rec_motion2 = rec.reconstruct(data_loader).squeeze()
+    motion2 = data_loader.get_dynamic(0) 
+
 
 
 # %%
-with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
-    phantom = data_loader.get_phantom()
+rec_motion.shape
 
 # %%
-sim_conf.fov.affine
-
-# %%
-phantom2 = phantom.resample(new_affine=sim_conf.fov.affine,new_shape=sim_conf.fov.shape)
-from snake.core.engine.utils import get_phantom_state
-phantom_state, smaps = get_phantom_state(phantom, sim_conf=sim_conf, dyn_datas=[],i=0, aggregate=True)
-axis3dcut(phantom_state.T, None, cuts=(0.5,0.5,0.5))
-
-# %%
-# Reconstructing a Single Frame of fully sampled EPI boils down to performing a 3D IFFT:
-
-from scipy.fft import fftshift, ifftn, ifftshift
-
-axes = (-3, -2, -1)
-image_data = ifftshift(
-    ifftn(fftshift(kspace_data, axes=axes), axes=axes, norm="ortho"), axes=axes
-)
-
-# Take the square root sum of squares to get the magnitude image (SSOS)
-image_data = np.sqrt(np.sum(np.abs(image_data) ** 2, axis=0))
-
-# %% plotting the result
+# Visualizing the reconstructed data
+# ----------------------------------
 
 import matplotlib.pyplot as plt
 
+from snake.toolkit.plotting import axis3dcut
 
-fig, ax = plt.subplots()
+fig, axs = plt.subplots(1, 2, figsize=(20, 5))
 
-axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=ax)
+axis3dcut(
+    rec_motion[0], None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[0], bg_cmap="viridis"
+)
+axis3dcut(
+    rec_nomotion[0], None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[1]
+)
 plt.show()
 
+
 # %%
-plt.imshow(image_data[32])
+# Show the motion
+# ---------------
+fig, axs = plt.subplots(2, 2)
+axs[0,0].plot(motion.data[:3,:].T)
+axs[1,0].plot(motion.data[3:,:].T)
+
+axs[0,1].plot(motion2.data[:3,:].T)
+axs[1,1].plot(motion2.data[3:,:].T)
+
+# %%
+plt.imshow(rec_motion[0][...,10])
+
+# %%
+axis3dcut(phantom.contrast(sim_conf=sim_conf).T, None, cuts=(0.5,0.5,0.5))
 
 # %%
