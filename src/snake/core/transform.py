@@ -20,7 +20,7 @@ def effective_affine(old: NDArray, new: NDArray) -> NDArray:
     """Compute the effective affine transformation between two affine matrices."""
     new_affine = np.asarray(new, dtype=np.float32)
     old_affine = np.asarray(old, dtype=np.float32)
-    return np.linalg.inv(new_affine) @ old_affine
+    return np.linalg.inv(old_affine) @ new_affine
 
 
 def _validate_gpu_affine(use_gpu: bool = True) -> tuple[bool, Callable, ModuleType]:
@@ -102,10 +102,8 @@ def apply_affine(
     """
     use_gpu, affine_transform, xp = _validate_gpu_affine(use_gpu)
     if transform_affine is None:
-        transform_affine = effective_affine(new_affine, old_affine)
+        transform_affine = effective_affine(old_affine, new_affine)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
-    if not use_gpu:
-        print(output.shape, transform_affine.shape, new_shape)
     data = xp.asarray(data)
     new_data = affine_transform(
         data,
@@ -162,7 +160,7 @@ def apply_affine4d(
 
     new_array = np.zeros((n_frames, *new_shape), dtype=data.dtype)
 
-    transform_affine = effective_affine(new_affine, old_affine)
+    transform_affine = effective_affine(old_affine, new_affine)
     use_gpu = _validate_gpu_affine(use_gpu)[0]
 
     if not use_gpu:
