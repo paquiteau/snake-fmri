@@ -273,7 +273,7 @@ class MRDLoader(LogMixin):
 
     def get_dynamic(self, waveform_num: int) -> DynamicData:
         """Get dynamic data."""
-        waveform = self._dataset._read_waveform(waveform_num)
+        waveform = self._read_waveform(waveform_num)
         wave_info = self._all_waveform_infos[waveform.waveform_id]
         from ..core import DynamicData
 
