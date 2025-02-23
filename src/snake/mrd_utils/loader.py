@@ -75,8 +75,16 @@ class MRDLoader(LogMixin):
                 libver="latest",
                 swmr=self._swmr,
             )
-            matrixSize = self.header.encoding[0].encodedSpace.matrixSize
-            self._shape = matrixSize.x, matrixSize.y, matrixSize.z
+            try:
+                header = self.header
+            except LookupError as exc:
+                log.warning(
+                    "No matrix size found in the header. The header is probably missing."
+                )
+                self._shape = None
+            else:
+                matrixSize = header.encoding[0].encodedSpace.matrixSize
+                self._shape = matrixSize.x, matrixSize.y, matrixSize.z
         self._level += 1
         return self
 
