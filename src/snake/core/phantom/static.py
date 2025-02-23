@@ -557,6 +557,7 @@ class Phantom:
             labels=deepcopy(self.labels, memo),
             props=deepcopy(self.props, memo),
             smaps=deepcopy(self.smaps, memo),
+            affine=deepcopy(self.affine, memo),
         )
 
     def copy(self) -> Phantom:

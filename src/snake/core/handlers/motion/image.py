@@ -75,14 +75,16 @@ class RandomMotionImageHandler(AbstractHandler):
                 self._motion_data,
             )
         elif self.rs_std_degs is not None and self.ts_std_mms is not None:
-            ts_std_pix = np.array(self.ts_std_mms) / np.array(sim_conf.res_mm)
             motion = motion_generator(
                 n_frames,
-                ts_std_pix,
+                self.ts_std_mms,
                 self.rs_std_degs,
                 sim_conf.sim_tr_ms / 1000,
                 sim_conf.rng,
             )
+
+        else:
+            raise ValueError("Invalid motion parameters")
 
         return DynamicData(
             name=self.__handler_name__,
