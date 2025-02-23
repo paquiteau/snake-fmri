@@ -59,13 +59,13 @@ phantom.affine
 from snake.core.handlers import RandomMotionImageHandler
 
 motion = RandomMotionImageHandler(
-    ts_std_mms=[3, 3, 3],
-    rs_std_degs=[0.5, 0.5, 0.5],
+    ts_std_mms=[1, 1, 1],
+    rs_std_degs=[0.1, 0.1, 0.1],
 )
 
 motion2 = RandomMotionImageHandler(
-    ts_std_mms=[10, 10, 10], # 1cm.s^-1 of random speed.
-    rs_std_degs=[2, 2, 2],
+    ts_std_mms=[3, 3, 3],
+    rs_std_degs=[0.5, 0.5, 0.5],
 )
 
 # %%
@@ -165,7 +165,32 @@ with CartesianFrameDataLoader("example_motion2.mrd") as data_loader:
 
 
 # %%
+with CartesianFrameDataLoader("example_motion2.mrd") as data_loader:
+    sim_conf.max_sim_time
+
+# %%
 rec_motion.shape
+
+# %%
+# Show the motion
+# ---------------
+fig, axs = plt.subplots(2, 1, figsize=(10,5),sharex=True)
+time = np.arange(len(motion.data[0]))*sim_conf.seq.TR/1000
+TR_vol = 3 # We generated 2 frames in 6 seconds
+axs[0].axvline(TR_vol, c="gray")
+axs[1].axvline(TR_vol, c="gray")
+
+
+axs[0].plot(time, motion.data[:3,:].T)
+axs[1].plot(time,motion.data[3:,:].T)
+axs[0].set_prop_cycle(None) # reset color cycling
+axs[1].set_prop_cycle(None)
+axs[0].plot(time, motion2.data[:3,:].T, linestyle="dashed")
+axs[1].plot(time, motion2.data[3:,:].T, linestyle="dashed")
+
+axs[1].set_xlabel("time (s)")
+axs[0].set_ylabel("Translation (mm)")
+axs[1].set_ylabel("Rotation (deg)")
 
 # %%
 # Visualizing the reconstructed data
@@ -175,31 +200,25 @@ import matplotlib.pyplot as plt
 
 from snake.toolkit.plotting import axis3dcut
 
-fig, axs = plt.subplots(1, 2, figsize=(20, 5))
+fig, axs = plt.subplots(1, 3, figsize=(26, 5))
 
 axis3dcut(
-    rec_motion[0], None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[0], bg_cmap="viridis"
+    rec_motion[0].T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[0],
 )
 axis3dcut(
-    rec_nomotion[0], None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[1]
+    rec_motion2[0].T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[1],
 )
+axis3dcut(
+    rec_nomotion[0].T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=axs[2]
+)
+axs[0].set_title("Small motion")
+axs[1].set_title("Big motion")
+axs[2].set_title("No motion")
 plt.show()
 
 
 # %%
-# Show the motion
-# ---------------
-fig, axs = plt.subplots(2, 2)
-axs[0,0].plot(motion.data[:3,:].T)
-axs[1,0].plot(motion.data[3:,:].T)
+sim_conf.seq.TR_eff
 
-axs[0,1].plot(motion2.data[:3,:].T)
-axs[1,1].plot(motion2.data[3:,:].T)
-
-# %%
-plt.imshow(rec_motion[0][...,10])
-
-# %%
-axis3dcut(phantom.contrast(sim_conf=sim_conf).T, None, cuts=(0.5,0.5,0.5))
 
 # %%
