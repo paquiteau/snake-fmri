@@ -19,6 +19,8 @@ from snake.core.phantom import Phantom
 from snake.core.sampling import EPI3dAcquisitionSampler
 from snake.core.simulation import GreConfig, SimConfig, default_hardware
 from snake.core.smaps import get_smaps
+from snake.toolkit.plotting import axis3dcut
+
 
 # %%
 # Setting up the base simulation Config.  This configuration holds all key
@@ -31,7 +33,7 @@ sim_conf = SimConfig(
 )
 sim_conf.hardware.n_coils = 8
 sim_conf.fov.res_mm = (3, 3, 3)
-sim_conf.shape
+sim_conf
 
 # %%
 # Creating the base Phantom
@@ -90,7 +92,6 @@ sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
 # a single worker will do.
 
 from snake.core.engine import EPIAcquisitionEngine
-from snake.toolkit.plotting import axis3dcut
 
 
 engine = EPIAcquisitionEngine(model="simple")
@@ -132,12 +133,6 @@ with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
 sim_conf.fov.affine
 
 # %%
-phantom2 = phantom.resample(new_affine=sim_conf.fov.affine,new_shape=sim_conf.fov.shape)
-from snake.core.engine.utils import get_phantom_state
-phantom_state, smaps = get_phantom_state(phantom, sim_conf=sim_conf, dyn_datas=[],i=0, aggregate=True)
-axis3dcut(phantom_state.T, None, cuts=(0.5,0.5,0.5))
-
-# %%
 # Reconstructing a Single Frame of fully sampled EPI boils down to performing a 3D IFFT:
 
 from scipy.fft import fftshift, ifftn, ifftshift
@@ -159,8 +154,5 @@ fig, ax = plt.subplots()
 
 axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=ax)
 plt.show()
-
-# %%
-plt.imshow(image_data[32])
 
 # %%
