@@ -22,8 +22,8 @@ def get_phantom_state(
         frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
 
     frame_phantom = frame_phantom.resample(
-        sim_conf.fov.affine,
-        sim_conf.shape,
+        new_affine=sim_conf.fov.affine,
+        new_shape=sim_conf.shape,
         use_gpu=True,
     )
     return (
