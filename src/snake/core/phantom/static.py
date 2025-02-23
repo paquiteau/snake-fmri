@@ -227,18 +227,18 @@ class Phantom:
 
         if not isinstance(dataset, MRDLoader):
             dataset = MRDLoader(dataset)
+        with dataset:
+            image = dataset._read_image("phantom", imnum)
+            name = image.meta.pop("name")
+            labels = np.array(image.meta["labels"].split(","))
+            props = unserialize_array(image.meta["props"])
 
-        image = dataset._read_image("phantom", imnum)
-        name = image.meta.pop("name")
-        labels = np.array(image.meta["labels"].split(","))
-        props = unserialize_array(image.meta["props"])
-
-        affine = get_affine_from_image(image)
-        # smaps
-        try:
-            smaps = dataset._read_image("smaps", imnum).data
-        except LookupError:
-            smaps = None
+            affine = get_affine_from_image(image)
+            # smaps
+            try:
+                smaps = dataset._read_image("smaps", imnum).data
+            except LookupError:
+                smaps = None
 
         return cls(
             masks=image.data,
@@ -499,9 +499,9 @@ class Phantom:
         """
         new_masks = apply_affine4d(
             self.masks,
-            self.affine,
-            new_affine,
-            new_shape,
+            old_affine=self.affine,
+            new_affine=new_affine,
+            new_shape=new_shape,
             use_gpu=use_gpu,
             **kwargs,
         )
@@ -509,9 +509,9 @@ class Phantom:
         if self.smaps is not None:
             new_smaps = apply_affine4d(
                 self.smaps,
-                self.affine,
-                new_affine,
-                new_shape,
+                old_affine=self.affine,
+                new_affine=new_affine,
+                new_shape=new_shape,
                 use_gpu=use_gpu,
                 **kwargs,
             )
