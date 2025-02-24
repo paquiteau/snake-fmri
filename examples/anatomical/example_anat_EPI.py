@@ -18,7 +18,6 @@ import numpy as np
 from snake.core.phantom import Phantom
 from snake.core.sampling import EPI3dAcquisitionSampler
 from snake.core.simulation import GreConfig, SimConfig, default_hardware
-from snake.core.smaps import get_smaps
 from snake.toolkit.plotting import axis3dcut
 
 

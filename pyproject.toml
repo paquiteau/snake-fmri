@@ -124,7 +124,7 @@ convention = "numpy"
 "ANN", # no annotation in examples
 "E402", # import in the middle of the file
 "B018", # allow for useless expression (prints)
-"B905"
+"B019", # allow for functool cache
 ]
 "tests/test_*.py" = ["D", "ANN"]
 

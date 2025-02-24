@@ -40,7 +40,12 @@ sim_conf.fov.res_mm = (3, 3, 3)
 sim_conf.fov.size = (192, 192, 128)
 sim_conf.fov.offset = (-90, -110, -20)
 sim_conf.fov.angles = (-5, 0, 0)
-contrast_resampled = phantom.contrast(sim_conf=sim_conf, resample=True, aggregate=True,use_gpu=False)
+contrast_resampled = phantom.contrast(
+    sim_conf=sim_conf,
+    resample=True,
+    aggregate=True,
+    use_gpu=False,
+)
 
 
 # %%
