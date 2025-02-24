@@ -26,11 +26,11 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install finufft ipywidgets
+          pip install cufinufft cupy-cuda12x finufft ipywidgets
           pip install -e .[test,toolkit]
       - name: Test
         run: |
-          pytest tests
+          pytest tests --cov --cov-branch --cov-report=term
 
   test-examples:
     runs-on: "gpu"
@@ -41,14 +41,29 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: 'pip'
+      - name: Restore cached brainweb-dl directory
+        uses: actions/cache/restore@v4
+        id: cache-restore
+        with:
+          path: ~/.cache/brainweb
+          key: ${{ runner.os }}-Brainweb
       - name: Install dependencies
         run: |
+          export CUDA_BIN_PATH=/usr/local/cuda-12.1/
+          export PATH=/usr/local/cuda-12.1/bin/:${PATH}
+          export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}
           python -m pip install --upgrade pip
-          pip install finufft ipywidgets
+          pip install cufinufft cupy-cuda12x finufft ipywidgets
           pip install -e .[test,toolkit]
       - name: Test
         run: |
           pytest examples/anatomical
+      - name: Cache brainweb-dl directory
+        uses: actions/cache/save@v4
+        if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
+        with:
+          path: ~/.cache/brainweb
+          key: ${{ runner.os }}-Brainweb
 
   linters:
     runs-on: ubuntu-latest
