@@ -153,8 +153,28 @@ html_title = "SNAKE-fMRI Documentation"
 # ----- Sphinx Gallery options ----------------------------------
 #
 
+
 sphinx_gallery_conf = {
-    "examples_dirs": "../examples",  # path to your example scripts
-    "gallery_dirs": "auto_examples",  # path to where to save gallery generated output
-    "filename_pattern": "/example",
+    "doc_module": "snake",
+    "backreferences_dir": "generated/gallery_backreferences",
+    "reference_url": {"snake": None},
+    "examples_dirs": ["../examples/"],
+    "gallery_dirs": ["generated/autoexamples"],
+    "within_subsection_order": "ExampleTitleSortKey",
+    "filename_pattern": "/example_",
+    "ignore_pattern": r"(__init__|conftest|utils).py",
+    "nested_sections": True,
+    "binder": {
+        "org": "mind-inria",
+        "repo": "snake-fmri",
+        "branch": "gh-pages",
+        "binderhub_url": "https://mybinder.org",
+        "dependencies": [
+            "./binder/apt.txt",
+            "./binder/environment.yml",
+        ],
+        "notebooks_dir": "examples",
+        "use_jupyter_lab": True,
+    },
+    "parallel": 5,
 }

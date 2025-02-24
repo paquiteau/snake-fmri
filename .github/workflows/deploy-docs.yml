@@ -21,7 +21,7 @@ concurrency:
 # This job installs dependencies, builds the book, and pushes it to `gh-pages`
 jobs:
   deploy-book:
-    runs-on: ubuntu-latest
+    runs-on: gpu
     steps:
     - uses: actions/checkout@v4
 
@@ -33,7 +33,7 @@ jobs:
 
     - name: Install dependencies
       run: |
-        pip install mri-nufft[finufft] ipywidgets
+        pip install mri-nufft[finufft,cufinufft] ipywidgets
         pip install -e .[doc]
         pip install git+https://github.com/mind-inria/mri-nufft
 
