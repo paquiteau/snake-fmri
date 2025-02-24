@@ -57,7 +57,7 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "auto_examples/anatomical/*.ipynb",
+    "autoexamples/anatomical/*.ipynb",
 ]
 
 autodoc2_packages = ["../src/snake/"]
