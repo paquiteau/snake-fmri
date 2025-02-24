@@ -16,7 +16,6 @@ alternative is to use the CLI ``snake-main``
 import numpy as np
 from snake.core.simulation import SimConfig, default_hardware, GreConfig
 from snake.core.phantom import Phantom
-from snake.core.smaps import get_smaps
 from snake.core.sampling import EPI3dAcquisitionSampler
 
 # %%
@@ -25,12 +24,13 @@ sim_conf = SimConfig(
     max_sim_time=6,
     seq=GreConfig(TR=100, TE=30, FA=3),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 8
+sim_conf.fov.res_mm = (3, 3, 3)
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+phantom = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
+)
 
 
 # %%
@@ -42,10 +42,6 @@ phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue
 # k-space (this akin to the 3D EPI sequence of XXXX)
 
 sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
-
-smaps = None
-if sim_conf.hardware.n_coils > 1:
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
 
 
 # %%
@@ -79,14 +75,11 @@ from snake.core.engine import EPIAcquisitionEngine
 
 engine = EPIAcquisitionEngine(model="simple")
 
-engine("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
-
 engine(
     "example_EPI.mrd",
     sampler,
     phantom,
     sim_conf,
-    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
 )
@@ -97,7 +90,6 @@ engine_t2s(
     sampler,
     phantom,
     sim_conf,
-    smaps=smaps,
     worker_chunk_size=60,
     n_workers=1,
 )
@@ -122,7 +114,7 @@ from scipy.fft import ifftn, ifftshift, fftshift
 
 def reconstruct_frame(filename):
     with CartesianFrameDataLoader(filename) as data_loader:
-        mask, kspace_data = data_loader.get_kspace_frame(0)
+        _, kspace_data = data_loader.get_kspace_frame(0)
     axes = (-3, -2, -1)
     image_data = ifftshift(
         ifftn(fftshift(kspace_data, axes=axes), axes=axes, norm="ortho"), axes=axes
@@ -150,7 +142,7 @@ fig, axs = plt.subplots(1, 3, figsize=(30, 10))
 for ax, img, title in zip(
     axs,
     (image_simple, image_T2s, abs(image_simple - image_T2s)),
-    ("simple", "T2s", "diff"),
+    ("simple", "T2s", "diff"), strict=False,
 ):
     axis3dcut(img, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4, ax=ax)
     ax.set_title(title)

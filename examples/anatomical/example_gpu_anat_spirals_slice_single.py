@@ -15,7 +15,7 @@ alternative is to use the CLI ``snake-main``
 # .. colab-link::
 #    :needs_gpu: 1
 #
-#    !pip install mri-nufft[cufinufft] scikit-image
+# !pip install mri-nufft[gpunufft] scikit-image
 
 # Imports
 import matplotlib.pyplot as plt
@@ -30,7 +30,7 @@ from mrinufft import get_operator
 
 # For faster computation, try to use the GPU
 
-NUFFT_BACKEND = "stacked-cufinufft"
+NUFFT_BACKEND = "stacked-gpunufft"
 COMPUTE_BACKEND = "cupy"
 
 try:
@@ -39,7 +39,7 @@ try:
     if not cp.cupy.cuda.runtime.getDeviceCount():
         raise ValueError("No CUDA Device found")
 
-    get_operator("cufinufft")
+    get_operator("gpunufft")
 except Exception:
     try:
         get_operator("finufft")
@@ -61,14 +61,14 @@ sim_conf = SimConfig(
 )
 sim_conf.hardware.n_coils = 1  # Update to get multi coil results.
 sim_conf.hardware.field_strength = 7
+phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+
+
+# Create a FOV of 192x192x3mm with a resolution of 3x3x3 mm
+sim_conf.fov.size = (192, 192, 3)
 sim_conf.fov.res_mm = (3, 3, 3)
-phantom = Phantom.from_brainweb(
-    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
-)
+sim_conf.fov.offset = (-90, -110, 0)  # Set the z-offset to 0 in MNIspace
 
-
-# %%
-phantom.masks.shape
 
 # %%
 # Setting up Acquisition Pattern and Initializing Result file.
@@ -165,16 +165,18 @@ engine_t2s(
 # %%
 
 from snake.mrd_utils import NonCartesianFrameDataLoader
-from snake.toolkit.plotting import axis3dcut
 
 with NonCartesianFrameDataLoader("example_spiral_t2s_2D.mrd") as data_loader:
     traj, kspace_data = data_loader.get_kspace_frame(0, shot_dim=True)
 
 # %%
-kspace_data = kspace_data.squeeze()
+kspace_data = kspace_data.squeeze(1)
 
 # %%
-shot = traj[18].copy()
+kspace_data.shape
+
+# %%
+shot = traj[0].copy()
 nufft = get_operator(NUFFT_BACKEND)(
     samples=shot[:, :2],
     shape=data_loader.shape[:-1],
@@ -185,4 +187,9 @@ nufft.samples = shot[:, :2]
 image = nufft.adj_op(kspace_data)
 
 fig, ax = plt.subplots()
-axis3dcut(abs(image), None, cuts=(40, 40, 40), ax=ax)
+# axis3dcut(abs(image), None, cuts=(40, 40, 40), ax=ax)
+plt.imshow(
+    abs(image).T,
+)
+
+# %%

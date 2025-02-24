@@ -14,11 +14,12 @@ alternative is to use the CLI ``snake-main``
 
 # Imports
 import numpy as np
-from snake.core.simulation import SimConfig, default_hardware, GreConfig
+
 from snake.core.phantom import Phantom
-from snake.core.smaps import get_smaps
 from snake.core.sampling import EPI3dAcquisitionSampler
-from snake.mrd_utils import make_base_mrd
+from snake.core.simulation import GreConfig, SimConfig, default_hardware
+from snake.toolkit.plotting import axis3dcut
+
 
 # %%
 # Setting up the base simulation Config.  This configuration holds all key
@@ -26,13 +27,11 @@ from snake.mrd_utils import make_base_mrd
 
 sim_conf = SimConfig(
     max_sim_time=6,
-    seq=GreConfig(TR=100, TE=30, FA=3),
+    seq=GreConfig(TR=50, TE=30, FA=3),
     hardware=default_hardware,
-    fov_mm=(181, 217, 181),
-    shape=(60, 72, 60),
 )
 sim_conf.hardware.n_coils = 8
-
+sim_conf.fov.res_mm = (3, 3, 3)
 sim_conf
 
 # %%
@@ -46,10 +45,12 @@ sim_conf
 #
 # Here we use Brainweb reference mask and values for convenience.
 
-phantom = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf)
+phantom = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, output_res=1, tissue_file="tissue_7T"
+)
 
 # Here are the tissue availables and their parameters
-phantom
+phantom.affine
 
 
 # %%
@@ -61,17 +62,6 @@ phantom
 # k-space (this akin to the 3D EPI sequence of XXXX)
 
 sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
-
-smaps = None
-if sim_conf.hardware.n_coils > 1:
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
-
-# %%
-# SNAKE Uses the standardized ``.mrd`` file format as it output and exchange format.
-# More information are available at XXXX
-
-make_base_mrd("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
-
 
 # %%
 # Acquisition with Cartesian Engine
@@ -102,6 +92,7 @@ make_base_mrd("example_EPI.mrd", sampler, phantom, sim_conf, smaps=smaps)
 
 from snake.core.engine import EPIAcquisitionEngine
 
+
 engine = EPIAcquisitionEngine(model="simple")
 
 engine(
@@ -109,9 +100,8 @@ engine(
     sampler=sampler,
     phantom=phantom,
     sim_conf=sim_conf,
-    smaps=smaps,
-    worker_chunk_size=20,
-    n_workers=2,
+    worker_chunk_size=16,
+    n_workers=4,
 )
 
 # %%
@@ -135,9 +125,16 @@ with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
 
 
 # %%
+with CartesianFrameDataLoader("example_EPI.mrd") as data_loader:
+    phantom = data_loader.get_phantom()
+
+# %%
+sim_conf.fov.affine
+
+# %%
 # Reconstructing a Single Frame of fully sampled EPI boils down to performing a 3D IFFT:
 
-from scipy.fft import ifftn, ifftshift, fftshift
+from scipy.fft import fftshift, ifftn, ifftshift
 
 axes = (-3, -2, -1)
 image_data = ifftshift(
@@ -150,9 +147,11 @@ image_data = np.sqrt(np.sum(np.abs(image_data) ** 2, axis=0))
 # %% plotting the result
 
 import matplotlib.pyplot as plt
-from snake.toolkit.plotting import axis3dcut
+
 
 fig, ax = plt.subplots()
 
-axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(40, 60, 40), ax=ax)
+axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5, 0.5, 0.5), ax=ax)
 plt.show()
+
+# %%

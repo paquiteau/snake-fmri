@@ -11,6 +11,7 @@ from ..base import AbstractHandler
 from ..utils import apply_weights
 from .roi import BRAINWEB_OCCIPITAL_ROI, get_indices_inside_ellipsoid
 from .bold import get_bold, block_design, get_event_ts
+from ...transform import apply_affine
 
 
 class ActivationMixin(LogMixin):
@@ -30,9 +31,20 @@ class ActivationMixin(LogMixin):
         Minimal onset relative to frame_times[0] (in seconds)
         events that start before frame_times[0] + min_onset are not considered.
         Default=-24.
-    roi_threshold: float, default 0.0
-        If greater than 0, the roi becomes a binary mask, with roi_threshold
-        as separation.
+    base_tissue_name:
+        Name of the tissue to intersect with the ROI.
+    atlas: str, default=None
+        Name of the atlas to use for the ROI.
+    atlas_label: int | str, default=-1
+        Label of the ROI in the atlas.
+
+
+    Notes
+    -----
+    If no atlases is provided, the ROI is computed by intersecting the base tissue with
+    an ellipsoid in the occipital region.
+    If a probabilistic atlas is provided, the effective BOLD signal will be the product
+    of the voxel base_tissue_name (e.g. gray-matter) and of the atlas mask.
 
     See Also
     --------
@@ -44,37 +56,23 @@ class ActivationMixin(LogMixin):
     offset: float = 0
     event_name: str
     roi_tissue_name: str = "ROI"
-    delta_r2s: float = 1000.0
+    delta_r2s: float = 1000.0  # mHz
     hrf_model: str = "glover"
     oversampling: int = 10
     min_onset: float = -24.0
-    roi_threshold: float = 0.0
-    base_tissue_name = "gm"
+    base_tissue_name: str = "gm"  # The ROI intersected with the gray matter mask.
+    # Use nilearn for downloading the atlas.
+    atlas: str | None = "hardvard-oxford__cort-maxprob-thr50-1mm"
+    atlas_label: int | str = ""
 
     def get_static(self, phantom: Phantom, sim_config: SimConfig) -> Phantom:
         """Get the static ROI."""
-        tissue_index = phantom.labels == self.base_tissue_name
         # shape: tuple[int, ...] | None = phantom.tissues_mask.shape[1:]
-        if tissue_index.sum() == 0:
-            raise ValueError(
-                f"Tissue {self.base_tissue_name} not found in the phantom."
-            )
-        roi = phantom.masks[tissue_index].squeeze()
-        occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
-        roi_zoom = np.array(roi.shape) / np.array(occ_roi["shape"])
-        self.log.debug(
-            "ROI parameters (orig, target, zoom) %s, %s, %s",
-            occ_roi["shape"],
-            roi.shape,
-            roi_zoom,
-        )
-        ellipsoid = get_indices_inside_ellipsoid(
-            roi.shape,
-            center=np.array(occ_roi["center"]) * roi_zoom,
-            semi_axes_lengths=np.array(occ_roi["semi_axes_lengths"]) * roi_zoom,
-            euler_angles=occ_roi["euler_angles"],
-        )
-        roi[~ellipsoid] = 0
+        tissue_index = phantom.labels == self.base_tissue_name
+        if self.atlas is None:
+            roi = self._get_roi_base(phantom)
+        else:
+            roi = self._get_roi_atlas(phantom)
 
         # update the phantom
         new_phantom = phantom.add_tissue(
@@ -85,6 +83,55 @@ class ActivationMixin(LogMixin):
         )
 
         return new_phantom
+
+    def _get_roi_base(self, phantom: Phantom) -> NDArray:
+        tissue_index = phantom.labels == self.base_tissue_name
+        if tissue_index.sum() == 0:
+            raise ValueError(
+                f"Tissue {self.base_tissue_name} not found in the phantom."
+            )
+        roi_base = phantom.masks[tissue_index].squeeze().copy()
+        occ_roi = BRAINWEB_OCCIPITAL_ROI.copy()
+        roi_zoom = np.array(roi_base.shape) / np.array(occ_roi["shape"])
+        self.log.debug(
+            "ROI parameters (orig, target, zoom) %s, %s, %s",
+            occ_roi["shape"],
+            roi_base.shape,
+            roi_zoom,
+        )
+        ellipsoid = get_indices_inside_ellipsoid(
+            roi_base.shape,
+            center=np.array(occ_roi["center"]) * roi_zoom,
+            semi_axes_lengths=np.array(occ_roi["semi_axes_lengths"]) * roi_zoom,
+            euler_angles=occ_roi["euler_angles"],
+        )
+        roi_base[~ellipsoid] = 0
+        return roi_base
+
+    def _get_roi_atlas(self, phantom: Phantom) -> NDArray:
+        """Get the ROI from the atlas.
+
+        Currently, only the Harvard-Oxford atlas is supported.
+        """
+        atlas_base, atlas_name = self.atlas.split("__")
+        from nilearn.datasets.atlas import fetch_atlas_harvard_oxford
+        from nibabel.nifti1 import Nifti1Image
+
+        if atlas_base == "hardvard-oxford":
+            atlas = fetch_atlas_harvard_oxford(atlas=atlas_name)
+        else:
+            raise ValueError(f"Atlas {atlas_base} not supported.")
+        maps = Nifti1Image.from_filename(atlas.maps)
+        idx = atlas.labels.index(self.atlas_label)
+        if atlas.atlas_type == "probabilistic":
+            atlas_mask = np.array(maps.dataobj[..., idx])
+        else:
+            atlas_mask = np.array(maps.dataobj == idx)
+        # Resample the atlas to the phantom affine
+        atlas_mask = apply_affine(
+            atlas_mask, maps.affine, phantom.affine, phantom.shape, use_gpu=True
+        )
+        return atlas_mask
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic time series for adding Activations."""

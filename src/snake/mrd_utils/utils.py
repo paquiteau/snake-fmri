@@ -5,8 +5,6 @@ import base64
 import pickle
 from enum import IntFlag
 from typing import Any
-import numpy as np
-from numpy.typing import NDArray
 
 
 def get_waveform_id(input_string: str) -> int:
@@ -50,24 +48,6 @@ def obj2b64encode(f: Any) -> bytes:
 def b64encode2obj(s: str) -> Any:
     """Load a base64 string as a python object."""
     return pickle.loads(base64.b64decode(s))
-
-
-def serialize_array(arr: NDArray) -> str:
-    """Serialize the array for mrd compatible format."""
-    return "__".join(
-        [
-            base64.b64encode(arr.tobytes()).decode(),
-            str(arr.shape),
-            str(arr.dtype),
-        ]
-    )
-
-
-def unserialize_array(s: str) -> NDArray:
-    """Unserialize the array for mrd compatible format."""
-    data, shape, dtype = s.split("__")
-    shape = eval(shape)  # FIXME
-    return np.frombuffer(base64.b64decode(data.encode()), dtype=dtype).reshape(*shape)
 
 
 # fmt: off

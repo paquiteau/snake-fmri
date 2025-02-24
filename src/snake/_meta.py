@@ -31,6 +31,74 @@ def make_log_property(dunder_name: str) -> Callable:
     return log
 
 
+def dataclass_repr_html(obj: Any, vertical: bool = True) -> str:
+    """
+    Recursive HTML representation for dataclasses.
+
+    This function generates an HTML table representation of a dataclass,
+    including nested dataclasses.
+
+    Parameters
+    ----------
+    obj: The dataclass instance.
+
+    Returns
+    -------
+        str: An HTML table string representing the dataclass.
+    """
+    class_name = obj.__class__.__name__
+    table_rows = [
+        '<table style="border:1px solid lightgray;">'
+        '<caption style="border:1px solid lightgray;">'
+        f"<strong>{class_name}</strong></caption>"
+    ]
+    from dataclasses import fields
+
+    resolved_hints = obj.__annotations__
+    field_names = [f.name for f in fields(obj)]
+    field_values = {name: getattr(obj, name) for name in field_names}
+    resolved_field_types = {name: resolved_hints[name] for name in field_names}
+
+    if vertical:  # switch between vertical and horizontal mode
+        for field_name in field_names:
+            # Recursively call _repr_html_ for nested dataclasses
+            field_value = field_values[field_name]
+            field_type = resolved_field_types[field_name]
+            try:
+                field_value_str = field_value._repr_html_(vertical=not vertical)
+            except AttributeError:
+                field_value_str = repr(field_value)
+
+            table_rows.append(
+                f"<tr><td>{field_name}(<i>{field_type}</i>)</td>"
+                f"<td>{field_value_str}</td></tr>"
+            )
+    else:
+        table_rows.append(
+            "<tr>"
+            + "".join(
+                [
+                    f"<td>{field_name} (<i>{field_type}</i>)</td>"
+                    for field_name, field_type in resolved_field_types.items()
+                ]
+            )
+            + "</tr>"
+        )
+        values = []
+        for field_value in field_values.values():
+            # Recursively call _repr_html_ for nested dataclasses
+            try:
+                field_value_str = field_value._repr_html_(
+                    vertical=not vertical
+                )  # alternates orientation
+            except AttributeError:
+                field_value_str = repr(field_value)
+            values.append(f"<td>{field_value_str}</td>")
+        table_rows.append("<tr>" + "".join(values) + "</tr>")
+    table_rows.append("</table>")
+    return "\n".join(table_rows)
+
+
 @dataclass_transform(kw_only_default=True)
 class MetaDCRegister(type):
     """A MetaClass adding registration for subclasses and transform to dataclass."""
@@ -48,6 +116,7 @@ class MetaDCRegister(type):
         No need for @dataclass decorator.
         """
         class_dict["log"] = property(make_log_property(meta.dunder_name))
+        class_dict["_repr_html_"] = dataclass_repr_html
         cls = dataclasses.dataclass(kw_only=True)(
             super().__new__(meta, clsname, bases, class_dict)  # type: ignore
         )

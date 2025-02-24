@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 import logging
-from typing import ClassVar
+from typing import ClassVar, overload
 from typing_extensions import dataclass_transform
 from numpy.typing import NDArray
 
@@ -23,11 +23,6 @@ class BaseSampler(metaclass=MetaSampler):
     """Sampler Interface.
 
     A Sampler is designed to generate a sampling pattern.
-
-    Examples
-    --------
-    >>> S = Sampler()
-    >>> S.generate()
     """
 
     __sampler_name__: ClassVar[str]
@@ -35,24 +30,34 @@ class BaseSampler(metaclass=MetaSampler):
     __registry__: ClassVar[dict[str, type[BaseSampler]]]
     constant: bool = True
 
+    def __post_init__(self):
+        self._frame = None
+
     @property
     def log(self) -> logging.Logger:
         """Get a logger."""
         return logging.getLogger(f"simulation.samplers.{self.__class__.__name__}")
 
+    @overload
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
-        """Generate a single frame."""
+        # Generate a single frame
         raise NotImplementedError
 
     def get_next_frame(self, sim_conf: SimConfig) -> NDArray:
         """Generate the next frame."""
         if self.constant:
-            if not hasattr(self, "_frame"):
+            if self._frame is None:
                 self._frame = self._single_frame(sim_conf)
             return self._frame
 
         return self._single_frame(sim_conf)
 
+    @overload
     def add_all_acq_mrd(self, dataset: mrd.Dataset, sim_conf: SimConfig) -> mrd.Dataset:
-        """Export the Sampling pattern to file."""
+        # Export the Sampling pattern to file
+        raise NotImplementedError
+
+    @overload
+    def TR_vol_ms(self, sim_conf: SimConfig) -> float:
+        # Get the TR in milliseconds.
         raise NotImplementedError

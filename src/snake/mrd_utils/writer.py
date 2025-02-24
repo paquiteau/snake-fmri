@@ -1,21 +1,24 @@
 """Export data to mrd format."""
 
 from __future__ import annotations
+
 import logging
 import os
 from typing import TYPE_CHECKING
+
 import ismrmrd as mrd
 import numpy as np
-from numpy.typing import NDArray
 from hydra_callbacks import PerfLogger
 from mrinufft.trajectories.utils import Gammas
+from numpy.typing import NDArray
+
 from snake._version import __version__ as version
 
 from .utils import get_waveform_id, obj2b64encode
 
 if TYPE_CHECKING:
-    from snake.core.phantom import DynamicData, Phantom
     from snake.core.handlers import AbstractHandler, HandlerList
+    from snake.core.phantom import DynamicData, Phantom
     from snake.core.sampling import BaseSampler
     from snake.core.simulation import SimConfig
 
@@ -44,10 +47,10 @@ def get_mrd_header(
 
     # Encoding
     # FOV computation
-    input_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
+    input_fov = mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm)
     input_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
-    output_fov = mrd.xsd.fieldOfViewMm(*(np.array(sim_conf.fov_mm, dtype=np.float64)))
+    output_fov = mrd.xsd.fieldOfViewMm(*sim_conf.fov_mm)
     output_matrix = mrd.xsd.matrixSizeType(*sim_conf.shape)
 
     # FIXME: update the encoding in acquisition writer.
@@ -79,6 +82,7 @@ def get_mrd_header(
                 ("dwell_time_ms", sim_conf.hardware.dwell_time_ms),
                 ("rng_seed", sim_conf.rng_seed),
                 ("max_sim_time", sim_conf.max_sim_time),
+                ("TR_eff", sim_conf.seq.TR_eff),
             ]
         ],
         userParameterString=[
@@ -86,18 +90,13 @@ def get_mrd_header(
             for name, value in [
                 ("engine_model", model),
                 ("slice_2d", str(slice_2d)),
+                # FIXME: better erialization ?
+                ("fov_config", str(sim_conf.fov.__repr__())),
             ]
         ],
     )
 
     return H
-
-
-def add_phantom_mrd(
-    dataset: mrd.Dataset, phantom: Phantom, sim_conf: SimConfig
-) -> mrd.Dataset:
-    """Add the phantom to the dataset."""
-    return phantom.to_mrd_dataset(dataset, sim_conf)
 
 
 def add_dynamic_mrd(
@@ -207,7 +206,7 @@ def make_base_mrd(
     coil_covar : NDArray, optional
         The coil covariance matrix, by default None
     """
-    # Apply the handlers and get the dynamic data, this might modifies the sim_conf !!
+    # Apply the handlers and get the dynamic data!!
     if handlers is None:
         handlers = []
     for h in handlers:
@@ -228,7 +227,7 @@ def make_base_mrd(
         sampler.add_all_acq_mrd(dataset, sim_conf)
 
     with PerfLogger(logger=log, name="phantom"):
-        add_phantom_mrd(dataset, phantom, sim_conf)
+        phantom.to_mrd_dataset(dataset)
 
     with PerfLogger(logger=log, name="dynamic"):
         if dynamic_data is not None:

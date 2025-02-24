@@ -53,8 +53,7 @@ dependencies = [ # Optional
 ]
 
 [project.optional-dependencies] # Optional
-dev = ["black", "ruff", "isort"]
-test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist"]
+test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist", "pytest-cases"]
 doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery", "myst-sphinx-gallery", "sphinx-book-theme","matplotlib", "pysap-fmri", "ipywidgets", "myst-nb", "sphinx-autodoc2", "sphinx-design", "sphinx-tippy", "linkify-it-py"]
 toolkit = [ "matplotlib", "pysap-fmri"]
 # List URLs that are relevant to your project
@@ -96,6 +95,7 @@ profile="black"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+testpaths=["tests"]
 addopts = [
     "--cov=snake",
     "--cov-report=term-missing",
@@ -109,8 +109,6 @@ include = ["src/**/*.py", "tests/**/*.py", "examples/*.py"]
 [tool.ruff.lint]
 select = ["E", "F", "B", "Q", "D", "UP", "ANN"]
 ignore = [
-    "ANN101", # missing type annotation for self
-    "ANN102", # missing type annotation for cls in classmethod.
     "ANN204", # missing return type for __init__
     "ANN401",
     "D105", # missing docstring in magic method
@@ -126,7 +124,7 @@ convention = "numpy"
 "ANN", # no annotation in examples
 "E402", # import in the middle of the file
 "B018", # allow for useless expression (prints)
-"B905"
+"B019", # allow for functool cache
 ]
 "tests/test_*.py" = ["D", "ANN"]
 
@@ -141,5 +139,9 @@ skip = ["docs/generated", "*.ipynb"]
 
 [dependency-groups]
 dev = [
+    "ruff",
+    "codespell>=2.4.1",
     "ipykernel>=6.29.5",
+    "ipympl>=0.9.6",
+    "ipython>=8.32.0",
 ]

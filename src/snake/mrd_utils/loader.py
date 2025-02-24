@@ -4,27 +4,28 @@ from __future__ import annotations
 
 import logging
 import os
-
+import functools
 from functools import cached_property
 import ismrmrd as mrd
 import h5py
 import numpy as np
 from numpy.typing import NDArray
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, overload
 from collections.abc import Generator
 from .._meta import LogMixin
 
 if TYPE_CHECKING:
-    from _typeshed import AnyPath
     from ..core import Phantom, DynamicData
     from ..core import SimConfig
 
-from .utils import b64encode2obj, unserialize_array
+from .utils import b64encode2obj
 
 log = logging.getLogger(__name__)
 
+GenericPath = os.PathLike | str
 
-def read_mrd_header(filename: AnyPath | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
+
+def read_mrd_header(filename: GenericPath | mrd.Dataset) -> mrd.xsd.ismrmrdHeader:
     """Read the header of the MRD file."""
     if isinstance(filename, mrd.Dataset):
         dataset = filename
@@ -51,7 +52,7 @@ class MRDLoader(LogMixin):
 
     def __init__(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         dataset_name: str = "dataset",
         writeable: bool = False,
         swmr: bool = False,
@@ -73,8 +74,17 @@ class MRDLoader(LogMixin):
                 libver="latest",
                 swmr=self._swmr,
             )
-            matrixSize = self.header.encoding[0].encodedSpace.matrixSize
-            self._shape = matrixSize.x, matrixSize.y, matrixSize.z
+            try:
+                header = self.header
+            except LookupError:
+                log.warning(
+                    "No matrix size found in the header."
+                    " The header is probably missing."
+                )
+                self._shape = None
+            else:
+                matrixSize = header.encoding[0].encodedSpace.matrixSize
+                self._shape = matrixSize.x, matrixSize.y, matrixSize.z
         self._level += 1
         return self
 
@@ -94,7 +104,7 @@ class MRDLoader(LogMixin):
         """Iterate over kspace frames of the dataset.
 
         Parameters
-        ---------
+        ----------
         start : int, optional
             Start index of the iteration.
         stop : int, optional
@@ -105,7 +115,7 @@ class MRDLoader(LogMixin):
             Return the data reshaped with the shot dimension first.
 
         Yields
-        -----
+        ------
         tuple[int, np.ndarray, np.ndarray]
             The index of the frame, the trajectory and the kspace data.
 
@@ -120,10 +130,11 @@ class MRDLoader(LogMixin):
             for i in np.arange(start, stop, step):
                 yield i, *self.get_kspace_frame(i, shot_dim=shot_dim)
 
+    @overload
     def get_kspace_frame(
         self, idx: int
     ) -> tuple[NDArray[np.float32], NDArray[np.complex64]]:
-        """Get k-space frame trajectory/mask and data."""
+        # Get k-space frame trajectory/mask and data.
         raise NotImplementedError()
 
     ###########################
@@ -190,7 +201,7 @@ class MRDLoader(LogMixin):
             return self._file[self._dataset_name]
         else:
             raise FileNotFoundError(
-                "Dataset not opened. use the dataloader as a context manager."
+                "Dataset not opened. Use the dataloader as a context manager."
             )
 
     @property
@@ -249,22 +260,12 @@ class MRDLoader(LogMixin):
     #############
     # Get data  #
     #############
+    @functools.lru_cache  # noqa
     def get_phantom(self, imnum: int = 0) -> Phantom:
         """Load the phantom from the dataset."""
         from ..core import Phantom
 
-        image = self._read_image("phantom", imnum)
-        name = image.meta.pop("name")
-        labels = np.array(image.meta["labels"].split(","))
-        props = unserialize_array(image.meta["props"])
-        smaps = self.get_smaps()
-        return Phantom(
-            masks=image.data,
-            labels=labels,
-            props=props,
-            name=name,
-            smaps=smaps,
-        )
+        return Phantom.from_mrd_dataset(self, imnum)
 
     @cached_property
     def _all_waveform_infos(self) -> dict[int, dict]:
@@ -272,7 +273,7 @@ class MRDLoader(LogMixin):
 
     def get_dynamic(self, waveform_num: int) -> DynamicData:
         """Get dynamic data."""
-        waveform = self._dataset.read_waveform(waveform_num)
+        waveform = self._read_waveform(waveform_num)
         wave_info = self._all_waveform_infos[waveform.waveform_id]
         from ..core import DynamicData
 
@@ -295,6 +296,7 @@ class MRDLoader(LogMixin):
             all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
         return all_dyn_data
 
+    @functools.lru_cache  # noqa
     def get_sim_conf(self) -> SimConfig:
         """Parse the sim config."""
         return parse_sim_conf(self.header)
@@ -307,11 +309,39 @@ class MRDLoader(LogMixin):
             return None
         return image
 
-    def get_smaps(self) -> NDArray[np.complex64] | None:
-        """Load the sensitivity maps from the dataset."""
-        return self._get_image_data("smaps")
+    def get_smaps(self, resample: bool = True) -> NDArray[np.complex64] | None:
+        """Load the sensitivity maps from the dataset.
 
-    def get_coil_cov(self, default: NDArray | None = None) -> NDArray | None:
+        Parameters
+        ----------
+        resample: bool
+            If resample is True (default), the sensitivity maps are resampled using the
+            affine transformation
+        describe in the phantom and sim_conf.
+
+        Returns
+        -------
+        None: if no Smaps is found
+        NDArray: The coils sensitivity maps
+        """
+        sim_conf = self.get_sim_conf()
+        smaps_im = self._read_image("smaps")
+        smaps_affine = get_affine_from_image(smaps_im)
+        smaps = smaps_im.data
+        sim_conf = self.get_sim_conf()
+        if resample:
+            from snake.core.transform import apply_affine4d
+
+            smaps = apply_affine4d(
+                smaps,
+                smaps_affine,
+                sim_conf.fov.affine,
+                new_shape=sim_conf.fov.shape,
+                use_gpu=True,
+            )
+        return smaps
+
+    def get_coil_cov(self) -> NDArray | None:
         """Load the coil covariance from the dataset."""
         return self._get_image_data("coil_cov")
 
@@ -405,7 +435,7 @@ class NonCartesianFrameDataLoader(MRDLoader):
 
 def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
     """Parse the header to populate SimConfig from an MRD Header."""
-    from ..core import GreConfig, HardwareConfig, SimConfig
+    from ..core import GreConfig, HardwareConfig, SimConfig, FOVConfig
 
     n_coils = header.acquisitionSystemInformation.receiverChannels
     field = header.acquisitionSystemInformation.systemFieldStrength_T
@@ -421,6 +451,7 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         "dwell_time_ms": float,
         "max_sim_time": int,
         "rng_seed": int,
+        "TR_eff": float,
     }
 
     parsed = {
@@ -432,6 +463,18 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         raise ValueError(
             f"Missing parameters {set(caster.keys()) - set(parsed.keys())}"
         )
+    caster_str = {
+        "fov_config": str,
+    }
+    parsed_str = {
+        up.name: caster_str[up.name](up.value)
+        for up in header.userParameters.userParameterString
+        if up.name in caster_str.keys()
+    }
+    if set(caster_str.keys()) != set(parsed_str.keys()):
+        raise ValueError(
+            f"Missing parameters {set(caster_str.keys()) - set(parsed_str.keys())}"
+        )
 
     hardware = HardwareConfig(
         gmax=parsed.pop("gmax"),
@@ -441,19 +484,22 @@ def parse_sim_conf(header: mrd.xsd.ismrmrdHeader) -> SimConfig:
         field=field,
     )
 
+    seq.TR_eff = parsed.pop("TR_eff")
+
     fov_mm = header.encoding[0].encodedSpace.fieldOfView_mm
     fov_mm = (fov_mm.x, fov_mm.y, fov_mm.z)
     shape = header.encoding[0].encodedSpace.matrixSize
     shape = (shape.x, shape.y, shape.z)
 
-    return SimConfig(
+    sim_conf = SimConfig(
         max_sim_time=parsed.pop("max_sim_time"),
         seq=seq,
         hardware=hardware,
-        fov_mm=fov_mm,
-        shape=shape,
         rng_seed=parsed.pop("rng_seed"),
     )
+    sim_conf.fov: FOVConfig = eval(parsed_str.pop("fov_config"))
+
+    return sim_conf
 
 
 def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
@@ -483,3 +529,31 @@ def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
         waveform_info[int(wi.waveformType)] = infos
 
     return waveform_info
+
+
+def get_affine_from_image(image: mrd.Image) -> NDArray[np.float32]:
+    """Extract the affine matrix from the header of an MRD.Image."""
+    # Affine matrix from the header
+    position = image._head.position
+    read_dir = image._head.read_dir
+    phase_dir = image._head.phase_dir
+    slice_dir = image._head.slice_dir
+    affine = np.eye(4, dtype=np.float32)
+    res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size)
+    affine[:3, 3] = -position[0], -position[1], position[2]
+    affine[:3, 0] = (
+        -read_dir[0] * res[0],
+        -read_dir[1] * res[0],
+        read_dir[2] * res[0],
+    )
+    affine[:3, 1] = (
+        -phase_dir[0] * res[1],
+        -phase_dir[1] * res[1],
+        phase_dir[2] * res[1],
+    )
+    affine[:3, 2] = (
+        -slice_dir[0] * res[2],
+        -slice_dir[1] * res[2],
+        slice_dir[2] * res[2],
+    )
+    return affine

@@ -11,7 +11,8 @@ from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor, as_compl
 from multiprocessing.managers import SharedMemoryManager
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Any, ClassVar
+from typing import Any, ClassVar, overload
+
 
 import ismrmrd as mrd
 import numpy as np
@@ -28,9 +29,9 @@ from ..parallel import ArrayProps
 from ..phantom import DynamicData, Phantom, PropTissueEnum
 from ..sampling import BaseSampler
 from ..simulation import SimConfig
-from .utils import get_ideal_phantom, get_noise
+from .utils import get_noise
 
-AnyPath = str | Path
+GenericPath = Path | str
 
 
 @dataclass_transform(kw_only_default=True)
@@ -69,6 +70,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> Sequence[int]:
         return range(data_loader.n_acquisition)
 
+    @overload
     def _job_trajectories(
         self,
         dataset: mrd.Dataset,
@@ -88,6 +90,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         t = dwell_time_ms * (np.arange(n_samples, dtype=np.float32) - echo_idx)
         return np.exp(-t[None, :] / phantom.props[:, PropTissueEnum.T2s, None])
 
+    @overload
     @staticmethod
     def _job_model_T2s(
         phantom: Phantom,
@@ -99,6 +102,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> NDArray:
         raise NotImplementedError
 
+    @overload
     @staticmethod
     def _job_model_simple(
         phantom: Phantom,
@@ -110,6 +114,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
     ) -> NDArray:
         raise NotImplementedError
 
+    @overload
     def _write_chunk_data(
         self, dataset: mrd.Dataset, chunk: Sequence[int], chunk_data: NDArray
     ) -> None:
@@ -117,7 +122,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def _acquire_ksp_job(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         chunk: Sequence[int],
         tmp_dir: str,
         shared_phantom_props: (
@@ -161,7 +166,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     def __call__(
         self,
-        filename: AnyPath,
+        filename: GenericPath,
         sampler: BaseSampler,
         phantom: Phantom,
         sim_conf: SimConfig,
@@ -175,7 +180,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         Parameters
         ----------
-        filename : AnyPath
+        filename : GenericPath
             The path to the MRD file.
         sampler : BaseSampler
             The sampler to use.
@@ -194,6 +199,8 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             The number of workers to use, by default 0 (auto). Half of CPU count will
             be used (This usually corresponds to the number of physical cores on the
             machine).
+        resample_early:bool, optional
+            Whether to resample the phantom early, by default False
         kwargs : Any
             Additional keyword arguments, passed down to internal implementation.
 
@@ -203,9 +210,15 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         This function is the main entry point for the acquisition engine.
         It will create the base dataset, and then dispatch the work to the workers.
 
-        Specific modeling steps are implemented in the `_job_model_T2s` and
-        `_job_model_simple` methods.
+        Specific modeling steps are implemented in subclasses' methods `_job_model_T2s`
+        and `_job_model_simple`.
         """
+        if self.slice_2d:  # Update the correct TR_eff
+            sim_conf.TR_eff = sampler.TR_vol_ms
+            self.log.warning("Using 2D acquisition, the TR_eff is updated to TR_vol")
+        else:
+            sim_conf.TR_eff = sim_conf.seq.TR
+
         # Create the base dataset
         make_base_mrd(
             filename,
@@ -232,7 +245,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             shot_idxs = self._get_chunk_list(data_loader)
 
             chunk_list = list(batched(shot_idxs, worker_chunk_size))
-            ideal_phantom = get_ideal_phantom(phantom, sim_conf)
+            ideal_phantom = phantom.contrast(sim_conf=sim_conf, aggregate=True)
 
             coil_cov = data_loader.get_coil_cov() or np.eye(sim_conf.hardware.n_coils)
             if self.snr > 0:
@@ -263,7 +276,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             ) as tmp_chunk_dir,
         ):
             # data_loader._file.swmr_mode = True
-            phantom_props, shms = phantom.in_shared_memory(smm)
+            phantom_props, _ = phantom.in_shared_memory(smm)
             # TODO: also put the smaps in shared memory
             futures = {
                 executor.submit(

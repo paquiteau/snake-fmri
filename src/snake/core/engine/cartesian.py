@@ -1,7 +1,6 @@
 """Acquisition engine for Cartesian trajectories."""
 
 from collections.abc import Sequence
-from copy import deepcopy
 
 import ismrmrd as mrd
 import numpy as np
@@ -12,7 +11,7 @@ from snake.core.simulation import SimConfig
 from snake.mrd_utils import MRDLoader
 
 from .base import BaseAcquisitionEngine
-from .utils import fft, get_contrast_gre, get_phantom_state
+from .utils import fft, get_phantom_state
 
 
 class EPIAcquisitionEngine(BaseAcquisitionEngine):
@@ -36,7 +35,7 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         data_loader: MRDLoader,
         hdr: mrd.xsd.ismrmrdHeader,
         sim_conf: SimConfig,
-        chunk: Sequence[int],
+        chunk: int | Sequence[int],
     ) -> np.ndarray:
         """Generate the fourier operator by iterating the dataset."""
         if not isinstance(chunk, Sequence):
@@ -99,27 +98,27 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
         )
 
         for i, epi_2d in enumerate(trajectories):
-            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
+            phantom_state, smaps = get_phantom_state(
+                phantom, dyn_datas, i, sim_conf, aggregate=False
+            )
             flat_epi = epi_2d.reshape(-1, 3)
             if slice_2d:
                 # reduce to a single slice for the exicitation / fft is done in 2D.
                 slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
                 flat_epi = flat_epi[:, 1:]
                 phantom_slice = phantom_state[:, slice_location]
-                if phantom.smaps is None:
+                if smaps is None:
                     phantom_slice = phantom_slice[:, None, ...]
                 else:
-                    smaps_ = phantom.smaps[:, slice_location]
+                    smaps_ = smaps[:, slice_location]
                     phantom_slice = phantom_slice[:, None, ...] * smaps_
 
                 ksp = fft(phantom_slice, axis=(-2, -1))
             else:
-                if phantom.smaps is None:
+                if smaps is None:
                     ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
                 else:
-                    ksp = fft(
-                        phantom_state[:, None, ...] * phantom.smaps, axis=(-3, -2, -1)
-                    )
+                    ksp = fft(phantom_state[:, None, ...] * smaps, axis=(-3, -2, -1))
 
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil_sum = np.zeros(
@@ -149,27 +148,23 @@ class EPIAcquisitionEngine(BaseAcquisitionEngine):
             dtype=np.complex64,
         )
         for i, epi_2d in enumerate(trajectories):
-            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
-            phantom_state = np.sum(phantom_state, axis=0)
+            phantom_state, smaps = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             flat_epi = epi_2d.reshape(-1, 3)
-            print(flat_epi[0])
             if slice_2d:
                 slice_location = flat_epi[0, 0]  # FIXME: the slice is always axial.
                 flat_epi = flat_epi[:, 1:]  # Reduced to 2D.
                 phantom_slice = phantom_state[slice_location]
-                if phantom.smaps is None:
+                if smaps is None:
                     phantom_slice = phantom_slice[None, ...]
                 else:
-                    smaps_ = phantom.smaps[:, slice_location]
+                    smaps_ = smaps[:, slice_location]
                     phantom_slice = phantom_slice[None, ...] * smaps_
                 ksp = fft(phantom_slice, axis=(-2, -1))
             else:
                 if phantom.smaps is None:
                     ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
                 else:
-                    ksp = fft(
-                        phantom_state[None, ...] * phantom.smaps, axis=(-3, -2, -1)
-                    )
+                    ksp = fft(phantom_state[None, ...] * smaps, axis=(-3, -2, -1))
             for c in range(sim_conf.hardware.n_coils):
                 ksp_coil = ksp[c]
                 a = ksp_coil[tuple(flat_epi.T)]
@@ -222,7 +217,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
         data_loader: MRDLoader,
         hdr: mrd.xsd.ismrmrdHeader,
         sim_conf: SimConfig,
-        chunk: Sequence[int],
+        chunk: int | Sequence[int],
     ) -> np.ndarray:
         """Generate the fourier operator by iterating the dataset."""
         if not isinstance(chunk, Sequence):
@@ -285,21 +280,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
         )
 
         for i, evi in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = (
-                contrast[(..., *([None] * len(frame_phantom.anat_shape)))]
-                * frame_phantom.masks
-            )
-
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             if phantom.smaps is None:
                 ksp = fft(phantom_state[:, None, ...], axis=(-3, -2, -1))
             else:
@@ -337,22 +318,7 @@ class EVIAcquisition(EPIAcquisitionEngine):
             dtype=np.complex64,
         )
         for i, epi_2d in enumerate(trajectories):
-            frame_phantom = deepcopy(phantom)
-            for dyn_data in dyn_datas:
-                frame_phantom = dyn_data.func(frame_phantom, dyn_data.data, i)
-
-            # Reduce the array, we dont have batch tissues !
-            contrast = get_contrast_gre(
-                frame_phantom,
-                sim_conf.seq.FA,
-                sim_conf.seq.TE,
-                sim_conf.seq.TR,
-            )
-            phantom_state = np.sum(
-                contrast[(..., *([None] * len(phantom.anat_shape)))]
-                * frame_phantom.masks,
-                axis=0,
-            )
+            phantom_state = get_phantom_state(phantom, dyn_datas, i, sim_conf)
             if phantom.smaps is None:
                 ksp = fft(phantom_state[None, ...], axis=(-3, -2, -1))
             else:

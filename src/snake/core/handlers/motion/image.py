@@ -12,7 +12,7 @@ from numpy.typing import NDArray
 from ...phantom import DynamicData, Phantom
 from ...simulation import SimConfig
 from ..base import AbstractHandler
-from .utils import add_motion, motion_generator
+from .utils import add_motion_to_affine, motion_generator
 
 
 class RandomMotionImageHandler(AbstractHandler):
@@ -75,14 +75,16 @@ class RandomMotionImageHandler(AbstractHandler):
                 self._motion_data,
             )
         elif self.rs_std_degs is not None and self.ts_std_mms is not None:
-            ts_std_pix = np.array(self.ts_std_mms) / np.array(sim_conf.res_mm)
             motion = motion_generator(
                 n_frames,
-                ts_std_pix,
+                self.ts_std_mms,
                 self.rs_std_degs,
                 sim_conf.sim_tr_ms / 1000,
                 sim_conf.rng,
             )
+
+        else:
+            raise ValueError("Invalid motion parameters")
 
         return DynamicData(
             name=self.__handler_name__,
@@ -96,6 +98,5 @@ def apply_motion_to_phantom(
 ) -> Phantom:
     """Apply motion to the phantom."""
     new_phantom = deepcopy(phantom)
-    for i, tissue_mask in enumerate(new_phantom.masks):  # TODO Parallel ?
-        new_phantom.masks[i] = add_motion(tissue_mask, motions[:, time_idx])
+    new_phantom.affine = add_motion_to_affine(new_phantom.affine, motions[:, time_idx])
     return new_phantom

@@ -2,8 +2,6 @@
 
 import numpy as np
 from numpy.typing import NDArray, DTypeLike
-from functools import partial
-from scipy.ndimage import affine_transform, shift
 
 
 def motion_generator(
@@ -162,42 +160,16 @@ def translation(
     return m
 
 
-def apply_rotation_at_center(
-    data: NDArray,
-    angles: tuple[float, float, float],
-) -> NDArray:
-    """Apply the rotation at the center of the array."""
-    c = tuple(data.shape[i] / 2 for i in range(3))
-    # We build the pull affine matrix (From moved to origin)
-    T = translation(c[0], c[1], c[2], dtype=np.float32)
-    Tinv = translation(-c[0], -c[1], -c[2], dtype=np.float32)
-    rad_angles = np.deg2rad(angles)
-    R = rotation(
-        rad_angles[0],
-        rad_angles[1],
-        rad_angles[2],
-        dtype=np.float32,
-    )
-
-    M = T @ np.linalg.inv(R) @ Tinv
-
-    return affine_transform(data, M)
-
-
-apply_shift = partial(shift, mode="nearest")
-
-
-def add_motion(
-    data: NDArray[np.complexfloating] | NDArray[np.floating],
+def add_motion_to_affine(
+    affine: NDArray[np.floating],
     motion_params: NDArray[np.floating],
-    idx: int = 0,
 ) -> np.ndarray:
     """Add motion to a base array.
 
     Parameters
     ----------
-    data: np.ndarray
-        The data to which motion is added.
+    affine: np.ndarray
+        The base affine matrix in homogeneous coordinates.
     motion: np.ndarray
         The N_frames x 6 motion trajectory.
     frame_idx: int
@@ -208,6 +180,10 @@ def add_motion(
     np.ndarray
         The data with motion added.
     """
-    rotated = apply_rotation_at_center(data, tuple(motion_params[3:]))
-    rotated_and_translated = apply_shift(rotated, tuple(motion_params[:3]))
-    return rotated_and_translated
+    t = motion_params[:3]
+    r = motion_params[3:]
+    t_mat = translation(*t)
+    r_mat = rotation(*r)
+    new_affine = t_mat @ r_mat @ affine
+
+    return new_affine
