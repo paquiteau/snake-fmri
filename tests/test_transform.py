@@ -1,7 +1,6 @@
 from pytest_cases import parametrize_with_cases, parametrize, fixture
 import numpy as np
 
-from snake.core import Phantom, SimConfig
 from numpy.testing import assert_allclose
 from snake.core.transform import apply_affine, apply_affine4d
 
@@ -45,7 +44,7 @@ def test_affine_4d(new_affine, old_affine, base_array, new_shape, use_gpu):
 @parametrize_with_cases("old_affine", cases=CasesAffines)
 @parametrize_with_cases("new_affine", cases=CasesAffines)
 @parametrize(new_shape=[(20, 20, 20), (10, 10, 10), (5, 5, 5)])
-def test_affine_4d(new_affine, old_affine, base_array, new_shape):
+def test_affine_gpu(new_affine, old_affine, base_array, new_shape):
     """Test that gpu and cpu affine computations are equivalent."""
     new_affine = np.asarray(new_affine, dtype=np.float32)
     old_affine = np.asarray(old_affine, dtype=np.float32)

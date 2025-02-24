@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from ..core import SimConfig
 
 from .utils import b64encode2obj
-from ..core.transform import unserialize_array
 
 log = logging.getLogger(__name__)
 
@@ -77,9 +76,10 @@ class MRDLoader(LogMixin):
             )
             try:
                 header = self.header
-            except LookupError as exc:
+            except LookupError:
                 log.warning(
-                    "No matrix size found in the header. The header is probably missing."
+                    "No matrix size found in the header."
+                    " The header is probably missing."
                 )
                 self._shape = None
             else:
@@ -260,7 +260,7 @@ class MRDLoader(LogMixin):
     #############
     # Get data  #
     #############
-    @functools.lru_cache
+    @functools.lru_cache  # noqa
     def get_phantom(self, imnum: int = 0) -> Phantom:
         """Load the phantom from the dataset."""
         from ..core import Phantom
@@ -296,7 +296,7 @@ class MRDLoader(LogMixin):
             all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
         return all_dyn_data
 
-    @functools.lru_cache
+    @functools.lru_cache  # noqa
     def get_sim_conf(self) -> SimConfig:
         """Parse the sim config."""
         return parse_sim_conf(self.header)
@@ -309,13 +309,21 @@ class MRDLoader(LogMixin):
             return None
         return image
 
-    def get_smaps(self, resample=True) -> NDArray[np.complex64] | None:
+    def get_smaps(self, resample: bool = True) -> NDArray[np.complex64] | None:
         """Load the sensitivity maps from the dataset.
 
-        If resample is True, the sensitivity maps are resampled using the affine transformation
+        Parameters
+        ----------
+        resample: bool
+            If resample is True (default), the sensitivity maps are resampled using the
+            affine transformation
         describe in the phantom and sim_conf.
-        """
 
+        Returns
+        -------
+        None: if no Smaps is found
+        NDArray: The coils sensitivity maps
+        """
         sim_conf = self.get_sim_conf()
         smaps_im = self._read_image("smaps")
         smaps_affine = get_affine_from_image(smaps_im)
@@ -523,7 +531,8 @@ def parse_waveform_information(hdr: mrd.xsd.ismrmrdHeader) -> dict[int, dict]:
     return waveform_info
 
 
-def get_affine_from_image(image: mrd.Image) -> np.ndarray:
+def get_affine_from_image(image: mrd.Image) -> NDArray[np.float32]:
+    """Extract the affine matrix from the header of an MRD.Image."""
     # Affine matrix from the header
     position = image._head.position
     read_dir = image._head.read_dir
