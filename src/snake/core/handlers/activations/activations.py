@@ -129,7 +129,7 @@ class ActivationMixin(LogMixin):
             atlas_mask = np.array(maps.dataobj == idx)
         # Resample the atlas to the phantom affine
         atlas_mask = apply_affine(
-            atlas_mask, maps.affine, phantom.affine, phantom.shape, use_gpu=True
+            atlas_mask, maps.affine, phantom.affine, phantom.anat_shape, use_gpu=True
         )
         return atlas_mask
 
