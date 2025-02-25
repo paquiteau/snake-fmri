@@ -115,23 +115,30 @@ class ActivationMixin(LogMixin):
         """
         atlas_base, atlas_name = self.atlas.split("__")
         from nilearn.datasets.atlas import fetch_atlas_harvard_oxford
-        from nibabel.nifti1 import Nifti1Image
 
         if atlas_base == "hardvard-oxford":
-            atlas = fetch_atlas_harvard_oxford(atlas=atlas_name)
+            atlas = fetch_atlas_harvard_oxford(atlas_name=atlas_name)
         else:
             raise ValueError(f"Atlas {atlas_base} not supported.")
-        maps = Nifti1Image.from_filename(atlas.maps)
-        idx = atlas.labels.index(self.atlas_label)
-        if atlas.atlas_type == "probabilistic":
-            atlas_mask = np.array(maps.dataobj[..., idx])
+        maps = atlas.maps
+        if isinstance(self.atlas_label, str):
+            idx = atlas.labels.index(self.atlas_label)
         else:
-            atlas_mask = np.array(maps.dataobj == idx)
+            idx = self.atlas_label
+        if maps.dataobj.ndim == 4:  # probabilistic atlas
+            atlas_mask = np.array(maps.dataobj[..., idx]).astype(np.float32)
+        else:
+            atlas_mask = np.array(maps.dataobj == idx).astype(np.float32)
         # Resample the atlas to the phantom affine
         atlas_mask = apply_affine(
-            atlas_mask, maps.affine, phantom.affine, phantom.anat_shape, use_gpu=True
+            atlas_mask,
+            old_affine=maps.affine,
+            new_affine=phantom.affine,
+            new_shape=phantom.anat_shape,
+            use_gpu=True,
         )
-        return atlas_mask
+        roi = atlas_mask * phantom.masks[phantom.labels_idx[self.base_tissue_name]]
+        return roi
 
     def get_dynamic(self, phantom: Phantom, sim_conf: SimConfig) -> DynamicData:
         """Get dynamic time series for adding Activations."""
