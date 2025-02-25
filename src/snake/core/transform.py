@@ -75,6 +75,7 @@ def apply_affine(
     output: NDArray[np.float32] = None,
     transform_affine: NDArray[np.float32] = None,
     use_gpu: bool = True,
+    **kwargs: Any,
 ) -> NDArray[np.float32]:
     """Apply the new affine on the data.
 
@@ -110,6 +111,7 @@ def apply_affine(
         matrix=transform_affine,
         output_shape=new_shape,
         output=output,
+        **kwargs,
     )
 
     return new_data
@@ -129,6 +131,7 @@ def apply_affine4d(
     use_gpu: bool = False,
     n_jobs: int = -1,
     axis: int = 0,
+    **kwargs: Any,
 ) -> NDArray:
     """
     Apply the new affine on 4D data.
@@ -175,6 +178,7 @@ def apply_affine4d(
             new_shape=new_shape,
             n_jobs=n_jobs,
             parallel_axis=axis,
+            **kwargs,
         )
     else:
         for i in range(n_frames):
