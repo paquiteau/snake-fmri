@@ -54,12 +54,10 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
     def _init_model_nufft(
         samples: NDArray,
         sim_conf: SimConfig,
-        smaps: NDArray,
         backend: str,
         slice_2d: bool = False,
     ) -> FourierOperatorBase:
         """Initialize the nufft operator."""
-        n_coils = len(smaps) if smaps is not None else 1
         kwargs = {}
         if slice_2d and "stacked" in backend:
             raise ValueError("Stacked NUFFT does not support 2D slice")
@@ -67,20 +65,14 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         if "stacked" in backend:
             kwargs["z_index"] = "auto"
 
-        smaps_ = smaps
         shape_ = sim_conf.shape
         if slice_2d:
             shape_ = sim_conf.shape[:-1]
-            if smaps is not None:
-                smaps_ = np.ascontiguousarray(
-                    smaps[..., 0]
-                )  # will be updated in the loop
-
         nufft = get_operator(backend)(
             samples,  # will be updated in the loop
             shape=shape_,
-            n_coils=n_coils,
-            smaps=smaps_,
+            n_coils=sim_conf.hardware.n_coils,
+            smaps=None,
             density=False,
             squeeze_dims=False,
             **kwargs,
@@ -106,7 +98,6 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0],
             sim_conf,
-            None,
             backend=nufft_backend,
             slice_2d=slice_2d,
         )
@@ -155,7 +146,6 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0],
             sim_conf,
-            phantom.smaps,
             backend=nufft_backend,
             slice_2d=slice_2d,
         )
