@@ -114,19 +114,13 @@ with CartesianFrameDataLoader("example_EPI2D.mrd") as data_loader:
 
 from scipy.fft import ifftn, ifftshift, fftshift
 
-axes = (
-    -2,
-    -1,
-)
+axes = (-2,-1)
 image_data = ifftshift(
     ifftn(fftshift(kspace_data, axes=axes), axes=axes, norm="ortho"), axes=axes
 )
 
 # Take the square root sum of squares to get the magnitude image (SSOS)
 image_data = np.sqrt(np.sum(np.abs(image_data) ** 2, axis=0))
-
-# %%
-image_data
 
 # %% plotting the result
 
@@ -135,7 +129,7 @@ from snake.toolkit.plotting import axis3dcut
 
 fig, ax = plt.subplots()
 
-axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(40, 60, 40), ax=ax)
+axis3dcut(image_data.squeeze().T, None, None, cbar=False, cuts=(0.5,0.5,0.5), ax=ax)
 plt.show()
 
 # %%
