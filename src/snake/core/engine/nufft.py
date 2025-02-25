@@ -106,7 +106,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
         nufft = NufftAcquisitionEngine._init_model_nufft(
             trajectories[0],
             sim_conf,
-            phantom.smaps,
+            None,
             backend=nufft_backend,
             slice_2d=slice_2d,
         )
