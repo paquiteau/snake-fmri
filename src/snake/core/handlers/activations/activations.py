@@ -213,6 +213,9 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
     oversampling: int = 50
     min_onset: float = -24.0
     roi_threshold: float = 0.0
+    base_tissue_name: str = "gm"
+    atlas: str | None = "hardvard-oxford__cort-maxprob-thr50-1mm"
+    atlas_label: int | str = ""
 
     def __post_init__(self):
         self.event_condition = block_design(
