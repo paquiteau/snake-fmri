@@ -42,9 +42,11 @@ fig = plt.figure()
 sim_conf = SimConfig(seq=GreConfig(TR=TR, TE=TE, FA=FA))
 
 phantom1T5 = Phantom.from_brainweb(
-    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5"
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_1T5", output_res=1
 )
-phantom7T = Phantom.from_brainweb(sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T")
+phantom7T = Phantom.from_brainweb(
+    sub_id=4, sim_conf=sim_conf, tissue_file="tissue_7T", output_res=1
+)
 
 
 def live_contrast(TE: float = 10, TR: float = 100, FA: float = 3, tissue_field="1T5"):
@@ -58,18 +60,20 @@ def live_contrast(TE: float = 10, TR: float = 100, FA: float = 3, tissue_field="
     elif tissue_field == "7T":
         phantom = phantom7T
     contrast_at_TE = phantom.contrast(sim_conf=sim_conf, resample=True)
-    axis3dcut(
-        fig, ax, contrast_at_TE.T, None, None, cuts=(0.5, 0.5, 0.5), width_inches=5
-    )
+    axis3dcut(contrast_at_TE.T, None, cuts=(0.5, 0.5, 0.5), width_inches=5, ax=ax)
     fig.canvas.draw_idle()
     # if len(fig.get_axes()) >=5:
     #     fig.get_axes()[-1].remove()
 
 
-interact(
-    live_contrast,
-    TE=(0, 100, 1),
-    TR=(0, 1000, 1),
-    FA=(0, 90, 1),
-    tissue_field=["1T5", "7T"],
-)
+live_contrast(TE=TE, TR=TR, FA=FA, tissue_field="1T5")
+
+# Only for notebook interactive mode
+# sphx
+# interact(
+#     live_contrast,
+#     TE=(0, 100, 1),
+#     TR=(0, 1000, 1),
+#     FA=(0, 90, 1),
+#     tissue_field=["1T5", "7T"],
+# )

@@ -16,7 +16,6 @@ https://www.sphinx-doc.org/en/master/usage/configuration.html
 import os
 from pathlib import Path
 import sys
-from myst_sphinx_gallery import GalleryConfig, generate_gallery
 
 sys.path.insert(0, os.path.abspath("../.."))  # Source code dir relative to this file
 sys.path.insert(1, os.path.abspath("_ext/"))  # load custom extensions
@@ -40,7 +39,6 @@ extensions = [
     "sphinx_tippy",
     "sphinx_copybutton",
     "autodoc2",
-    "myst_sphinx_gallery",
     "myst_nb",
     "scenario",
     "colab_extension",
@@ -57,7 +55,7 @@ exclude_patterns = [
     "_build",
     "Thumbs.db",
     ".DS_Store",
-    "autoexamples/anatomical/*.ipynb",
+    "auto_examples/anatomical/*.ipynb",
 ]
 
 autodoc2_packages = ["../src/snake/"]
@@ -159,22 +157,10 @@ sphinx_gallery_conf = {
     "backreferences_dir": "generated/gallery_backreferences",
     "reference_url": {"snake": None},
     "examples_dirs": ["../examples/"],
-    "gallery_dirs": ["generated/autoexamples"],
+    "gallery_dirs": ["auto_examples"],
     "within_subsection_order": "ExampleTitleSortKey",
     "filename_pattern": "/example_",
     "ignore_pattern": r"(__init__|conftest|utils).py",
     "nested_sections": True,
-    "binder": {
-        "org": "mind-inria",
-        "repo": "snake-fmri",
-        "branch": "gh-pages",
-        "binderhub_url": "https://mybinder.org",
-        "dependencies": [
-            "./binder/apt.txt",
-            "./binder/environment.yml",
-        ],
-        "notebooks_dir": "examples",
-        "use_jupyter_lab": True,
-    },
-    "parallel": 5,
+    "show_memory": True,
 }

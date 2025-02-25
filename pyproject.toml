@@ -38,14 +38,14 @@ classifiers = [  # Optional
   "Programming Language :: Python :: 3.12",
 ]
 
-dependencies = [ # Optional
+dependencies = [
   "numpy",
   "scipy",
   "nilearn",
   "pandas",
   "scikit-image",
   "brainweb-dl",
-  "mri-nufft",
+  "mri-nufft[finufft,cufinufft]",
   "ismrmrd",
   "hydra-core",
   "hydra-callbacks",
@@ -53,9 +53,7 @@ dependencies = [ # Optional
 ]
 
 [project.optional-dependencies] # Optional
-test = ["pytest", "pytest-cov", "pytest-sugar", "pytest-xdist", "pytest-cases"]
-doc = ["myst-parser", "sphinx-copybutton","sphinx-gallery", "myst-sphinx-gallery", "sphinx-book-theme","matplotlib", "pysap-fmri", "ipywidgets", "myst-nb", "sphinx-autodoc2", "sphinx-design", "sphinx-tippy", "linkify-it-py"]
-toolkit = [ "matplotlib", "pysap-fmri"]
+toolkit = ["pysap-fmri"]
 # List URLs that are relevant to your project
 # This field corresponds to the "Project-URL" and "Home-Page" metadata fields:
 [project.urls]  # Optional
@@ -110,7 +108,7 @@ include = ["src/**/*.py", "tests/**/*.py", "examples/*.py"]
 select = ["E", "F", "B", "Q", "D", "UP", "ANN"]
 ignore = [
     "ANN204", # missing return type for __init__
-    "ANN401",
+    "ANN401", # Allow Any for typing
     "D105", # missing docstring in magic method
     "D404", # Imperative mode is not necessary everywhere, trust me.
 ]
@@ -145,3 +143,24 @@ dev = [
     "ipympl>=0.9.6",
     "ipython>=8.32.0",
 ]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-sugar",
+    "pytest-xdist",
+    "pytest-cases",
+]
+doc = [
+    "myst-parser",
+    "myst-nb",
+    "myst-sphinx-gallery",
+    "sphinx-copybutton",
+    "sphinx-gallery",
+    "memory-profiler", # for gallery reports.
+    "sphinx-book-theme",
+    "ipywidgets",
+    "sphinx-autodoc2",
+    "sphinx-design",
+    "sphinx-tippy",
+    "linkify-it-py",
+    ]

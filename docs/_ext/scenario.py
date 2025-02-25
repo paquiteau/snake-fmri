@@ -58,10 +58,10 @@ def scenario2nb(source_file, output_file):
         nbformat.v4.new_markdown_cell(
             source=dedent(
                 f"""\
-            # {header_dict.get('title', 'Unnamed Scenario')}
+            # {header_dict.get("title", "Unnamed Scenario")}
             ```{{note}}
-            *Authors*: {header_dict.get('authors', 'Anonymous')}
-            *Description*: {header_dict.get('description', 'No description')}
+            *Authors*: {header_dict.get("authors", "Anonymous")}
+            *Description*: {header_dict.get("description", "No description")}
             ```
             """
             )
@@ -86,7 +86,6 @@ def get_gallery_header(directory, output_directory):
 
 
 def main_ext(app):
-
     root_dir = Path(__file__).parent.parent
     # For the scenarios, we first are going to create the notebooks from a set of yaml files
     # TODO : Use a tmp dir
@@ -101,6 +100,7 @@ def main_ext(app):
         # Create the new notebooks
         for yaml_file in (root_dir / "../src/cli-conf").rglob("scenario*.yaml"):
             nb_file = root_dir / "auto_scenarios_tmp" / (yaml_file.stem + ".ipynb")
+            yaml_file = yaml_file.resolve()
             try:
                 scenario2nb(yaml_file, nb_file)
             except Exception as e:

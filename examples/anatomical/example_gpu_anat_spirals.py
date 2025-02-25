@@ -75,10 +75,6 @@ sampler = StackOfSpiralSampler(
     constant=True,
 )
 
-smaps = None
-if sim_conf.hardware.n_coils > 1:
-    smaps = get_smaps(sim_conf.shape, n_coils=sim_conf.hardware.n_coils)
-
 
 # %%
 # The acquisition trajectory looks like this
@@ -218,7 +214,8 @@ fig, axs = plt.subplots(
 for ax, img, title in zip(
     axs[0],
     (adjoint_spiral, adjoint_spiral_T2s, abs(adjoint_spiral - adjoint_spiral_T2s)),
-    ("simple", "T2s", "diff"), strict=False,
+    ("simple", "T2s", "diff"),
+    strict=False,
 ):
     axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax, width_inches=4)
     ax.set_title(title)
@@ -227,7 +224,8 @@ for ax, img, title in zip(
 for ax, img, title in zip(
     axs[1],
     (cs_spiral, cs_spiral_T2s, abs(cs_spiral - cs_spiral_T2s)),
-    ("simple", "T2s", "diff"), strict=False,
+    ("simple", "T2s", "diff"),
+    strict=False,
 ):
     axis3dcut(img.T, None, None, cbar=True, cuts=(40, 40, 40), ax=ax, width_inches=4)
     ax.set_title(title + " CS")
