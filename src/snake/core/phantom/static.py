@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import contextlib
+import json
 import logging
 import os
 from pathlib import Path
@@ -32,6 +33,8 @@ from .utils import PropTissueEnum, TissueFile, resize_tissues
 from ..transform import apply_affine4d, serialize_array, unserialize_array
 
 log = logging.getLogger(__name__)
+
+SNAKE_CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "snake-fmri")
 
 
 @dataclass
@@ -113,6 +116,7 @@ class Phantom:
         tissue_select: list[str] | None = None,
         tissue_ignore: list[str] | None = None,
         output_res: float | ThreeFloats = 0.5,
+        cache_dir: str | None = None,
     ) -> Phantom:
         """Get the Brainweb Phantom.
 
@@ -136,6 +140,30 @@ class Phantom:
         Phantom
             The phantom object.
         """
+        if cache_dir is None:
+            cache_dir = os.environ.get("SNAKE_CACHE_DIR", SNAKE_CACHE_DIR)
+        phantom_hash = hash(
+            json.dumps(
+                dict(
+                    sub_id=sub_id,
+                    tissue_file=tissue_file,
+                    tissue_select=tissue_select,
+                    tissue_ignore=tissue_ignore,
+                    output_res=output_res,
+                )
+            )
+        )
+        if cache_dir is not False:
+            if not os.path.exists(cache_dir):
+                os.makedirs(cache_dir)
+            phantom_file = os.path.join(cache_dir, f"phantom_{phantom_hash}.npy")
+            if os.path.exists(phantom_file):
+                log.debug(f"Loading phantom from cache: {phantom_file}")
+                with open(phantom_file, "rb") as f:
+                    return np.load(f, allow_pickle=True)
+        else:
+            phantom_file = None
+
         from brainweb_dl import BrainWebTissuesV2, get_mri
 
         if tissue_ignore and tissue_select:
@@ -144,6 +172,8 @@ class Phantom:
             tissue_select = [t.lower() for t in tissue_select]
         if tissue_ignore:
             tissue_ignore = [t.lower() for t in tissue_ignore]
+
+        # TODO: Add A caching for the phantom. Use the SNAKE_CACHE_DIR env variable
 
         tissues_mask, affine = get_mri(sub_id, contrast="fuzzy", with_affine=True)
         tissues_mask = tissues_mask.astype(np.float32)
@@ -209,7 +239,7 @@ class Phantom:
                 n_coils=sim_conf.hardware.n_coils,
             )
 
-        return cls(
+        phantom = cls(
             "brainweb-{sub_id:02d}",
             tissues_mask,
             labels=np.array([t[0] for t in tissues_list]),
@@ -217,6 +247,12 @@ class Phantom:
             smaps=smaps,
             affine=affine,
         )
+
+        if phantom_file:
+            log.debug(f"Saving phantom to cache: {phantom_file}")
+            with open(phantom_file, "wb") as f:
+                np.save(f, phantom)
+        return phantom
 
     @classmethod
     def from_mrd_dataset(
