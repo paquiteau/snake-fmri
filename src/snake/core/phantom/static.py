@@ -153,16 +153,14 @@ class Phantom:
                 )
             )
         )
+        phantom_file = None
         if cache_dir is not False:
             if not os.path.exists(cache_dir):
                 os.makedirs(cache_dir)
             phantom_file = os.path.join(cache_dir, f"phantom_{phantom_hash}.npy")
             if os.path.exists(phantom_file):
                 log.debug(f"Loading phantom from cache: {phantom_file}")
-                with open(phantom_file, "rb") as f:
-                    return np.load(f, allow_pickle=True)
-        else:
-            phantom_file = None
+                return cls.from_mrd_dataset(phantom_file)
 
         from brainweb_dl import BrainWebTissuesV2, get_mri
 
@@ -250,8 +248,7 @@ class Phantom:
 
         if phantom_file:
             log.debug(f"Saving phantom to cache: {phantom_file}")
-            with open(phantom_file, "wb") as f:
-                np.save(f, phantom)
+            phantom.to_mrd_dataset(phantom_file)
         return phantom
 
     @classmethod
