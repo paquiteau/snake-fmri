@@ -325,21 +325,25 @@ class MRDLoader(LogMixin):
         NDArray: The coils sensitivity maps
         """
         sim_conf = self.get_sim_conf()
-        smaps_im = self._read_image("smaps")
-        smaps_affine = get_affine_from_image(smaps_im)
-        smaps = smaps_im.data
-        sim_conf = self.get_sim_conf()
-        if resample:
-            from snake.core.transform import apply_affine4d
+        try:
+            smaps_im = self._read_image("smaps")
+        except KeyError:
+            return None
+        else:
+            smaps_affine = get_affine_from_image(smaps_im)
+            smaps = smaps_im.data
+            sim_conf = self.get_sim_conf()
+            if resample:
+                from snake.core.transform import apply_affine4d
 
-            smaps = apply_affine4d(
-                smaps,
-                smaps_affine,
-                sim_conf.fov.affine,
-                new_shape=sim_conf.fov.shape,
-                use_gpu=True,
-            )
-        return smaps
+                smaps = apply_affine4d(
+                    smaps,
+                    smaps_affine,
+                    sim_conf.fov.affine,
+                    new_shape=sim_conf.fov.shape,
+                    use_gpu=True,
+                )
+            return smaps
 
     def get_coil_cov(self) -> NDArray | None:
         """Load the coil covariance from the dataset."""
