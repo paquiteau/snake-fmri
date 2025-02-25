@@ -2,7 +2,7 @@
 
 from numpy.typing import NDArray
 import scipy as sp
-from snake.mrd_utils.loader import CartesianFrameDataLoader, NonCartesianFrameDataLoader
+from snake.mrd_utils.loader import CartesianFrameDataLoader, NonCartesianFrameDataLoader, MRDLoader
 
 
 def fft(image: NDArray, axis: int | tuple[int] = -1) -> NDArray:
@@ -53,14 +53,12 @@ def init_nufft(
     density_compensation: bool = False,
 ):
     from mrinufft import get_operator
-
-    smaps = data_loader.get_smaps()
+    if data_loader.n_coils > 1:
+        smaps = data_loader.get_smaps().squeeze()
+    else:
+        smaps = None
     shape = data_loader.shape
     traj, _ = data_loader.get_kspace_frame(0)
-
-    if data_loader.slice_2d:
-        shape = data_loader.shape[:2]
-        traj = traj.reshape(data_loader.n_shots, -1, traj.shape[-1])[0, :, :2]
 
     kwargs = dict(
         shape=shape,

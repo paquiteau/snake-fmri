@@ -49,9 +49,13 @@ def reconstruction(cfg: DictConfig) -> None:
     elif engine == "NUFFT":
         DataLoader = NonCartesianFrameDataLoader
 
+    
     # Reconstructor.setup(sim_conf) # initialize operators
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
     with DataLoader(cfg.filename) as data_loader:
+        phantom = data_loader.get_phantom()
+        dyn_datas = data_loader.get_all_dynamic()
+        #data_loader = SliceDataloader(data_loader) if cfg.engine.slice_2d else data_loader
         for name, rec in cfg.reconstructors.items():
             rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
             data_rec_file = Path(f"data_rec_{rec_str}.npy")
@@ -63,9 +67,7 @@ def reconstruction(cfg: DictConfig) -> None:
             np.save(data_rec_file, rec_data)
             log.info(f"Saved to {data_rec_file.resolve()}")
 
-        phantom = data_loader.get_phantom()
         roi_mask = phantom.masks[phantom.labels == cfg.stats.roi_tissue_name]
-        dyn_datas = data_loader.get_all_dynamic()
         waveform_name = f"activation-{cfg.stats.event_name}"
         good_d = None
         for d in dyn_datas:
