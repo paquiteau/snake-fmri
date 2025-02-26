@@ -104,17 +104,24 @@ def apply_affine(
     use_gpu, affine_transform, xp = _validate_gpu_affine(use_gpu)
     if transform_affine is None:
         transform_affine = effective_affine(old_affine, new_affine)
+
+    if np.allclose(transform_affine, np.eye(4)) and data.shape == new_shape:
+        if output is not None:
+            if use_gpu:
+                np.copyto(output, data)
+            return output
+        else:
+            return data
+
+    data_ = xp.asarray(data)
     transform_affine = xp.asarray(transform_affine, dtype=xp.float32)
-    data = xp.asarray(data)
-    new_data = affine_transform(
-        data,
+    return affine_transform(
+        data_,
         matrix=transform_affine,
         output_shape=new_shape,
         output=output,
         **kwargs,
     )
-
-    return new_data
 
 
 def __apply_affine(
