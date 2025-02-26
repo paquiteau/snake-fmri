@@ -119,6 +119,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
                     nufft.smaps = smaps[..., slice_loc]
                 phantom_state = phantom_state[:, None, ..., slice_loc]
             else:
+                nufft.smaps = smaps
                 phantom_state = phantom_state[:, None, ...]
                 nufft.samples = traj
             ksp = nufft.op(phantom_state)
@@ -161,6 +162,7 @@ class NufftAcquisitionEngine(BaseAcquisitionEngine):
                 phantom_state = phantom_state[None, ..., slice_loc]
             else:
                 nufft.samples = traj
+                nufft.smaps = smaps
                 phantom_state = phantom_state[None, ...]
             final_ksp[i] = nufft.op(phantom_state)
         return final_ksp
