@@ -82,29 +82,7 @@ sampler = EPI3dAcquisitionSampler(accelz=1, acsz=0.1, orderz="top-down")
 # %%
 # Acquisition with Cartesian Engine
 # ---------------------------------
-#
-# The generated file ``example_EPI.mrd`` does not contains any k-space data for
-# now, only the sampling trajectory. let's put some in. In order to do so, we
-# need to setup the **acquisition engine** that models the MR physics, and get
-# sampled at the specified k-space trajectory.
-#
-# SNAKE comes with two models for the MR Physics:
-#
-# - model="simple" :: Each k-space shot acquires a constant signal, which is the
-#   image contrast at TE.
-# - model="T2s" :: Each k-space shot is degraded by the T2* decay induced by
-#   each tissue.
-
-# Here we will use the "simple" model, which is faster.
-#
-# SNAKE's Engine are capable of simulating the data in parallel, by distributing
-# the shots to be acquired to a set of processes. To do so , we need to specify
-# the number of jobs that will run in parallel, as well as the size of a job.
-# Setting the job size and the number of jobs can have a great impact on total
-# runtime and memory consumption.
-#
-# Here, we have a single frame to acquire with 60 frames (one EPI per slice), so
-# a single worker will do.
+# We acquire the three setup separately.
 
 from snake.core.engine import EPIAcquisitionEngine
 

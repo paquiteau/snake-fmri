@@ -76,7 +76,7 @@ from snake.core.engine import EPIAcquisitionEngine
 engine = EPIAcquisitionEngine(model="simple")
 
 engine(
-    "example_EPI.mrd",
+    "example_T2s_EPI_simple.mrd",
     sampler,
     phantom,
     sim_conf,
@@ -86,7 +86,7 @@ engine(
 engine_t2s = EPIAcquisitionEngine(model="T2s")
 
 engine_t2s(
-    "example_EPI_t2s.mrd",
+    "example_T2s_EPI_with_T2s.mrd",
     sampler,
     phantom,
     sim_conf,
@@ -126,8 +126,8 @@ def reconstruct_frame(filename):
     return image_data.squeeze().T
 
 
-image_simple = reconstruct_frame("example_EPI.mrd")
-image_T2s = reconstruct_frame("example_EPI_t2s.mrd")
+image_simple = reconstruct_frame("example_T2s_EPI_simple.mrd")
+image_T2s = reconstruct_frame("example_T2S_EPI_with_T2s.mrd")
 
 
 # %%
