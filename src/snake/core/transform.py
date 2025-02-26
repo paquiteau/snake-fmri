@@ -107,8 +107,7 @@ def apply_affine(
 
     if np.allclose(transform_affine, np.eye(4)) and data.shape == new_shape:
         if output is not None:
-            if use_gpu:
-                np.copyto(output, data)
+            np.copyto(output, data)
             return output
         else:
             return data
