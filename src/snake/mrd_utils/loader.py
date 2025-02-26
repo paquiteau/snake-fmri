@@ -287,7 +287,7 @@ class MRDLoader(LogMixin):
         try:
             n_waves = self._dataset["waveforms"].size
         except Exception as e:
-            log.error(e)
+            log.debug(e)
             return []
 
         for i in range(n_waves):
@@ -342,7 +342,7 @@ class MRDLoader(LogMixin):
                     sim_conf.fov.affine,
                     new_shape=sim_conf.fov.shape,
                     use_gpu=True,
-                )
+                ).squeeze()
             return smaps
 
     def get_coil_cov(self) -> NDArray | None:
