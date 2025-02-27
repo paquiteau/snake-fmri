@@ -83,7 +83,12 @@ class Phantom:
         labels = np.concatenate((self.labels, np.array([tissue_name])))
         props = np.concatenate((self.props, props), axis=0)
         return Phantom(
-            phantom_name or self.name, masks, labels, props, smaps=self.smaps
+            phantom_name or self.name,
+            masks,
+            labels,
+            props,
+            smaps=self.smaps,
+            affine=self.affine,
         )
 
     @property
