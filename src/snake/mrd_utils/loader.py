@@ -543,7 +543,9 @@ def get_affine_from_image(image: mrd.Image) -> NDArray[np.float32]:
     phase_dir = image._head.phase_dir
     slice_dir = image._head.slice_dir
     affine = np.eye(4, dtype=np.float32)
-    res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size)
+    # Reverse matrix size because the MRD file is messed up
+    # See imsmrd/image.py:296 (matrix_size property warning)
+    res = np.array(image._head.field_of_view) / np.array(image._head.matrix_size[::-1])
     affine[:3, 3] = -position[0], -position[1], position[2]
     affine[:3, 0] = (
         -read_dir[0] * res[0],

@@ -306,15 +306,16 @@ class Phantom:
 
         # Convert the affine matrix to position, field of view, etc.
         offsets = self.affine[:3, 3]
+        res_mm = np.sqrt(np.sum(self.affine[:3, :3] ** 2, axis=0))
         position = (-offsets[0], -offsets[1], offsets[2])
-        read_dir = self.affine[:3, 0] / self.affine[0, 0]
+        read_dir = self.affine[:3, 0] / res_mm[0]
         read_dir = (-read_dir[0], -read_dir[1], read_dir[2])
-        phase_dir = self.affine[:3, 1] / self.affine[1, 1]
+        phase_dir = self.affine[:3, 1] / res_mm[1]
         phase_dir = (-phase_dir[0], -phase_dir[1], phase_dir[2])
-        slice_dir = self.affine[:3, 2] / self.affine[2, 2]
+        slice_dir = self.affine[:3, 2] / res_mm[2]
         slice_dir = (-slice_dir[0], -slice_dir[1], slice_dir[2])
 
-        fov_mm = tuple(np.float32(np.array(self.anat_shape) * np.diag(self.affine)[:3]))
+        fov_mm = tuple(np.float32(np.array(self.anat_shape) * res_mm))
 
         # Add the phantom data
         dataset.append_image(

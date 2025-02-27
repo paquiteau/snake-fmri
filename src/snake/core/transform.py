@@ -103,7 +103,7 @@ def apply_affine(
     """
     use_gpu, affine_transform, xp = _validate_gpu_affine(use_gpu)
     if transform_affine is None:
-        transform_affine = effective_affine(old_affine, new_affine)
+        transform_affine = effective_affine(old=old_affine, new=new_affine)
 
     if np.allclose(transform_affine, np.eye(4)) and data.shape == new_shape:
         if output is not None:

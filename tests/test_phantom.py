@@ -22,12 +22,13 @@ class CasesPhantom:
     def case_mini_phantom(self, n_coils: int) -> Phantom:
         affine = np.eye(4)
         affine[:3, :] = np.random.rand(3, 4)
+        # using prime number to catch potential error with shape
         phantom = Phantom(
             "dummy",
-            masks=np.random.uniform(0, 1, (5, 10, 10, 10)),
+            masks=np.random.uniform(0, 1, (5, 11, 13, 17)),
             labels=np.array(["A", "B", "C", "D", "E"]),
             props=np.random.uniform(10, 100, (5, 5)),
-            smaps=None if n_coils == 1 else np.random.rand(n_coils, 10, 10, 10),
+            smaps=None if n_coils == 1 else np.random.rand(n_coils, 11, 13, 17),
             affine=affine,
         )
         return phantom
