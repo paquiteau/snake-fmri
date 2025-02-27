@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from collections.abc import Generator
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from multiprocessing.managers import SharedMemoryManager
 from multiprocessing.shared_memory import SharedMemory
 from typing import TYPE_CHECKING, Any, Literal
@@ -150,6 +150,8 @@ class Phantom:
                     tissue_select=tissue_select,
                     tissue_ignore=tissue_ignore,
                     output_res=output_res,
+                    n_coils=sim_conf.hardware.n_coils,
+                    fov=asdict(sim_conf.fov),
                 )
             )
         )

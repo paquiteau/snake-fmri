@@ -215,15 +215,16 @@ class LoadTrajectorySampler(NonCartesianAcquisitionSampler):
     path: str
     constant: bool = True
     obs_time_ms: int = 25
-    raster_time: float = 0.05
+    raster_time: float = 0.01
+    dwell_time: float = 0.01
     in_out: bool = True
 
     def _single_frame(self, sim_conf: SimConfig) -> NDArray:
         """Load the trajectory."""
-        data = read_trajectory(self.path, raster_time=self.raster_time)[0]
+        data = read_trajectory(self.path, dwell_time=self.dwell_time, raster_time=self.raster_time)[0]
         data = np.minimum(data, 0.5)
         data = np.maximum(data, -0.5)
-        return data
+        return np.float32(data)
 
 
 class StackOfSpiralSampler(NonCartesianAcquisitionSampler):
