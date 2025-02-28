@@ -127,7 +127,7 @@ def reconstruct_frame(filename):
 
 
 image_simple = reconstruct_frame("example_T2s_EPI_simple.mrd")
-image_T2s = reconstruct_frame("example_T2S_EPI_with_T2s.mrd")
+image_T2s = reconstruct_frame("example_T2s_EPI_with_T2s.mrd")
 
 
 # %%
@@ -142,7 +142,8 @@ fig, axs = plt.subplots(1, 3, figsize=(30, 10))
 for ax, img, title in zip(
     axs,
     (image_simple, image_T2s, abs(image_simple - image_T2s)),
-    ("simple", "T2s", "diff"), strict=False,
+    ("simple", "T2s", "diff"),
+    strict=False,
 ):
     axis3dcut(img, None, None, cbar=True, cuts=(40, 40, 40), width_inches=4, ax=ax)
     ax.set_title(title)
