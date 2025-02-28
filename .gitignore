@@ -25,6 +25,10 @@ __pycache__/
 _version.py
 
 *.mrd
+*.npy
+*.nii
+*.nii.gz
+
 **/*.mrd
 results/
 multirun/
@@ -54,3 +58,5 @@ coverage.xml
 .env/
 env/
 venv/
+uv.lock
+*.lock
