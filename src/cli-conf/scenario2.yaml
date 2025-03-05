@@ -40,6 +40,8 @@ handlers:
     block_off: 20 #seconds
     duration: 300 # seconds
     delta_r2s: 1000 # millisecond^-1
+#    atlas: "hardvard-oxford__cort-maxprob-thr0-1mm"
+    atlas: null
 
 sampler:
   stack-of-spiral:

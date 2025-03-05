@@ -87,8 +87,8 @@ def conf_validator(cfg: DictConfig) -> ConfigSNAKE:
     """Validate the simulation configuration."""
     cfg_obj: ConfigSNAKE = OmegaConf.to_object(cfg)
 
-    cfg_obj.sim_conf.fov_mm = tuple(cfg_obj.sim_conf.fov_mm)
-    cfg_obj.sim_conf.shape = tuple(cfg_obj.sim_conf.shape)
+    cfg_obj.sim_conf.fov.size = tuple(cfg_obj.sim_conf.fov.size)
+    cfg_obj.sim_conf.fov.shape = tuple(cfg_obj.sim_conf.fov.shape)
 
     return cfg_obj
 
