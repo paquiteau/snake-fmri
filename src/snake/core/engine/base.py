@@ -222,7 +222,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         if any(h.__updates_sim_conf__ for h in handlers) and resample_early:
             self.log.warning(
-                "Handlers are updating the sim_conf, imcompatible with resample_early"
+                "Handlers are updating the sim_conf, incompatible with resample_early"
                 "setting resample_early to False"
             )
             resample_early = False

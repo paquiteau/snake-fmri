@@ -31,9 +31,9 @@ logging.getLogger("snake").setLevel(level=logging.DEBUG)
 ## Configuration for 2D trajectories
 
 sim_conf = SimConfig(
-    max_sim_time=300,  # Temps maximum de simulation
-    seq=GreConfig(TR=2000, TE=40, FA=10),  # Configuration des paramètres de la séquence
-    hardware=default_hardware,  # Utilisation d'une configuration hardware existante (par exemple, HardwareConfig())
+    max_sim_time=300,
+    seq=GreConfig(TR=2000, TE=40, FA=10),
+    hardware=default_hardware,
 )
 
 
@@ -105,7 +105,6 @@ engine_t2s = NufftAcquisitionEngine(
     slice_2d=True, # Does not matter, we are in 2D anyway (: 
 )
 
-# Appel du moteur avec les paramètres requis
 engine_t2s(
     "example_2D+T.mrd",  
     sampler,  
