@@ -56,6 +56,7 @@ class MRDLoader(LogMixin):
         dataset_name: str = "dataset",
         writeable: bool = False,
         swmr: bool = False,
+        squeeze_dims: bool = True,
     ):
         self._filename = filename
         self._dataset_name = dataset_name
@@ -63,6 +64,7 @@ class MRDLoader(LogMixin):
         self._swmr = swmr
         self._level = 0
         self._file: h5py.File | None = None
+        self._squeeze_dims = squeeze_dims
 
     def __enter__(self):
         # Track the number of times the dataloader is used as a context manager
@@ -85,6 +87,8 @@ class MRDLoader(LogMixin):
             else:
                 matrixSize = header.encoding[0].encodedSpace.matrixSize
                 self._shape = matrixSize.x, matrixSize.y, matrixSize.z
+            if self._squeeze_dims:
+                self._shape = tuple(filter(lambda x: x > 1, self._shape))
         self._level += 1
         return self
 
@@ -342,7 +346,9 @@ class MRDLoader(LogMixin):
                     sim_conf.fov.affine,
                     new_shape=sim_conf.fov.shape,
                     use_gpu=True,
-                ).squeeze()
+                )
+            if self._squeeze_dims:
+                return smaps.squeeze()
             return smaps
 
     def get_coil_cov(self) -> NDArray | None:
