@@ -74,10 +74,10 @@ class ConfigSNAKE:
     handlers: Any
     sampler: Any
     reconstructors: Any
-    sim_conf: SimConfig = field(default_factory=SimConfig())
-    engine: EngineConfig = field(default_factory=EngineConfig())
-    phantom: PhantomConfig = field(default_factory=PhantomConfig())
-    stats: StatConfig = field(default_factory=StatConfig())
+    sim_conf: SimConfig = field(default_factory=SimConfig)
+    engine: EngineConfig = field(default_factory=EngineConfig)
+    phantom: PhantomConfig = field(default_factory=PhantomConfig)
+    stats: StatConfig = field(default_factory=StatConfig)
     cache_dir: Path = "${oc.env:PWD}/cache"  # type: ignore
     result_dir: Path = "${oc.env:PWD}/results"  # type: ignore
     filename: Path = "test.mrd"  # type: ignore
