@@ -44,7 +44,7 @@ class RandomMotionImageHandler(AbstractHandler):
     """
 
     __handler_name__ = "motion-image"
-
+    __updates_sim_conf = True  # notify that we are changing the sim_conf.
     ts_std_mms: tuple[float, float, float] | None = None
     rs_std_degs: tuple[float, float, float] | None = None
 

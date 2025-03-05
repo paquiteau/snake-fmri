@@ -28,6 +28,7 @@ class AbstractHandler(metaclass=MetaHandler):
 
     __registry__: ClassVar[dict[str, type[AbstractHandler]]]
     __handler_name__: ClassVar[str]
+    __updates_sim_conf__: ClassVar[bool] = False
 
     def get_static(self, phantom: Phantom, sim_conf: SimConfig) -> Phantom:
         """Get the static information of the handler."""
