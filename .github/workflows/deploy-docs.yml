@@ -18,6 +18,11 @@ concurrency:
   group: "pages"
   cancel-in-progress: true
 
+env:
+  create_venv: "python -m venv $RUNNER_WORKSPACE/venv"
+  activate_venv: "source $RUNNER_WORKSPACE/venv/bin/activate"
+  setup_cuda: "export CUDA_BIN_PATH=/usr/local/cuda-12.1/;export PATH=/usr/local/cuda-12.1/bin/:${PATH};export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}"
+
 # This job installs dependencies, builds the book, and pushes it to `gh-pages`
 jobs:
   deploy-book:
@@ -40,14 +45,18 @@ jobs:
 
     - name: Install dependencies
       run: |
+        ${{ env.create_venv }}
+        ${{ env.setup_cuda }}
+        ${{ env.activate_venv }}
         pip install mri-nufft[finufft,cufinufft] ipywidgets
-        pip install -e .[doc]
+        pip install -e .[doc,toolkit]
         pip install git+https://github.com/mind-inria/mri-nufft
 
     # Build the book
     - name: Build the book
       continue-on-error: true
       run: |
+        ${{ env.activate_venv }}
         python -m sphinx docs docs_build
 
     - name: Upload artifact

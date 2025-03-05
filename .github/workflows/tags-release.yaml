@@ -4,6 +4,11 @@ on:
   push:
     tags:
       - 'v[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  create_venv: "python -m venv $RUNNER_WORKSPACE/venv"
+  activate_venv: "source $RUNNER_WORKSPACE/venv/bin/activate"
+  setup_cuda: "export CUDA_BIN_PATH=/usr/local/cuda-12.1/;export PATH=/usr/local/cuda-12.1/bin/:${PATH};export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}"
 jobs:
   build-n-publish:
     name: Build and publish to PyPI
@@ -25,11 +30,17 @@ jobs:
 
     - name: Install pypa/build
       run: |
+
+        ${{ env.create_env }}
+        ${{ env.setup_cuda }}
+        ${{ env.activate_env }}
         python -m pip install build
         python -m pip install .
 
     - name: Build a binary wheel and a source tarball
       run: |
+        ${{ env.setup_cuda }}
+        ${{ env.activate_env }}
         python -m build --sdist --wheel --outdir dist/ .
 
     - name: Publish distribution 📦 to PyPI

@@ -9,6 +9,10 @@ on:
   push:
     branches: ["main"]
 
+env:
+  create_venv: "python -m venv $RUNNER_WORKSPACE/venv"
+  activate_venv: "source $RUNNER_WORKSPACE/venv/bin/activate"
+  setup_cuda: "export CUDA_BIN_PATH=/usr/local/cuda-12.1/;export PATH=/usr/local/cuda-12.1/bin/:${PATH};export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}"
 jobs:
   test:
     strategy:
@@ -25,14 +29,16 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: |
-          export CUDA_BIN_PATH=/usr/local/cuda-12.1/
-          export PATH=/usr/local/cuda-12.1/bin/:${PATH}
-          export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}
+          ${{ env.create_venv }}
+          ${{ env.setup_cuda }}
+          ${{ env.activate_venv }}
           python -m pip install --upgrade pip
           pip install cufinufft cupy-cuda12x finufft ipywidgets
           pip install -e .[test,toolkit]
       - name: Test
         run: |
+          ${{ env.setup_cuda }}
+          ${{ env.activate_env }}
           pytest tests --cov --cov-branch --cov-report=term
 
   test-examples:
@@ -55,15 +61,17 @@ jobs:
           key: ${{ runner.os }}-Brainweb
       - name: Install dependencies
         run: |
-          export CUDA_BIN_PATH=/usr/local/cuda-12.1/
-          export PATH=/usr/local/cuda-12.1/bin/:${PATH}
-          export LD_LIBRARY_PATH=/usr/local/cuda-12.1/lib64/:${LD_LIBRARY_PATH}
+          ${{ env.create_venv }}
+          ${{ env.setup_cuda }}
+          ${{ env.activate_venv }}
           python -m pip install --upgrade pip
           pip install cufinufft cupy-cuda12x finufft ipywidgets
           pip install -e .[test,toolkit]
       - name: Test
         run: |
-          pytest examples/anatomical
+          ${{ env.setup_cuda }}
+          ${{ env.activate_venv }}
+          pytest examples/
       - name: Cache brainweb-dl directory
         uses: actions/cache/save@v4
         if: ${{ steps.cache-restore.outputs.cache-hit != 'true' }}
@@ -82,11 +90,15 @@ jobs:
           cache: 'pip'
       - name: Install dependencies
         run: |
+          ${{ env.create_venv }}
+          ${{ env.setup_cuda }}
+          ${{ env.activate_venv }}
           python -m pip install --upgrade pip
           pip install -e .[toolkit]
           pip install ruff
       - name: Linters
         run: |
+          ${{ env.activate_venv }}
           ruff check src
           ruff format --check src
       - name: Annotate locations with typos
