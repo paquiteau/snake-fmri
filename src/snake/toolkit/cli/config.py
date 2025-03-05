@@ -15,6 +15,26 @@ from snake.core.sampling import BaseSampler
 from snake.toolkit.reconstructors import BaseReconstructor
 
 
+# Import all handlers and samplers in plugins files
+# to register them in their respective registries
+# This is needed to be able to use them in the configuration file
+# and to be able to use them in the CLI
+
+import pkgutil
+import importlib
+import sys
+import os
+
+
+print("Importing plugins")
+# Adding the current directory to the path
+sys.path.insert(0, os.getcwd())
+for finder, module_name, ispkg in pkgutil.iter_modules():
+    if module_name.startswith("snake_"):
+        importlib.import_module(module_name)
+        print(f"Imported {module_name} from {finder.path}")
+
+
 @dataclass
 class EngineConfig:
     """Engine configuration for SNAKE."""
