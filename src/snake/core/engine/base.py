@@ -174,6 +174,7 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         coil_cov: NDArray | None = None,
         worker_chunk_size: int = 0,
         n_workers: int = 0,
+        resample_early: bool = True,
         **kwargs: Any,
     ):
         """Perform the acquisition and fill the dataset.
@@ -218,6 +219,19 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
             self.log.warning("Using 2D acquisition, the TR_eff is updated to TR_vol")
         else:
             sim_conf.TR_eff = sim_conf.seq.TR
+
+        if any(h.__updates_sim_conf__ for h in handlers) and resample_early:
+            self.log.warning(
+                "Handlers are updating the sim_conf, imcompatible with resample_early"
+                "setting resample_early to False"
+            )
+            resample_early = False
+
+        if resample_early:
+            self.log.info("Resampling the phantom to the acquisition space")
+            phantom = phantom.resample(
+                new_affine=sim_conf.fov.affine, new_shape=sim_conf.shape, use_gpu=True
+            )
 
         # Create the base dataset
         make_base_mrd(
