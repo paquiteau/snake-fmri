@@ -41,7 +41,11 @@ def _reconstruct_cartesian_frame(
         CartesianFrameDataLoader(filename) as data_loader,
     ):
         mask, kspace = data_loader.get_kspace_frame(idx)
-        adj_data = ifft(kspace, axis=tuple(range(len(data_loader.shape), 0, -1)))
+        if data_loader.slice_2d:
+            axes = (-3, -2)
+        else:
+            axes = tuple(range(len(data_loader.shape), 0, -1))
+        adj_data = ifft(kspace, axis=axes)
         if smaps_props is not None and data_loader.n_coils > 1:
             with array_from_shm(smaps_props) as smaps_info:
                 smaps = smaps_info[0]
@@ -217,18 +221,19 @@ class SequentialReconstructor(BaseReconstructor):
         xp, _ = get_backend(self.compute_backend)
         _ = self.space_linear_op.op(xp.zeros(shape, dtype=np.complex64))
 
-        if self.threshold == "sure":
-            self.space_prox_op = AutoWeightedSparseThreshold(
-                self.space_linear_op.coeffs_shape,
-                linear=None,
-                threshold_estimation="hybrid-sure",
-                threshold_scaler=0.6,
-            )
-        else:
-            self.threshold = float(self.threshold)
-            self.space_prox_op = SparseThreshold(
-                linear=Identity(), weights=self.threshold
-            )
+        if not hasattr(self, "space_prox_op"):
+            if self.threshold == "sure":
+                self.space_prox_op = AutoWeightedSparseThreshold(
+                    self.space_linear_op.coeffs_shape,
+                    linear=None,
+                    threshold_estimation="hybrid-sure",
+                    threshold_scaler=0.6,
+                )
+            else:
+                self.threshold = float(self.threshold)
+                self.space_prox_op = SparseThreshold(
+                    linear=Identity(), weights=self.threshold
+                )
 
     def reconstruct(self, data_loader: MRDLoader) -> np.ndarray:
         """Reconstruct with Sequential."""
