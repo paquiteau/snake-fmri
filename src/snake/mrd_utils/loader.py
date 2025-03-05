@@ -87,8 +87,8 @@ class MRDLoader(LogMixin):
             else:
                 matrixSize = header.encoding[0].encodedSpace.matrixSize
                 self._shape = matrixSize.x, matrixSize.y, matrixSize.z
-            if self._squeeze_dims:
-                self._shape = tuple(filter(lambda x: x > 1, self._shape))
+                if self._squeeze_dims:
+                    self._shape = tuple(filter(lambda x: x > 1, self._shape))
         self._level += 1
         return self
 

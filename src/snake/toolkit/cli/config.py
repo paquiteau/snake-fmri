@@ -29,7 +29,7 @@ import os
 print("Importing plugins")
 # Adding the current directory to the path
 sys.path.insert(0, os.getcwd())
-for finder, module_name, ispkg in pkgutil.iter_modules():
+for finder, module_name, _ispkg in pkgutil.iter_modules():
     if module_name.startswith("snake_"):
         importlib.import_module(module_name)
         print(f"Imported {module_name} from {finder.path}")
