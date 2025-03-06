@@ -51,20 +51,21 @@ def reconstruction(cfg: DictConfig) -> None:
 
     # Reconstructor.setup(sim_conf) # initialize operators
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
-    with DataLoader(cfg.filename) as data_loader:
-        local_sim_conf = data_loader.get_sim_conf()
-        for name, rec in cfg.reconstructors.items():
-            print(rec)
-            rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
-            data_rec_file = Path(f"data_rec_{rec_str}.npy")
-            log.info(f"Using {name} reconstructor")
-            rec.setup(local_sim_conf)
+    for name, rec in cfg.reconstructors.items():
+        rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
+        data_rec_file = Path(f"data_rec_{rec_str}.npy")
+        log.info(f"Using {name} reconstructor")
+        with DataLoader(cfg.filename) as data_loader:
+            # rec.setup(data_loader.get_sim_conf())
             rec_data = rec.reconstruct(data_loader)
-            log.info(f"Reconstruction done with {name}")
-            # Save the reconstruction
-            np.save(data_rec_file, rec_data)
-            log.info(f"Saved to {data_rec_file.resolve()}")
+        log.info(f"Reconstruction done with {name}")
+        # Save the reconstruction
+        np.save(data_rec_file, rec_data)
+        log.info(f"Saved to {data_rec_file.resolve()}")
+    gc.collect()
 
+    # Extract statistical data:
+    with DataLoader(cfg.filename) as data_loader:
         phantom = data_loader.get_phantom()
         roi_mask = phantom.masks[phantom.labels == cfg.stats.roi_tissue_name]
         dyn_datas = data_loader.get_all_dynamic()
@@ -88,7 +89,7 @@ def reconstruction(cfg: DictConfig) -> None:
         rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
         data_rec_file = Path(f"data_rec_{rec_str}.npy").resolve()
         data_zscore_file = Path(f"data_zscore_{rec_str}.npy").resolve()
-        rec_data = np.load(data_rec_file)
+        rec_data = abs(np.load(data_rec_file))
         TR_vol = sim_conf.max_sim_time / len(rec_data)
 
         z_score = contrast_zscore(
