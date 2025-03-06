@@ -17,6 +17,9 @@ def acquisition(cfg: ConfigSNAKE) -> None:
     # FIXME: Hydra should be able to do that on its own.
     print(cfg)
     sim_conf = cfg.sim_conf
+    output_res = 0.5
+    if max(sim_conf.fov.res_mm) >= 1:
+        output_res = 1
     if cfg.phantom.name == "brainweb":
         phantom = Phantom.from_brainweb(
             sub_id=cfg.phantom.sub_id,
@@ -24,6 +27,7 @@ def acquisition(cfg: ConfigSNAKE) -> None:
             tissue_select=cfg.phantom.tissue_select,
             tissue_ignore=cfg.phantom.tissue_ignore,
             tissue_file=cfg.phantom.tissue_file,
+            output_res=output_res,
         )
     else:
         raise ValueError(f"Unknown phantom {cfg.phantom.name}")
