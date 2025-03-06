@@ -1,7 +1,7 @@
 """Engines are responsible for the acquisition of Kspace."""
 
 from __future__ import annotations
-
+from functools import partial
 import gc
 import logging
 import multiprocessing as mp
@@ -58,8 +58,9 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
     __engine_name__: ClassVar[str]
     __registry__: ClassVar[dict[str, type[BaseAcquisitionEngine]]]
-    log: ClassVar[logging.Logger]
+    __mp_mode__: ClassVar[str] = "fork"
 
+    log: ClassVar[logging.Logger]
     model: str = "simple"
     snr: float = np.inf
     slice_2d: bool = False
@@ -268,6 +269,14 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         del ideal_phantom
 
+
+        # Reduce the number of workers if the number of chunks is smaller
+        # than the number of workers
+        n_workers = min(n_workers, len(chunk_list))
+        self.log.debug("Using %d workers", n_workers)
+        self.log.debug("Chunk size: %d", worker_chunk_size)
+        self.log.debug("Number of chunks: %d", len(chunk_list))
+
         # https://github.com/h5py/h5py/issues/712#issuecomment-562980532
         # We know that we are going to read the dataset in read-only mode
         # and use the main process (here) to write the data.
@@ -275,14 +284,16 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
 
         os.environ["HDF5_USE_FILE_LOCKING"] = "FALSE"
         if n_workers > 1:
-            Executor = ProcessPoolExecutor(
-                n_workers, mp_context=mp.get_context(self.__mp_mode__)
+            Executor = partial(
+                ProcessPoolExecutor,
+                n_workers,
+                mp_context=mp.get_context(self.__mp_mode__),
             )
         else:
-            Executor = ThreadPoolExecutor(max_workers=1)
+            Executor = partial(ThreadPoolExecutor, max_workers=1)
         with (
             SharedMemoryManager() as smm,
-            Executor as executor,
+            Executor() as executor,
             tqdm(total=len(shot_idxs)) as pbar,
             MRDLoader(filename, writeable=True) as data_loader,
             TemporaryDirectory(
