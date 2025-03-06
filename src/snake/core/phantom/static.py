@@ -1,7 +1,7 @@
 """Module to create phantom for simulation."""
 
 from __future__ import annotations
-
+import hashlib
 import contextlib
 import json
 import logging
@@ -147,7 +147,7 @@ class Phantom:
         """
         if cache_dir is None:
             cache_dir = os.environ.get("SNAKE_CACHE_DIR", SNAKE_CACHE_DIR)
-        phantom_hash = hash(
+        phantom_hash = hashlib.md5(
             json.dumps(
                 dict(
                     sub_id=sub_id,
@@ -157,9 +157,10 @@ class Phantom:
                     output_res=output_res,
                     n_coils=sim_conf.hardware.n_coils,
                     fov=asdict(sim_conf.fov),
-                )
-            )
-        )
+                ),
+                sort_keys=True,
+            ).encode()
+        ).hexdigest()
         phantom_file = None
         if cache_dir is not False:
             if not os.path.exists(cache_dir):
@@ -245,7 +246,7 @@ class Phantom:
             )
 
         phantom = cls(
-            "brainweb-{sub_id:02d}",
+            f"brainweb-{sub_id:02d}",
             tissues_mask,
             labels=np.array([t[0] for t in tissues_list]),
             props=np.array([t[1:] for t in tissues_list]),
