@@ -64,6 +64,7 @@ class ActivationMixin(LogMixin):
     # Use nilearn for downloading the atlas.
     atlas: str | None = "hardvard-oxford__cort-maxprob-thr50-1mm"
     atlas_label: int | str = ""
+    roi_threshold: float | None = None
 
     def get_static(self, phantom: Phantom, sim_config: SimConfig) -> Phantom:
         """Get the static ROI."""
@@ -73,6 +74,8 @@ class ActivationMixin(LogMixin):
             roi = self._get_roi_base(phantom)
         else:
             roi = self._get_roi_atlas(phantom)
+        if self.roi_threshold is not None:
+            roi = np.float32(roi > self.roi_threshold)
 
         # update the phantom
         new_phantom = phantom.add_tissue(
@@ -106,6 +109,7 @@ class ActivationMixin(LogMixin):
             euler_angles=occ_roi["euler_angles"],
         )
         roi_base[~ellipsoid] = 0
+
         return roi_base
 
     def _get_roi_atlas(self, phantom: Phantom) -> NDArray:
@@ -219,10 +223,10 @@ class BlockActivationHandler(ActivationMixin, AbstractHandler):
     hrf_model: str = "glover"
     oversampling: int = 50
     min_onset: float = -24.0
-    roi_threshold: float = 0.0
     base_tissue_name: str = "gm"
     atlas: str | None = "hardvard-oxford__cort-maxprob-thr50-1mm"
     atlas_label: int | str = 48
+    roi_threshold: float | None = None
 
     def __post_init__(self):
         self.event_condition = block_design(
