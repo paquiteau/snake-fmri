@@ -99,7 +99,7 @@ class ZeroFilledReconstructor(BaseReconstructor):
         if smaps is None and data_loader.n_coils > 1:
             raise NotImplementedError("Missing coil combine code.")
 
-        final_images = np.ones(
+        final_images = np.zeros(
             (data_loader.n_frames, *data_loader.shape), dtype=np.float32
         )
 
