@@ -26,10 +26,14 @@ class ConjugateGradientReconstructor(ZeroFilledReconstructor):
 
     __reconstructor_name__ = "cg"
 
-    max_iter: int
-    tol: float
-    density_compensation: str | False | None = False
+    max_iter: int = 50
+    tol: float = 1e-4
+    density_compensation: str | bool | None = False
     nufft_backend: str = "cufinufft"
+
+    def __str__(self) -> str:
+        """Return a string representation of the object."""
+        return f"{self.__reconstructor_name__}_{self.max_iter}_{self.tol:.0e}"
 
     def _reconstruct_nufft(self, data_loader: NonCartesianFrameDataLoader) -> NDArray:
         """Reconstruct the data using the NUFFT operator."""
@@ -38,10 +42,10 @@ class ConjugateGradientReconstructor(ZeroFilledReconstructor):
         nufft_operator = init_nufft(
             data_loader,
             density_compensation=self.density_compensation,
-            backend=self.nufft_backend,
+            nufft_backend=self.nufft_backend,
         )
         final_images = np.empty(
-            (data_loader.n_frames, *data_loader.shape), dtype=np.float32
+            (data_loader.n_frames, *data_loader.shape), dtype=np.complex64
         )
 
         for i in tqdm(range(data_loader.n_frames)):
@@ -52,7 +56,9 @@ class ConjugateGradientReconstructor(ZeroFilledReconstructor):
                 )[0, :, :2]
                 data = np.reshape(data, (data.shape[0], data_loader.n_shots, -1))
                 for j in range(data.shape[1]):
-                    final_images[i, :, :, j] = cg(nufft_operator, data[:, j])
+                    final_images[i, :, :, j] = cg(
+                        nufft_operator, data[:, j],num_iter=self.max_iter, tol=self.tol
+                        )
             else:
                 final_images[i] = cg(
                     nufft_operator, data, num_iter=self.max_iter, tol=self.tol
