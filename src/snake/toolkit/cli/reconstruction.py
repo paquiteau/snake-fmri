@@ -52,11 +52,13 @@ def reconstruction(cfg: DictConfig) -> None:
     # Reconstructor.setup(sim_conf) # initialize operators
     # array = Reconstructor.reconstruct(dataloader, sim_conf)
     with DataLoader(cfg.filename) as data_loader:
+        local_sim_conf = data_loader.get_sim_conf()
         for name, rec in cfg.reconstructors.items():
+            print(rec)
             rec_str = str(rec)  # FIXME Also use parameters  of reconstructors
             data_rec_file = Path(f"data_rec_{rec_str}.npy")
             log.info(f"Using {name} reconstructor")
-            rec.setup(sim_conf)
+            rec.setup(local_sim_conf)
             rec_data = rec.reconstruct(data_loader)
             log.info(f"Reconstruction done with {name}")
             # Save the reconstruction
@@ -71,11 +73,12 @@ def reconstruction(cfg: DictConfig) -> None:
         for d in dyn_datas:
             if d.name == waveform_name:
                 good_d = d
+                break
         if good_d is None:
             raise ValueError("No dynamic data found matching waveform name")
 
         bold_signal = good_d.data[0]
-        bold_sample_time = np.arange(len(bold_signal)) * sim_conf.seq.TR / 1000
+        bold_sample_time = np.arange(len(bold_signal)) * local_sim_conf.seq.TR / 1000
         del phantom
         del dyn_datas
     gc.collect()
