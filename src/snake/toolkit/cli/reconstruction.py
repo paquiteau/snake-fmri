@@ -60,6 +60,8 @@ def reconstruction(cfg: DictConfig) -> None:
             rec_data = rec.reconstruct(data_loader)
         log.info(f"Reconstruction done with {name}")
         # Save the reconstruction
+        if np.any(np.isnan(rec_data)):
+            log.warning("NaNs detected in reconstruction")
         np.save(data_rec_file, rec_data)
         log.info(f"Saved to {data_rec_file.resolve()}")
     gc.collect()
@@ -91,10 +93,17 @@ def reconstruction(cfg: DictConfig) -> None:
         data_zscore_file = Path(f"data_zscore_{rec_str}.npy").resolve()
         rec_data = abs(np.load(data_rec_file))
         TR_vol = sim_conf.max_sim_time / len(rec_data)
-
-        z_score = contrast_zscore(
-            rec_data, TR_vol, bold_signal, bold_sample_time, cfg.stats.event_name
-        )
+        try:
+            z_score = contrast_zscore(
+                rec_data,
+                TR_vol,
+                bold_signal,
+                bold_sample_time,
+                cfg.stats.event_name,
+            )
+        except Exception as e:
+            log.error(f"Error in contrast_zscore: {e}")
+            continue
         stats_results = get_scores(z_score, roi_mask, cfg.stats.roi_threshold)
         np.save(data_zscore_file, z_score)
 
