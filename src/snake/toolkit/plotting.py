@@ -196,9 +196,7 @@ def plot_frames_activ(
             roi_cut = roi[slices][bbox].squeeze()
             contours = find_contours(roi_cut)
             for c in contours:
-                ax.plot(
-                    c[:, 1], c[:, 0] - 0.5, c="cyan", label="ground-truth", linewidth=1
-                )
+                ax.plot(c[:, 1], c[:, 0], c="cyan", label="ground-truth", linewidth=1)
     ax.set_xticks([])
     ax.set_yticks([])
     return ax, im
