@@ -57,7 +57,7 @@ activation_handler = BlockActivationHandler(
     block_off=20,
     block_on=20, 
     duration=300, 
-    atlas="hardvard-oxford__cort-maxprob-thr50-1mm",
+    atlas="hardvard-oxford__cort-maxprob-thr0-1mm",
     atlas_label = 48 # occipital cortex
 )
 
