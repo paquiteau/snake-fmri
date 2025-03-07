@@ -188,7 +188,7 @@ class SequentialReconstructor(BaseReconstructor):
     wavelet: str = "db4"
     threshold: float | str = "sure"
     nufft_backend: str = "gpunufft"
-    density_compensation: str | bool = "pipe"
+    density_compensation: None | str | bool = "pipe"
     restart_strategy: RestartStrategy = RestartStrategy.WARM
     compute_backend: str = "cupy"
 
@@ -274,6 +274,7 @@ class SequentialReconstructor(BaseReconstructor):
             smaps=smaps,
             # smaps=xp.array(smaps) if smaps is not None else None,
             density=density_compensation,
+            squeeze_dims=True,
             **kwargs,
         )
 
