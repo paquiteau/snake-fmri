@@ -300,6 +300,29 @@ class MRDLoader(LogMixin):
             all_dyn_data.append(DynamicData._from_waveform(waveform, wave_info))
         return all_dyn_data
 
+    def get_timeserie(
+        self, name: str
+    ) -> tuple[NDArray[np.float32], NDArray[np.float32]]:
+        """Get a dynamic timeseries and the associated sampled time (every TRshot).
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            The sampled time and the dynamic timeserie.
+        """
+        dyn_datas = self.get_all_dynamic()
+        good_d = None
+        for d in dyn_datas:
+            if d.name == name:
+                good_d = d
+                break
+        if good_d is None:
+            raise ValueError("No dynamic data found matching waveform name")
+
+        signal = good_d.data[0]
+        sample_time = np.arange(len(signal)) * self.get_sim_conf().seq.TR / 1000
+        return sample_time, signal
+
     @functools.lru_cache  # noqa
     def get_sim_conf(self) -> SimConfig:
         """Parse the sim config."""
