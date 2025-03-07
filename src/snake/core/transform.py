@@ -75,6 +75,7 @@ def apply_affine(
     output: NDArray[np.float32] = None,
     transform_affine: NDArray[np.float32] = None,
     use_gpu: bool = True,
+    mode="nearest",
     **kwargs: Any,
 ) -> NDArray[np.float32]:
     """Apply the new affine on the data.
@@ -119,6 +120,7 @@ def apply_affine(
         matrix=transform_affine,
         output_shape=new_shape,
         output=output,
+        mode=mode,
         **kwargs,
     )
 
