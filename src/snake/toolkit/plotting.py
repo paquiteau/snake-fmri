@@ -8,7 +8,7 @@ import numpy as np
 from numpy.typing import NDArray
 from mpl_toolkits.axes_grid1.axes_divider import Size, make_axes_locatable
 from skimage.measure import find_contours
-from matplotlib.cm import ScalarMappable
+from matplotlib.cm import ScalarMappable, _colormaps
 
 
 def get_coolgraywarm(thresh: float = 3, max: float = 7) -> matplotlib.colorbar.Colorbar:
@@ -154,6 +154,7 @@ def plot_frames_activ(
     z_thresh: float = 3,
     z_max: float = 11,
     bg_cmap: str = "gray",
+    roi_colors: list[str] | None = None,
 ) -> tuple[plt.Axes, matplotlib.image.AxesImage]:
     """Plot activation maps and background.
 
@@ -192,11 +193,13 @@ def plot_frames_activ(
             origin="lower",
         )
     if rois is not None:
-        for roi in rois:
+        if roi_colors is None:
+            roi_colors = ["r", "g", "b", "y"][: len(rois)]
+        for roi, color in zip(rois, roi_colors):
             roi_cut = roi[slices][bbox].squeeze()
             contours = find_contours(roi_cut)
             for c in contours:
-                ax.plot(c[:, 1], c[:, 0], c="cyan", label="ground-truth", linewidth=1)
+                ax.plot(c[:, 1], c[:, 0], c=color, label="roi", linewidth=1)
     ax.set_xticks([])
     ax.set_yticks([])
     return ax, im
@@ -217,6 +220,7 @@ def axis3dcut(
     z_thresh: float = 3,
     z_max: float = 11,
     tight_crop: bool = False,
+    roi_colors: list[str] | None = None,
 ) -> tuple[plt.Figure, plt.Axes, tuple[int, ...]]:
     """Display a 3D image with zscore and ground truth ROI.
 
@@ -321,6 +325,7 @@ def axis3dcut(
             bg_cmap=bg_cmap,
             z_thresh=z_thresh,
             z_max=z_max,
+            roi_colors=roi_colors,
         )
 
     if cbar:
