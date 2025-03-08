@@ -58,30 +58,6 @@ def contrast_zscore(
     return z_image
 
 
-def get_thresh_map(
-    z_image: np.ndarray,
-    alpha: float | list[float],
-    height_control: HeightControl = "fpr",
-) -> dict[float, np.ndarray]:
-    """Get thresholded map."""
-    thresh_dict = {}
-    if not isinstance(alpha, list):
-        alphas = [alpha]
-    else:
-        alphas = alpha
-    for a in alphas:
-        if height_control == "fpr":
-            z_thresh = norm.isf(a)
-        elif height_control == "fdr":
-            z_thresh = fdr_threshold(z_image, a)
-
-        above_thresh = z_image > z_thresh
-        thresh_dict[a] = above_thresh
-    if len(alphas) == 1:
-        return thresh_dict[alphas[0]]
-    return thresh_dict
-
-
 def get_scores(
     contrast: np.ndarray, roi_mask: np.ndarray, roi_threshold: float
 ) -> dict[str, float]:
