@@ -221,6 +221,9 @@ class BaseAcquisitionEngine(metaclass=MetaEngine):
         else:
             sim_conf.TR_eff = sim_conf.seq.TR
 
+        if handlers is None:
+            handlers = []
+
         if any(h.__updates_sim_conf__ for h in handlers) and resample_early:
             self.log.warning(
                 "Handlers are updating the sim_conf, incompatible with resample_early"
